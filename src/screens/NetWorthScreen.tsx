@@ -304,24 +304,30 @@ const NetWorthScreen: React.FC<Props> = ({navigation}) => {
             width={Dimensions.get('window').width - 40}
             height={220}
             chartConfig={{
-              backgroundColor: '#ffffff',
-              backgroundGradientFrom: '#ffffff',
-              backgroundGradientTo: '#ffffff',
+              backgroundColor: '#fff',
+              backgroundGradientFrom: '#fff',
+              backgroundGradientTo: '#fff',
               decimalPlaces: 0,
               color: (opacity = 1) => `rgba(46, 125, 50, ${opacity})`,
               labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
               style: {
                 borderRadius: 16,
+                backgroundColor: '#fff',
               },
               propsForDots: {
                 r: '4',
                 strokeWidth: '2',
                 stroke: '#2E7D32',
               },
+              fillShadowGradient: '#fff',
+              fillShadowGradientOpacity: 1,
             }}
             bezier
-            style={styles.chart}
+            style={Object.assign({}, styles.chart, {backgroundColor: '#fff'})}
             formatYLabel={value => `$${Number(value).toLocaleString()}`}
+            withDots={false}
+            withHorizontalLines={false}
+            withVerticalLines={false}
           />
         </View>
       )}
@@ -349,13 +355,13 @@ const NetWorthScreen: React.FC<Props> = ({navigation}) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#181f2a',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#181f2a',
   },
   loadingText: {
     fontSize: 16,
@@ -367,7 +373,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
     paddingTop: 40,
-    backgroundColor: '#2E7D32',
+    backgroundColor: '#181f2a',
   },
   headerTitle: {
     fontSize: 24,
@@ -385,7 +391,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   overviewCard: {
-    backgroundColor: '#fff',
+    backgroundColor: '#222b3a',
     margin: 20,
     marginTop: -20,
     borderRadius: 15,
@@ -421,7 +427,7 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   breakdownCard: {
-    backgroundColor: '#fff',
+    backgroundColor: '#222b3a',
     marginHorizontal: 20,
     marginBottom: 20,
     borderRadius: 15,
@@ -457,7 +463,7 @@ const styles = StyleSheet.create({
     color: '#2E7D32',
   },
   chartCard: {
-    backgroundColor: '#fff',
+    backgroundColor: '#222b3a',
     marginHorizontal: 20,
     marginBottom: 20,
     borderRadius: 15,
@@ -503,7 +509,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   entriesCard: {
-    backgroundColor: '#fff',
+    backgroundColor: '#222b3a',
     marginHorizontal: 20,
     marginBottom: 20,
     borderRadius: 15,

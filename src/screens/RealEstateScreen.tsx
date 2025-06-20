@@ -293,17 +293,20 @@ const RealEstateScreen: React.FC<Props> = ({navigation}) => {
             yAxisLabel="$"
             yAxisSuffix=""
             chartConfig={{
-              backgroundColor: '#1e1e1e',
-              backgroundGradientFrom: '#1e1e1e',
-              backgroundGradientTo: '#1e1e1e',
+              backgroundColor: '#2d2d2d',
+              backgroundGradientFrom: '#2d2d2d',
+              backgroundGradientTo: '#2d2d2d',
               decimalPlaces: 0,
               color: (opacity = 1) => `rgba(0, 112, 186, ${opacity})`,
               labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
               style: {
                 borderRadius: 16,
+                backgroundColor: '#2d2d2d',
               },
+              fillShadowGradient: '#2d2d2d',
+              fillShadowGradientOpacity: 1,
             }}
-            style={styles.chart}
+            style={Object.assign({}, styles.chart, {backgroundColor: '#2d2d2d'})}
           />
         </View>
       )}
@@ -317,23 +320,26 @@ const RealEstateScreen: React.FC<Props> = ({navigation}) => {
             width={screenWidth - 40}
             height={220}
             chartConfig={{
-              backgroundColor: '#1e1e1e',
-              backgroundGradientFrom: '#1e1e1e',
-              backgroundGradientTo: '#1e1e1e',
+              backgroundColor: '#2d2d2d',
+              backgroundGradientFrom: '#2d2d2d',
+              backgroundGradientTo: '#2d2d2d',
               decimalPlaces: 0,
               color: (opacity = 1) => `rgba(40, 167, 69, ${opacity})`,
               labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
               style: {
                 borderRadius: 16,
+                backgroundColor: '#2d2d2d',
               },
               propsForDots: {
                 r: '6',
                 strokeWidth: '2',
                 stroke: '#28a745',
               },
+              fillShadowGradient: '#2d2d2d',
+              fillShadowGradientOpacity: 1,
             }}
             bezier
-            style={styles.chart}
+            style={Object.assign({}, styles.chart, {backgroundColor: '#2d2d2d'})}
           />
         </View>
       )}
@@ -407,7 +413,7 @@ const RealEstateScreen: React.FC<Props> = ({navigation}) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1e1e1e',
+    backgroundColor: '#181f2a',
     padding: 20,
   },
   header: {
@@ -415,6 +421,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 20,
+    backgroundColor: '#181f2a',
   },
   title: {
     fontSize: 24,
@@ -432,7 +439,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   card: {
-    backgroundColor: '#2d2d2d',
+    backgroundColor: '#222b3a',
     borderRadius: 12,
     padding: 20,
     marginBottom: 16,
@@ -496,7 +503,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   propertyCard: {
-    backgroundColor: '#3d3d3d',
+    backgroundColor: '#222b3a',
     borderRadius: 8,
     padding: 16,
     marginBottom: 12,

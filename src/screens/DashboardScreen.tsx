@@ -205,20 +205,23 @@ const DashboardScreen: React.FC<Props> = ({navigation}) => {
   ];
 
   const chartConfig = {
-    backgroundColor: '#1e1e1e',
-    backgroundGradientFrom: '#1e1e1e',
-    backgroundGradientTo: '#1e1e1e',
+    backgroundColor: '#222b3a',
+    backgroundGradientFrom: '#222b3a',
+    backgroundGradientTo: '#222b3a',
     decimalPlaces: 0,
     color: (opacity = 1) => `rgba(0, 112, 186, ${opacity})`,
     labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
     style: {
       borderRadius: 16,
+      backgroundColor: '#222b3a',
     },
     propsForDots: {
       r: '6',
       strokeWidth: '2',
       stroke: '#0070ba',
     },
+    fillShadowGradient: '#222b3a',
+    fillShadowGradientOpacity: 1,
   };
 
   // Calculate Cash % of Net Worth
@@ -276,7 +279,7 @@ const DashboardScreen: React.FC<Props> = ({navigation}) => {
                 height={220}
                 chartConfig={chartConfig}
                 bezier
-                style={{ borderRadius: 12 }}
+                style={{ borderRadius: 12, backgroundColor: '#222b3a' }}
                 formatYLabel={formatCompactCurrency}
               />
             </View>
@@ -324,20 +327,23 @@ const DashboardScreen: React.FC<Props> = ({navigation}) => {
                     width={screenWidth - 40}
                     height={180}
                     chartConfig={{
-                      backgroundColor: 'transparent',
-                      backgroundGradientFrom: 'transparent',
-                      backgroundGradientTo: 'transparent',
-                      fillShadowGradient: 'transparent',
-                      fillShadowGradientOpacity: 0,
+                      backgroundColor: '#222b3a',
+                      backgroundGradientFrom: '#222b3a',
+                      backgroundGradientTo: '#222b3a',
+                      fillShadowGradient: '#222b3a',
+                      fillShadowGradientOpacity: 1,
                       decimalPlaces: 0,
                       color: (opacity = 1) => `rgba(35, 170, 255, ${opacity})`,
                       labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-                      style: { borderRadius: 16, backgroundColor: 'transparent' },
+                      style: { borderRadius: 16, backgroundColor: '#222b3a' },
                       propsForDots: { r: '4', strokeWidth: '2', stroke: '#fff' },
                     }}
                     bezier
-                    style={{ borderRadius: 12, backgroundColor: 'transparent' }}
+                    style={{ borderRadius: 12, backgroundColor: '#222b3a' }}
                     formatYLabel={formatCompactCurrency}
+                    withDots={false}
+                    withHorizontalLines={false}
+                    withVerticalLines={false}
                   />
                 </View>
               </View>
@@ -361,20 +367,23 @@ const DashboardScreen: React.FC<Props> = ({navigation}) => {
                     width={screenWidth - 40}
                     height={180}
                     chartConfig={{
-                      backgroundColor: 'transparent',
-                      backgroundGradientFrom: 'transparent',
-                      backgroundGradientTo: 'transparent',
-                      fillShadowGradient: 'transparent',
-                      fillShadowGradientOpacity: 0,
+                      backgroundColor: '#222b3a',
+                      backgroundGradientFrom: '#222b3a',
+                      backgroundGradientTo: '#222b3a',
+                      fillShadowGradient: '#222b3a',
+                      fillShadowGradientOpacity: 1,
                       decimalPlaces: 0,
                       color: (opacity = 1) => `rgba(54, 162, 235, ${opacity})`,
                       labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-                      style: { borderRadius: 16, backgroundColor: 'transparent' },
+                      style: { borderRadius: 16, backgroundColor: '#222b3a' },
                       propsForDots: { r: '4', strokeWidth: '2', stroke: '#fff' },
                     }}
                     bezier
-                    style={{ borderRadius: 12, backgroundColor: 'transparent' }}
+                    style={{ borderRadius: 12, backgroundColor: '#222b3a' }}
                     formatYLabel={formatCompactCurrency}
+                    withDots={false}
+                    withHorizontalLines={false}
+                    withVerticalLines={false}
                   />
                 </View>
               </View>
@@ -398,20 +407,23 @@ const DashboardScreen: React.FC<Props> = ({navigation}) => {
                     width={screenWidth - 40}
                     height={180}
                     chartConfig={{
-                      backgroundColor: 'transparent',
-                      backgroundGradientFrom: 'transparent',
-                      backgroundGradientTo: 'transparent',
-                      fillShadowGradient: 'transparent',
-                      fillShadowGradientOpacity: 0,
+                      backgroundColor: '#222b3a',
+                      backgroundGradientFrom: '#222b3a',
+                      backgroundGradientTo: '#222b3a',
+                      fillShadowGradient: '#222b3a',
+                      fillShadowGradientOpacity: 1,
                       decimalPlaces: 0,
                       color: (opacity = 1) => `rgba(255, 99, 132, ${opacity})`,
                       labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-                      style: { borderRadius: 16, backgroundColor: 'transparent' },
+                      style: { borderRadius: 16, backgroundColor: '#222b3a' },
                       propsForDots: { r: '4', strokeWidth: '2', stroke: '#fff' },
                     }}
                     bezier
-                    style={{ borderRadius: 12, backgroundColor: 'transparent' }}
+                    style={{ borderRadius: 12, backgroundColor: '#222b3a' }}
                     formatYLabel={formatCompactCurrency}
+                    withDots={false}
+                    withHorizontalLines={false}
+                    withVerticalLines={false}
                   />
                 </View>
               </View>

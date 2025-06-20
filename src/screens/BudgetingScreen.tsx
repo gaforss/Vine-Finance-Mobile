@@ -315,13 +315,13 @@ const BudgetingScreen: React.FC<Props> = ({navigation}) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#181f2a',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#181f2a',
   },
   loadingText: {
     fontSize: 16,
@@ -333,7 +333,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
     paddingTop: 40,
-    backgroundColor: '#2E7D32',
+    backgroundColor: '#181f2a',
   },
   headerTitle: {
     fontSize: 24,
@@ -374,7 +374,7 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
   overviewCard: {
-    backgroundColor: '#fff',
+    backgroundColor: '#222b3a',
     margin: 20,
     marginTop: 10,
     borderRadius: 15,
@@ -449,7 +449,7 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   budgetCard: {
-    backgroundColor: '#fff',
+    backgroundColor: '#222b3a',
     borderRadius: 15,
     padding: 20,
     marginBottom: 15,
@@ -538,7 +538,7 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   quickActionButton: {
-    backgroundColor: '#fff',
+    backgroundColor: '#222b3a',
     borderRadius: 15,
     padding: 20,
     alignItems: 'center',
