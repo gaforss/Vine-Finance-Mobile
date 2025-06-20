@@ -171,7 +171,7 @@ const NetWorthScreen: React.FC<Props> = ({navigation}) => {
         <TouchableOpacity
           style={styles.addButton}
           onPress={() => navigation.navigate('AddEntry')}>
-          <Text style={styles.addButtonText}>+ Add Entry</Text>
+          <Text style={styles.addButtonText}>Log Entry</Text>
         </TouchableOpacity>
       </View>
 
