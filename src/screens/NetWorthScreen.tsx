@@ -159,12 +159,79 @@ const NetWorthScreen: React.FC<Props> = ({navigation}) => {
   const assetBreakdown = getAssetBreakdown();
   const chartData = getChartData();
 
+  // Helper to ensure id is string
+  const getEntryId = (entry: any) => entry._id || '';
+
   return (
     <ScrollView
       style={styles.container}
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
       }>
+      {/* Entries Table - Show all entries (moved to top) */}
+      {netWorthData.length > 0 && (
+        <View style={styles.entriesCard}>
+          <View style={[styles.entriesHeader, {marginBottom: 0}]}> 
+            <Text style={styles.entriesTitle}>All Entries</Text>
+          </View>
+          {/* Table Header */}
+          <View style={{flexDirection: 'row', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#eee'}}>
+            <Text style={{flex: 2, fontWeight: 'bold', color: '#333'}}>Date</Text>
+            <Text style={{flex: 2, fontWeight: 'bold', color: '#333'}}>Net Worth</Text>
+            <Text style={{flex: 2, fontWeight: 'bold', color: '#333', textAlign: 'right'}}>Actions</Text>
+          </View>
+          {netWorthData.slice().reverse().map(entry => (
+            <View key={entry._id} style={{flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#f0f0f0'}}>
+              <Text style={{flex: 2, color: '#666'}}>
+                {new Date(entry.date).toLocaleDateString('en-US', {
+                  month: 'short', day: 'numeric', year: 'numeric',
+                })}
+              </Text>
+              <Text style={{flex: 2, fontWeight: 'bold', color: '#333'}}>
+                {formatCurrency(entry.netWorth)}
+              </Text>
+              <View style={{flex: 2, flexDirection: 'row', justifyContent: 'flex-end'}}>
+                <TouchableOpacity
+                  style={[styles.editButton, {marginRight: 8}]}
+                  onPress={() => navigation.navigate('EditEntry', {entryId: getEntryId(entry)})}
+                >
+                  <Text style={styles.editButtonText}>Edit</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.editButton, {backgroundColor: '#ffdddd'}]}
+                  onPress={async () => {
+                    Alert.alert(
+                      'Delete Entry',
+                      'Are you sure you want to delete this entry?',
+                      [
+                        {text: 'Cancel', style: 'cancel'},
+                        {text: 'Delete', style: 'destructive', onPress: async () => {
+                          setLoading(true);
+                          try {
+                            const response = await apiService.deleteNetWorthEntry(getEntryId(entry));
+                            if (response.success) {
+                              await loadNetWorthData();
+                            } else {
+                              Alert.alert('Error', response.error || 'Failed to delete entry');
+                            }
+                          } catch (error) {
+                            Alert.alert('Error', 'Failed to delete entry');
+                          } finally {
+                            setLoading(false);
+                          }
+                        }},
+                      ]
+                    );
+                  }}
+                >
+                  <Text style={[styles.editButtonText, {color: '#d32f2f'}]}>Delete</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ))}
+        </View>
+      )}
+
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Net Worth</Text>
@@ -256,45 +323,6 @@ const NetWorthScreen: React.FC<Props> = ({navigation}) => {
             style={styles.chart}
             formatYLabel={value => `$${Number(value).toLocaleString()}`}
           />
-        </View>
-      )}
-
-      {/* Recent Entries */}
-      {netWorthData.length > 0 && (
-        <View style={styles.entriesCard}>
-          <View style={styles.entriesHeader}>
-            <Text style={styles.entriesTitle}>Recent Entries</Text>
-            <TouchableOpacity onPress={() => navigation.navigate('NetWorth')}>
-              <Text style={styles.viewAllText}>View All</Text>
-            </TouchableOpacity>
-          </View>
-
-          {netWorthData
-            .slice(-3)
-            .reverse()
-            .map(entry => (
-              <View key={entry._id} style={styles.entryItem}>
-                <View style={styles.entryInfo}>
-                  <Text style={styles.entryDate}>
-                    {new Date(entry.date).toLocaleDateString('en-US', {
-                      month: 'short',
-                      day: 'numeric',
-                      year: 'numeric',
-                    })}
-                  </Text>
-                  <Text style={styles.entryAmount}>
-                    {formatCurrency(entry.netWorth)}
-                  </Text>
-                </View>
-                <TouchableOpacity
-                  style={styles.editButton}
-                  onPress={() =>
-                    navigation.navigate('EditEntry', {entryId: entry._id || ''})
-                  }>
-                  <Text style={styles.editButtonText}>Edit</Text>
-                </TouchableOpacity>
-              </View>
-            ))}
         </View>
       )}
 
