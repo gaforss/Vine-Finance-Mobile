@@ -13,6 +13,11 @@ import {LineChart, PieChart} from 'react-native-chart-kit';
 import {StackNavigationProp} from '@react-navigation/stack';
 import {RootStackParamList, NetWorth} from '../types';
 import { apiService } from '../services/api';
+import { CopilotProvider, CopilotStep, walkthroughable, useCopilot } from 'react-native-copilot';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import Tooltip from 'react-native-walkthrough-tooltip';
+import FontAwesome from 'react-native-vector-icons/FontAwesome';
 console.log('DASHBOARD IMPORTED apiService:', apiService);
 
 type DashboardScreenNavigationProp = StackNavigationProp<
@@ -24,7 +29,9 @@ interface Props {
   navigation: DashboardScreenNavigationProp;
 }
 
-const DashboardScreen: React.FC<Props> = ({navigation}) => {
+const WalkthroughableView = walkthroughable(View);
+
+const DashboardScreen: React.FC<Props & { start?: () => void }> = ({navigation, start}) => {
   const [netWorthData, setNetWorthData] = useState<NetWorth[]>([]);
   const [_loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -36,11 +43,21 @@ const DashboardScreen: React.FC<Props> = ({navigation}) => {
   const [totalLiabilities, setTotalLiabilities] = useState(0);
   const [assetBreakdown, setAssetBreakdown] = useState({});
   const [liabilityBreakdown, setLiabilityBreakdown] = useState({});
+  const [showAnnualGrowthTip, setShowAnnualGrowthTip] = useState(false);
+  const [showNetWorthTip, setShowNetWorthTip] = useState(false);
+  const [showCashPercentTip, setShowCashPercentTip] = useState(false);
 
   const screenWidth = Dimensions.get('window').width;
 
   useEffect(() => {
     loadDashboardData();
+    (async () => {
+      const seenTour = await AsyncStorage.getItem('dashboardTourSeen');
+      if (!seenTour && typeof start === 'function') {
+        start();
+        await AsyncStorage.setItem('dashboardTourSeen', 'true');
+      }
+    })();
   }, []);
 
   const loadDashboardData = async () => {
@@ -247,14 +264,21 @@ const DashboardScreen: React.FC<Props> = ({navigation}) => {
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
       }>
-      <View style={styles.header}>
-        <Text style={styles.title}>Financial Snapshot</Text>
-        <TouchableOpacity
-          style={styles.addButton}
-          onPress={() => navigation.navigate('AddEntry')}>
-          <Text style={styles.addButtonText}>Log Entry</Text>
-        </TouchableOpacity>
-      </View>
+      <CopilotStep text="This is your financial snapshot. Here you see your overall net worth and key metrics." order={1} name="snapshot">
+        <WalkthroughableView style={styles.header}>
+          <Text style={styles.title}>Financial Snapshot</Text>
+          <CopilotStep text="Tap here to log a new entry." order={2} name="addEntry">
+            <WalkthroughableView>
+              <TouchableOpacity
+                style={styles.addButton}
+                onPress={() => navigation.navigate('AddEntry')}
+              >
+                <Text style={styles.addButtonText}>Log Entry</Text>
+              </TouchableOpacity>
+            </WalkthroughableView>
+          </CopilotStep>
+        </WalkthroughableView>
+      </CopilotStep>
 
       {netWorthData.length === 0 ? (
         <View style={{padding: 20, alignItems: 'center'}}>
@@ -271,33 +295,60 @@ const DashboardScreen: React.FC<Props> = ({navigation}) => {
           </View>
 
           {/* Net Worth Chart Section - move directly below overview and fit nicely */}
-          <View style={[styles.card, { paddingVertical: 16, alignItems: 'center', backgroundColor: '#222b3a' }]}> 
-            <View style={{ width: '100%', alignItems: 'center' }}>
-              <LineChart
-                data={chartData}
-                width={screenWidth - 40}
-                height={220}
-                chartConfig={chartConfig}
-                bezier
-                style={{ borderRadius: 12, backgroundColor: '#222b3a' }}
-                formatYLabel={formatCompactCurrency}
-              />
-            </View>
-          </View>
+          <CopilotStep text="This chart shows your net worth over time. You can scroll for more details." order={3} name="netWorthChart">
+            <WalkthroughableView style={[styles.card, { paddingVertical: 16, alignItems: 'center', backgroundColor: '#222b3a' }]}> 
+              <View style={{ width: '100%', alignItems: 'center' }}>
+                <LineChart
+                  data={chartData}
+                  width={screenWidth - 40}
+                  height={220}
+                  chartConfig={chartConfig}
+                  bezier
+                  style={{ borderRadius: 12, backgroundColor: '#222b3a' }}
+                  formatYLabel={formatCompactCurrency}
+                />
+              </View>
+            </WalkthroughableView>
+          </CopilotStep>
 
           {/* Key Metrics Row */}
-          <View style={[styles.metricsRow, {width: '100%', paddingHorizontal: 20}]}>
-            <View style={[styles.metricCard, {flex: 1, marginRight: 8}]}>
-              <Text style={styles.metricLabel}>Annual Growth</Text>
-              <Text
-                style={[styles.metricValue, {color: getGrowthColor(annualGrowth)}]}>
+          <View style={[styles.metricsRow, {width: '100%', paddingHorizontal: 20}]}> 
+            <View style={[styles.metricCard, {flex: 1, marginRight: 8}]}> 
+              <View style={{flexDirection: 'row', alignItems: 'center', marginBottom: 2}}>
+                <Tooltip
+                  isVisible={showAnnualGrowthTip}
+                  content={<Text>Annual Growth measures how much your net worth has increased over the past year. A good benchmark is 5-10%.</Text>}
+                  placement="top"
+                  onClose={() => setShowAnnualGrowthTip(false)}
+                  backgroundColor="rgba(0,0,0,0.7)"
+                >
+                  <TouchableOpacity onPress={() => setShowAnnualGrowthTip(true)}>
+                    <Ionicons name="information-circle-outline" size={18} color="#23aaff" style={{ marginRight: 4 }} />
+                  </TouchableOpacity>
+                </Tooltip>
+                <Text style={styles.metricLabel}>Annual Growth</Text>
+              </View>
+              <Text style={[styles.metricValue, {color: getGrowthColor(annualGrowth), marginBottom: 2}]}> 
                 {formatPercentage(annualGrowth)}
               </Text>
               <Text style={styles.metricSubtext}>Year over year</Text>
             </View>
             <View style={[styles.metricCard, {flex: 1, marginLeft: 8}]}>  
-              <Text style={styles.metricLabel}>Cash % / Net Worth</Text>
-              <Text style={[styles.metricValue, {color: '#23aaff'}]}>
+              <View style={{flexDirection: 'row', alignItems: 'center', marginBottom: 2}}>
+                <Tooltip
+                  isVisible={showCashPercentTip}
+                  content={<Text>Cash % / Net Worth shows the percentage of your net worth that is held in cash. A benchmark of 5-20% is healthy.</Text>}
+                  placement="top"
+                  onClose={() => setShowCashPercentTip(false)}
+                  backgroundColor="rgba(0,0,0,0.7)"
+                >
+                  <TouchableOpacity onPress={() => setShowCashPercentTip(true)}>
+                    <Ionicons name="information-circle-outline" size={18} color="#23aaff" style={{ marginRight: 4 }} />
+                  </TouchableOpacity>
+                </Tooltip>
+                <Text style={styles.metricLabel}>Cash % / Net Worth</Text>
+              </View>
+              <Text style={[styles.metricValue, {color: '#23aaff', marginBottom: 2}]}> 
                 {cashPercent}%
               </Text>
               <Text style={styles.metricSubtext}>Cash as % of Net Worth</Text>
@@ -543,4 +594,10 @@ const styles = StyleSheet.create({
   },
 });
 
-export default DashboardScreen;
+const DashboardScreenWithProvider: React.FC<Props> = (props) => (
+  <CopilotProvider>
+    <DashboardScreen {...props} />
+  </CopilotProvider>
+);
+
+export default DashboardScreenWithProvider;
