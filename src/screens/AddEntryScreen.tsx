@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   View,
   Text,
@@ -11,7 +11,7 @@ import {
   Platform,
 } from 'react-native';
 import {StackNavigationProp} from '@react-navigation/stack';
-import {RootStackParamList} from '../types';
+import {RootStackParamList, NetWorth} from '../types';
 import { apiService } from '../services/api';
 
 type AddEntryScreenNavigationProp = StackNavigationProp<
@@ -36,6 +36,9 @@ interface FormData {
   notes: string;
 }
 
+const TABS = ['Manual Entry', 'Import from File'];
+const STEPS = ['Assets', 'Liabilities', 'Review'];
+
 const AddEntryScreen: React.FC<Props> = ({navigation}) => {
   const [formData, setFormData] = useState<FormData>({
     cash: '',
@@ -50,6 +53,9 @@ const AddEntryScreen: React.FC<Props> = ({navigation}) => {
     notes: '',
   });
   const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState(0); // 0: Manual, 1: Import
+  const [step, setStep] = useState(0); // 0: Assets, 1: Liabilities, 2: Review
+  const [entries, setEntries] = useState<NetWorth[]>([]);
 
   const updateFormData = (field: keyof FormData, value: string) => {
     setFormData(prev => ({...prev, [field]: value}));
@@ -74,6 +80,18 @@ const AddEntryScreen: React.FC<Props> = ({navigation}) => {
 
     return assets - liabilities;
   };
+
+  const fetchEntries = async () => {
+    const response = await apiService.getNetWorthEntries();
+    console.log('Fetched entries response:', response);
+    if (response.success && response.data) {
+      setEntries(response.data);
+    }
+  };
+
+  useEffect(() => {
+    fetchEntries();
+  }, []);
 
   const handleSubmit = async () => {
     if (!formData.date) {
@@ -115,6 +133,7 @@ const AddEntryScreen: React.FC<Props> = ({navigation}) => {
         Alert.alert('Success', 'Net worth entry added successfully!', [
           {text: 'OK', onPress: () => navigation.goBack()},
         ]);
+        fetchEntries(); // Refresh entries after add
       } else {
         Alert.alert('Error', response.message || 'Failed to add entry');
       }
@@ -168,144 +187,126 @@ const AddEntryScreen: React.FC<Props> = ({navigation}) => {
 
   const netWorth = calculateNetWorth();
 
+  // --- Stepper and Tab UI ---
   return (
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <ScrollView
-        style={styles.scrollView}
-        showsVerticalScrollIndicator={false}>
-        {/* Header */}
-        <View style={styles.header}>
+      <View style={styles.tabBar}>
+        {TABS.map((tab, idx) => (
           <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}>
-            <Text style={styles.backButtonText}>← Back</Text>
+            key={tab}
+            style={[styles.tab, activeTab === idx && styles.activeTab]}
+            onPress={() => setActiveTab(idx)}>
+            <Text style={[styles.tabText, activeTab === idx && styles.activeTabText]}>{tab}</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Add Net Worth Entry</Text>
-          <View style={styles.placeholder} />
+        ))}
+      </View>
+      {activeTab === 1 ? (
+        <View style={styles.importContainer}>
+          <Text style={styles.importText}>Import from file coming soon...</Text>
         </View>
-
-        {/* Net Worth Preview */}
-        <View style={styles.previewCard}>
-          <Text style={styles.previewLabel}>Estimated Net Worth</Text>
-          <Text
-            style={[
-              styles.previewAmount,
-              {color: netWorth >= 0 ? '#2E7D32' : '#F44336'},
-            ]}>
-            {formatCurrency(netWorth)}
-          </Text>
-        </View>
-
-        {/* Form */}
-        <View style={styles.form}>
-          {/* Date */}
-          <InputField
-            label="Date"
-            value={formData.date}
-            onChangeText={value => updateFormData('date', value)}
-            placeholder="YYYY-MM-DD"
-            keyboardType="default"
-          />
-
-          {/* Assets Section */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>💰 Assets</Text>
-
-            <InputField
-              label="Cash & Savings"
-              value={formData.cash}
-              onChangeText={value => updateFormData('cash', value)}
-              placeholder="$0"
-            />
-
-            <InputField
-              label="Investments"
-              value={formData.investments}
-              onChangeText={value => updateFormData('investments', value)}
-              placeholder="$0"
-            />
-
-            <InputField
-              label="Real Estate"
-              value={formData.realEstate}
-              onChangeText={value => updateFormData('realEstate', value)}
-              placeholder="$0"
-            />
-
-            <InputField
-              label="Retirement Accounts"
-              value={formData.retirementAccounts}
-              onChangeText={value =>
-                updateFormData('retirementAccounts', value)
-              }
-              placeholder="$0"
-            />
-
-            <InputField
-              label="Vehicles"
-              value={formData.vehicles}
-              onChangeText={value => updateFormData('vehicles', value)}
-              placeholder="$0"
-            />
-
-            <InputField
-              label="Personal Property"
-              value={formData.personalProperty}
-              onChangeText={value => updateFormData('personalProperty', value)}
-              placeholder="$0"
-            />
-
-            <InputField
-              label="Other Assets"
-              value={formData.otherAssets}
-              onChangeText={value => updateFormData('otherAssets', value)}
-              placeholder="$0"
-            />
+      ) : (
+        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+          {/* Stepper */}
+          <View style={styles.stepperContainer}>
+            {STEPS.map((label, idx) => (
+              <View key={label} style={styles.stepContainer}>
+                <View style={[styles.stepCircle, step === idx && styles.activeStepCircle]}>
+                  <Text style={[styles.stepNumber, step === idx && styles.activeStepNumber]}>{idx + 1}</Text>
+                </View>
+                <Text style={[styles.stepLabel, step === idx && styles.activeStepLabel]}>{label}</Text>
+                {idx < STEPS.length - 1 && <View style={styles.stepLine} />}
+              </View>
+            ))}
           </View>
-
-          {/* Liabilities Section */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>💳 Liabilities</Text>
-
-            <InputField
-              label="Total Liabilities"
-              value={formData.liabilities}
-              onChangeText={value => updateFormData('liabilities', value)}
-              placeholder="$0"
-            />
+          {/* Step Content */}
+          <View style={styles.card}>
+            {step === 0 && (
+              <>
+                <Text style={styles.sectionTitle}>Assets</Text>
+                <InputField label="Date" value={formData.date} onChangeText={value => updateFormData('date', value)} placeholder="YYYY-MM-DD" keyboardType="default" />
+                <InputField label="Cash & Savings" value={formData.cash} onChangeText={value => updateFormData('cash', value)} placeholder="$0" />
+                <InputField label="Investments" value={formData.investments} onChangeText={value => updateFormData('investments', value)} placeholder="$0" />
+                <InputField label="Real Estate" value={formData.realEstate} onChangeText={value => updateFormData('realEstate', value)} placeholder="$0" />
+                <InputField label="Retirement Accounts" value={formData.retirementAccounts} onChangeText={value => updateFormData('retirementAccounts', value)} placeholder="$0" />
+                <InputField label="Vehicles" value={formData.vehicles} onChangeText={value => updateFormData('vehicles', value)} placeholder="$0" />
+                <InputField label="Personal Property" value={formData.personalProperty} onChangeText={value => updateFormData('personalProperty', value)} placeholder="$0" />
+                <InputField label="Other Assets" value={formData.otherAssets} onChangeText={value => updateFormData('otherAssets', value)} placeholder="$0" />
+              </>
+            )}
+            {step === 1 && (
+              <>
+                <Text style={styles.sectionTitle}>Liabilities</Text>
+                <InputField label="Total Liabilities" value={formData.liabilities} onChangeText={value => updateFormData('liabilities', value)} placeholder="$0" />
+                <Text style={styles.sectionTitle}>Notes</Text>
+                <InputField label="Additional Notes" value={formData.notes} onChangeText={value => updateFormData('notes', value)} placeholder="Any additional notes about this entry..." keyboardType="default" multiline={true} numberOfLines={4} />
+              </>
+            )}
+            {step === 2 && (
+              <>
+                <Text style={styles.sectionTitle}>Review</Text>
+                <View style={styles.reviewRow}><Text style={styles.reviewLabel}>Date:</Text><Text style={styles.reviewValue}>{formData.date}</Text></View>
+                <View style={styles.reviewRow}><Text style={styles.reviewLabel}>Cash & Savings:</Text><Text style={styles.reviewValue}>{formData.cash}</Text></View>
+                <View style={styles.reviewRow}><Text style={styles.reviewLabel}>Investments:</Text><Text style={styles.reviewValue}>{formData.investments}</Text></View>
+                <View style={styles.reviewRow}><Text style={styles.reviewLabel}>Real Estate:</Text><Text style={styles.reviewValue}>{formData.realEstate}</Text></View>
+                <View style={styles.reviewRow}><Text style={styles.reviewLabel}>Retirement Accounts:</Text><Text style={styles.reviewValue}>{formData.retirementAccounts}</Text></View>
+                <View style={styles.reviewRow}><Text style={styles.reviewLabel}>Vehicles:</Text><Text style={styles.reviewValue}>{formData.vehicles}</Text></View>
+                <View style={styles.reviewRow}><Text style={styles.reviewLabel}>Personal Property:</Text><Text style={styles.reviewValue}>{formData.personalProperty}</Text></View>
+                <View style={styles.reviewRow}><Text style={styles.reviewLabel}>Other Assets:</Text><Text style={styles.reviewValue}>{formData.otherAssets}</Text></View>
+                <View style={styles.reviewRow}><Text style={styles.reviewLabel}>Liabilities:</Text><Text style={styles.reviewValue}>{formData.liabilities}</Text></View>
+                <View style={styles.reviewRow}><Text style={styles.reviewLabel}>Notes:</Text><Text style={styles.reviewValue}>{formData.notes}</Text></View>
+                <View style={styles.reviewRow}><Text style={styles.reviewLabel}>Estimated Net Worth:</Text><Text style={styles.reviewValue}>{formatCurrency(calculateNetWorth())}</Text></View>
+              </>
+            )}
           </View>
-
-          {/* Notes Section */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>📝 Notes</Text>
-
-            <InputField
-              label="Additional Notes"
-              value={formData.notes}
-              onChangeText={value => updateFormData('notes', value)}
-              placeholder="Any additional notes about this entry..."
-              keyboardType="default"
-              multiline={true}
-              numberOfLines={4}
-            />
+          {/* Step Navigation */}
+          <View style={styles.stepNavRow}>
+            {step > 0 && (
+              <TouchableOpacity style={styles.stepNavButton} onPress={() => setStep(step - 1)}>
+                <Text style={styles.stepNavButtonText}>Back</Text>
+              </TouchableOpacity>
+            )}
+            {step < 2 && (
+              <TouchableOpacity style={styles.stepNavButton} onPress={() => setStep(step + 1)}>
+                <Text style={styles.stepNavButtonText}>Next</Text>
+              </TouchableOpacity>
+            )}
+            {step === 2 && (
+              <TouchableOpacity
+                style={[styles.submitButton, loading && styles.submitButtonDisabled]}
+                onPress={handleSubmit}
+                disabled={loading}>
+                <Text style={styles.submitButtonText}>{loading ? 'Adding Entry...' : 'Submit Entry'}</Text>
+              </TouchableOpacity>
+            )}
           </View>
-
-          {/* Submit Button */}
-          <TouchableOpacity
-            style={[
-              styles.submitButton,
-              loading && styles.submitButtonDisabled,
-            ]}
-            onPress={handleSubmit}
-            disabled={loading}>
-            <Text style={styles.submitButtonText}>
-              {loading ? 'Adding Entry...' : 'Add Net Worth Entry'}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
+          {/* Previous Entries Section */}
+          <View style={styles.entriesCard}>
+            <Text style={styles.entriesTitle}>Previous Entries</Text>
+            <View style={styles.entriesHeaderRow}>
+              <Text style={styles.entriesHeaderCell}>Date</Text>
+              <Text style={styles.entriesHeaderCell}>Cash</Text>
+              <Text style={styles.entriesHeaderCell}>Investments</Text>
+              <Text style={styles.entriesHeaderCell}>Real Estate</Text>
+              <Text style={styles.entriesHeaderCell}>Net Worth</Text>
+            </View>
+            {entries.length === 0 ? (
+              <Text style={styles.noEntriesText}>No entries found.</Text>
+            ) : (
+              entries.slice().reverse().map(entry => (
+                <View key={entry._id ? String(entry._id) : String(entry.date)} style={styles.entryRow}>
+                  <Text style={styles.entryCell}>{new Date(entry.date).toLocaleDateString()}</Text>
+                  <Text style={styles.entryCell}>{formatCurrency(entry.cash)}</Text>
+                  <Text style={styles.entryCell}>{formatCurrency(entry.investments)}</Text>
+                  <Text style={styles.entryCell}>{formatCurrency(entry.realEstate)}</Text>
+                  <Text style={styles.entryCell}>{formatCurrency(entry.netWorth)}</Text>
+                </View>
+              ))
+            )}
+          </View>
+        </ScrollView>
+      )}
     </KeyboardAvoidingView>
   );
 };
@@ -313,113 +314,233 @@ const AddEntryScreen: React.FC<Props> = ({navigation}) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#181f2a',
+  },
+  tabBar: {
+    flexDirection: 'row',
+    backgroundColor: '#10151f',
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+    marginTop: 12,
+    marginHorizontal: 8,
+    overflow: 'hidden',
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 14,
+    alignItems: 'center',
+    backgroundColor: 'transparent',
+  },
+  activeTab: {
+    backgroundColor: '#222b3a',
+  },
+  tabText: {
+    color: '#b0b8c1',
+    fontWeight: '600',
+    fontSize: 16,
+  },
+  activeTabText: {
+    color: '#23aaff',
+  },
+  importContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 40,
+  },
+  importText: {
+    color: '#b0b8c1',
+    fontSize: 18,
+    textAlign: 'center',
   },
   scrollView: {
     flex: 1,
   },
-  header: {
+  stepperContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
-    paddingTop: 40,
-    backgroundColor: '#2E7D32',
+    justifyContent: 'center',
+    marginVertical: 18,
   },
-  backButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+  stepContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  backButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
+  stepCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#222b3a',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#222b3a',
   },
-  headerTitle: {
-    fontSize: 18,
+  activeStepCircle: {
+    borderColor: '#23aaff',
+    backgroundColor: '#181f2a',
+  },
+  stepNumber: {
+    color: '#b0b8c1',
     fontWeight: 'bold',
-    color: '#fff',
+    fontSize: 16,
   },
-  placeholder: {
-    width: 60,
+  activeStepNumber: {
+    color: '#23aaff',
   },
-  previewCard: {
-    backgroundColor: '#fff',
-    margin: 20,
-    marginTop: -20,
-    borderRadius: 15,
+  stepLabel: {
+    color: '#b0b8c1',
+    fontSize: 14,
+    marginLeft: 6,
+    marginRight: 12,
+  },
+  activeStepLabel: {
+    color: '#23aaff',
+    fontWeight: 'bold',
+  },
+  stepLine: {
+    width: 24,
+    height: 2,
+    backgroundColor: '#222b3a',
+    marginHorizontal: 2,
+  },
+  card: {
+    backgroundColor: '#222b3a',
+    borderRadius: 16,
     padding: 20,
-    alignItems: 'center',
+    marginHorizontal: 16,
+    marginBottom: 18,
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
-  },
-  previewLabel: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 5,
-  },
-  previewAmount: {
-    fontSize: 28,
-    fontWeight: 'bold',
-  },
-  form: {
-    paddingHorizontal: 20,
-    paddingBottom: 40,
-  },
-  section: {
-    marginBottom: 30,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 15,
+    color: '#e6eaf0',
+    marginBottom: 12,
   },
   inputContainer: {
-    marginBottom: 20,
+    marginBottom: 16,
   },
   inputLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 8,
+    fontSize: 14,
+    color: '#b0b8c1',
+    marginBottom: 4,
   },
   input: {
-    backgroundColor: '#fff',
+    backgroundColor: '#181f2a',
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: '#2a3140',
     borderRadius: 10,
     paddingHorizontal: 15,
     paddingVertical: 12,
     fontSize: 16,
-    color: '#333',
+    color: '#e6eaf0',
   },
   textArea: {
-    height: 100,
+    height: 80,
     textAlignVertical: 'top',
   },
-  submitButton: {
-    backgroundColor: '#2E7D32',
-    borderRadius: 25,
-    paddingVertical: 15,
+  reviewRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  reviewLabel: {
+    color: '#b0b8c1',
+    fontWeight: '600',
+    fontSize: 15,
+  },
+  reviewValue: {
+    color: '#e6eaf0',
+    fontSize: 15,
+    fontWeight: 'bold',
+  },
+  stepNavRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
     alignItems: 'center',
-    marginTop: 20,
+    marginHorizontal: 16,
+    marginBottom: 24,
+    gap: 12,
+  },
+  stepNavButton: {
+    backgroundColor: '#10151f',
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 22,
+    marginLeft: 8,
+  },
+  stepNavButtonText: {
+    color: '#23aaff',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  submitButton: {
+    backgroundColor: '#23aaff',
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 32,
+    marginLeft: 8,
+  },
+  submitButtonDisabled: {
+    backgroundColor: '#444',
+  },
+  submitButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  entriesCard: {
+    backgroundColor: '#222b3a',
+    borderRadius: 16,
+    padding: 16,
+    marginHorizontal: 16,
+    marginBottom: 24,
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
   },
-  submitButtonDisabled: {
-    backgroundColor: '#ccc',
-  },
-  submitButtonText: {
-    color: '#fff',
-    fontSize: 18,
+  entriesTitle: {
+    color: '#e6eaf0',
     fontWeight: 'bold',
+    fontSize: 18,
+    marginBottom: 10,
+  },
+  entriesHeaderRow: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: '#2a3140',
+    paddingBottom: 6,
+    marginBottom: 6,
+  },
+  entriesHeaderCell: {
+    flex: 1,
+    color: '#b0b8c1',
+    fontWeight: '600',
+    fontSize: 13,
+  },
+  entryRow: {
+    flexDirection: 'row',
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: '#23293a',
+  },
+  entryCell: {
+    flex: 1,
+    color: '#e6eaf0',
+    fontSize: 13,
+  },
+  noEntriesText: {
+    color: '#b0b8c1',
+    fontStyle: 'italic',
+    marginTop: 10,
+    textAlign: 'center',
   },
 });
 

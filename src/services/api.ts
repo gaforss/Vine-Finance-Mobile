@@ -187,8 +187,11 @@ class ApiService {
   // Net Worth Methods
   async getNetWorthEntries(): Promise<ApiResponse<NetWorth[]>> {
     try {
-      const response: AxiosResponse<ApiResponse<NetWorth[]>> =
-        await this.api.get('/entries');
+      const response: AxiosResponse<any> = await this.api.get('/entries');
+      // If response is an array, wrap it
+      if (Array.isArray(response.data)) {
+        return { success: true, data: response.data };
+      }
       return response.data;
     } catch (error: any) {
       return {
