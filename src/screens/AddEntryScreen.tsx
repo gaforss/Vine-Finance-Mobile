@@ -62,30 +62,63 @@ const AddEntryScreen: React.FC<Props> = ({navigation}) => {
   };
 
   const parseNumber = (value: string): number => {
-    const parsed = parseFloat(value.replace(/[^0-9.-]/g, ''));
+    const cleaned = value.replace(/[^0-9.-]/g, '');
+    const parsed = parseFloat(cleaned);
+    console.log(`parseNumber input: '${value}', cleaned: '${cleaned}', parsed:`, parsed);
     return isNaN(parsed) ? 0 : parsed;
   };
 
   const calculateNetWorth = (): number => {
-    const assets =
-      parseNumber(formData.cash) +
-      parseNumber(formData.investments) +
-      parseNumber(formData.realEstate) +
-      parseNumber(formData.retirementAccounts) +
-      parseNumber(formData.vehicles) +
-      parseNumber(formData.personalProperty) +
-      parseNumber(formData.otherAssets);
-
+    const cash = parseNumber(formData.cash);
+    const investments = parseNumber(formData.investments);
+    const realEstate = parseNumber(formData.realEstate);
+    const retirementAccounts = parseNumber(formData.retirementAccounts);
+    const vehicles = parseNumber(formData.vehicles);
+    const personalProperty = parseNumber(formData.personalProperty);
+    const otherAssets = parseNumber(formData.otherAssets);
     const liabilities = parseNumber(formData.liabilities);
-
-    return assets - liabilities;
+    const assets = cash + investments + realEstate + retirementAccounts + vehicles + personalProperty + otherAssets;
+    const netWorth = assets - liabilities;
+    console.log('Net Worth Calculation:', {
+      cash,
+      investments,
+      realEstate,
+      retirementAccounts,
+      vehicles,
+      personalProperty,
+      otherAssets,
+      liabilities,
+      assets,
+      netWorth,
+    });
+    return netWorth;
   };
 
   const fetchEntries = async () => {
     const response = await apiService.getNetWorthEntries();
     console.log('Fetched entries response:', response);
     if (response.success && response.data) {
-      setEntries(response.data);
+      console.log('Fetched entries data:', response.data);
+      // Ensure every entry has a netWorth field, calculated if missing
+      const entriesWithNetWorth = response.data.map(entry => {
+        if (typeof entry.netWorth === 'number') return entry;
+        const assets =
+          (entry.cash || 0) +
+          (entry.investments || 0) +
+          (entry.realEstate || 0) +
+          (entry.retirementAccounts || 0) +
+          (entry.vehicles || 0) +
+          (entry.personalProperty || 0) +
+          (entry.otherAssets || 0) +
+          (entry.customFields || []).filter(f => f.type === 'asset').reduce((a, b) => a + (b.amount || 0), 0);
+        const liabilities = (entry.liabilities || 0) +
+          (entry.customFields || []).filter(f => f.type === 'liability').reduce((a, b) => a + (b.amount || 0), 0);
+        return {
+          ...entry,
+          netWorth: assets - liabilities,
+        };
+      });
+      setEntries(entriesWithNetWorth.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
     }
   };
 
@@ -187,6 +220,33 @@ const AddEntryScreen: React.FC<Props> = ({navigation}) => {
 
   const netWorth = calculateNetWorth();
 
+  const handleDeleteEntry = async (entryId: string) => {
+    Alert.alert(
+      'Delete Entry',
+      'Are you sure you want to delete this entry?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete', style: 'destructive', onPress: async () => {
+            try {
+              setLoading(true);
+              const response = await apiService.deleteNetWorthEntry(entryId);
+              if (response.success) {
+                fetchEntries();
+              } else {
+                Alert.alert('Error', response.error || 'Failed to delete entry');
+              }
+            } catch (error) {
+              Alert.alert('Error', 'Failed to delete entry');
+            } finally {
+              setLoading(false);
+            }
+          }
+        }
+      ]
+    );
+  };
+
   // --- Stepper and Tab UI ---
   return (
     <KeyboardAvoidingView
@@ -284,26 +344,49 @@ const AddEntryScreen: React.FC<Props> = ({navigation}) => {
           {/* Previous Entries Section */}
           <View style={styles.entriesCard}>
             <Text style={styles.entriesTitle}>Previous Entries</Text>
-            <View style={styles.entriesHeaderRow}>
-              <Text style={styles.entriesHeaderCell}>Date</Text>
-              <Text style={styles.entriesHeaderCell}>Cash</Text>
-              <Text style={styles.entriesHeaderCell}>Investments</Text>
-              <Text style={styles.entriesHeaderCell}>Real Estate</Text>
-              <Text style={styles.entriesHeaderCell}>Net Worth</Text>
-            </View>
-            {entries.length === 0 ? (
-              <Text style={styles.noEntriesText}>No entries found.</Text>
-            ) : (
-              entries.slice().reverse().map(entry => (
-                <View key={entry._id ? String(entry._id) : String(entry.date)} style={styles.entryRow}>
-                  <Text style={styles.entryCell}>{new Date(entry.date).toLocaleDateString()}</Text>
-                  <Text style={styles.entryCell}>{formatCurrency(entry.cash)}</Text>
-                  <Text style={styles.entryCell}>{formatCurrency(entry.investments)}</Text>
-                  <Text style={styles.entryCell}>{formatCurrency(entry.realEstate)}</Text>
-                  <Text style={styles.entryCell}>{formatCurrency(entry.netWorth)}</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={true}>
+              <View>
+                <View style={styles.entriesHeaderRow}>
+                  <Text style={styles.entriesHeaderCell}>Date</Text>
+                  <Text style={styles.entriesHeaderCell}>Cash</Text>
+                  <Text style={styles.entriesHeaderCell}>Investments</Text>
+                  <Text style={styles.entriesHeaderCell}>Real Estate</Text>
+                  <Text style={styles.entriesHeaderCell}>Retirement</Text>
+                  <Text style={styles.entriesHeaderCell}>Vehicles</Text>
+                  <Text style={styles.entriesHeaderCell}>Personal</Text>
+                  <Text style={styles.entriesHeaderCell}>Other</Text>
+                  <Text style={styles.entriesHeaderCell}>Liabilities</Text>
+                  <Text style={styles.entriesHeaderCell}>Net Worth</Text>
+                  <Text style={styles.entriesHeaderCell}>Actions</Text>
                 </View>
-              ))
-            )}
+                {entries.length === 0 ? (
+                  <Text style={styles.noEntriesText}>No entries found.</Text>
+                ) : (
+                  entries.map(entry => (
+                    <View key={entry._id ? String(entry._id) : String(entry.date)} style={styles.entryRow}>
+                      <Text style={styles.entryCell}>{new Date(entry.date).toLocaleDateString()}</Text>
+                      <Text style={styles.entryCell}>{formatCurrency(entry.cash)}</Text>
+                      <Text style={styles.entryCell}>{formatCurrency(entry.investments)}</Text>
+                      <Text style={styles.entryCell}>{formatCurrency(entry.realEstate)}</Text>
+                      <Text style={styles.entryCell}>{formatCurrency(entry.retirementAccounts)}</Text>
+                      <Text style={styles.entryCell}>{formatCurrency(entry.vehicles)}</Text>
+                      <Text style={styles.entryCell}>{formatCurrency(entry.personalProperty)}</Text>
+                      <Text style={styles.entryCell}>{formatCurrency(entry.otherAssets)}</Text>
+                      <Text style={styles.entryCell}>{formatCurrency(entry.liabilities)}</Text>
+                      <Text style={styles.entryCell}>{formatCurrency(entry.netWorth)}</Text>
+                      <View style={[styles.entryCell, {flexDirection: 'row', gap: 4, paddingHorizontal: 0}]}> 
+                        <TouchableOpacity style={{paddingHorizontal: 2}} onPress={() => navigation.navigate('EditEntry', { entryId: entry._id || '' })}>
+                          <Text style={{color: '#23aaff', fontSize: 12}}>Edit</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={{paddingHorizontal: 2}} onPress={() => handleDeleteEntry(entry._id || '')}>
+                          <Text style={{color: '#ff5555', fontSize: 12}}>Delete</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  ))
+                )}
+              </View>
+            </ScrollView>
           </View>
         </ScrollView>
       )}
@@ -523,7 +606,11 @@ const styles = StyleSheet.create({
     flex: 1,
     color: '#b0b8c1',
     fontWeight: '600',
-    fontSize: 13,
+    fontSize: 12,
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+    minWidth: 70,
+    textAlign: 'center',
   },
   entryRow: {
     flexDirection: 'row',
@@ -534,7 +621,11 @@ const styles = StyleSheet.create({
   entryCell: {
     flex: 1,
     color: '#e6eaf0',
-    fontSize: 13,
+    fontSize: 12,
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+    minWidth: 70,
+    textAlign: 'center',
   },
   noEntriesText: {
     color: '#b0b8c1',

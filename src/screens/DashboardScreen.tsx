@@ -70,20 +70,20 @@ const DashboardScreen: React.FC<Props & { start?: () => void }> = ({navigation, 
       // Handle both array and object response
       let entries: any[] = [];
       if (Array.isArray(response) && response.length > 0) {
-        entries = response;
+        entries = response.slice().sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
         setNetWorthData(entries);
-        console.log('DEBUG: Set netWorthData (array):', entries);
+        console.log('DEBUG: Set netWorthData (array, sorted):', entries);
       } else if (response && response.data && Array.isArray(response.data)) {
-        entries = response.data;
+        entries = response.data.slice().sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
         setNetWorthData(entries);
-        console.log('DEBUG: Set netWorthData (object.data):', entries);
+        console.log('DEBUG: Set netWorthData (object.data, sorted):', entries);
       } else {
         console.log('DEBUG: No net worth data found in response.', response);
       }
 
       if (entries.length > 0) {
-        const latest = entries[entries.length - 1];
-        const previous = entries.length > 1 ? entries[entries.length - 2] : null;
+        const latest = entries[0];
+        const previous = entries.length > 1 ? entries[1] : null;
 
         // Log the latest entry for debugging
         console.log('DEBUG: Latest entry:', latest);
@@ -291,7 +291,7 @@ const DashboardScreen: React.FC<Props & { start?: () => void }> = ({navigation, 
           {/* Net Worth Overview Section */}
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Net Worth Overview</Text>
-            <Text style={styles.netWorthValue}>${currentNetWorth.toLocaleString()}</Text>
+            <Text style={styles.netWorthValue}>{formatCurrency(currentNetWorth)}</Text>
           </View>
 
           {/* Net Worth Chart Section - move directly below overview and fit nicely */}
