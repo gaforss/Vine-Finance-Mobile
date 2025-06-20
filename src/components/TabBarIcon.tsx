@@ -27,8 +27,8 @@ const TabBarIcon: React.FC<TabBarIconProps> = ({
       switch (routeName) {
         case 'Dashboard':
           return '📊';
-        case 'NetWorth':
-          return '💰';
+        case 'Accounts':
+          return '🏦';
         case 'Budgeting':
           return '📋';
         case 'RealEstate':

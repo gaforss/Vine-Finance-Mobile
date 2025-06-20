@@ -148,7 +148,7 @@ export type RootStackParamList = {
   ForgotPassword: undefined;
   Main: undefined;
   Dashboard: undefined;
-  NetWorth: undefined;
+  Accounts: undefined;
   Budgeting: undefined;
   RealEstate: undefined;
   Retirement: undefined;
@@ -160,7 +160,7 @@ export type RootStackParamList = {
 
 export type MainTabParamList = {
   Dashboard: undefined;
-  NetWorth: undefined;
+  Accounts: undefined;
   Budgeting: undefined;
   RealEstate: undefined;
   Retirement: undefined;

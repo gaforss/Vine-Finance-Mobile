@@ -11,7 +11,7 @@ import {
 
 // Configure base URL - update this to match your backend URL
 // For local development (if backend is running on your machine):
-const API_BASE_URL = 'http://127.0.0.1:3000';
+const API_BASE_URL = 'http://192.168.4.27:3000';
 
 // For production (if you have a deployed backend):
 // const API_BASE_URL = 'https://your-domain.com';
@@ -21,6 +21,14 @@ const API_BASE_URL = 'http://127.0.0.1:3000';
 
 // For physical device connecting to local network:
 // const API_BASE_URL = 'http://192.168.1.100:3000'; // Replace with your computer's IP
+
+// Add Account type if not already present
+export interface Account {
+  _id: string;
+  name: string;
+  category: string;
+  amount: number;
+}
 
 class ApiService {
   private api: AxiosInstance;
@@ -476,6 +484,31 @@ class ApiService {
       return {
         success: false,
         error: error.response?.data?.message || 'Failed to export data',
+      };
+    }
+  }
+
+  // Account Methods
+  async getAccounts(): Promise<ApiResponse<Record<string, Account[]>>> {
+    try {
+      const response: AxiosResponse<Record<string, Account[]>> = await this.api.get('/plaid/accounts');
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.message || 'Failed to fetch accounts',
+      };
+    }
+  }
+
+  async deleteAccount(accountId: string): Promise<ApiResponse<{message: string}>> {
+    try {
+      const response: AxiosResponse<ApiResponse<{message: string}>> = await this.api.delete(`/accounts/${accountId}`);
+      return response.data;
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.message || 'Failed to delete account',
       };
     }
   }

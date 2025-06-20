@@ -8,7 +8,7 @@ import LoginScreen from '../screens/auth/LoginScreen';
 import RegisterScreen from '../screens/auth/RegisterScreen';
 import ForgotPasswordScreen from '../screens/auth/ForgotPasswordScreen';
 import DashboardScreen from '../screens/DashboardScreen';
-import NetWorthScreen from '../screens/NetWorthScreen';
+import AccountsScreen from '../screens/AccountsScreen';
 import BudgetingScreen from '../screens/BudgetingScreen';
 import RealEstateScreen from '../screens/RealEstateScreen';
 import RetirementScreen from '../screens/RetirementScreen';
@@ -56,9 +56,9 @@ const MainTabNavigator = () => {
         options={{tabBarLabel: 'Dashboard'}}
       />
       <Tab.Screen
-        name="NetWorth"
-        component={NetWorthScreen}
-        options={{tabBarLabel: 'Net Worth'}}
+        name="Accounts"
+        component={AccountsScreen}
+        options={{tabBarLabel: 'Accounts'}}
       />
       <Tab.Screen
         name="Budgeting"
