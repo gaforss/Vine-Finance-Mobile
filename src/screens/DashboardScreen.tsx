@@ -159,6 +159,19 @@ const DashboardScreen: React.FC<Props & { start?: () => void }> = ({navigation, 
     return value >= 0 ? '#28a745' : '#dc3545';
   };
 
+  // Helper to get net worth from entry, using backend field if present
+  const getEntryNetWorth = (entry: any) =>
+    typeof entry.netWorth === 'number'
+      ? entry.netWorth
+      : (entry.cash || 0) +
+        (entry.investments || 0) +
+        (entry.realEstate || 0) +
+        (entry.retirementAccounts || 0) +
+        (entry.vehicles || 0) +
+        (entry.personalProperty || 0) +
+        (entry.otherAssets || 0) -
+        (entry.liabilities || 0);
+
   const chartData = {
     labels: netWorthData.slice(-6).map(entry => {
       const date = new Date(entry.date);
@@ -166,18 +179,7 @@ const DashboardScreen: React.FC<Props & { start?: () => void }> = ({navigation, 
     }),
     datasets: [
       {
-        data: netWorthData.slice(-6).map(entry => {
-          const netWorth =
-            entry.cash +
-            entry.investments +
-            entry.realEstate +
-            entry.retirementAccounts +
-            entry.vehicles +
-            entry.personalProperty +
-            entry.otherAssets -
-            entry.liabilities;
-          return netWorth;
-        }),
+        data: netWorthData.slice(-6).map(getEntryNetWorth),
       },
     ],
   };
@@ -187,7 +189,7 @@ const DashboardScreen: React.FC<Props & { start?: () => void }> = ({navigation, 
       name: 'Cash',
       population:
         netWorthData.length > 0
-          ? netWorthData[netWorthData.length - 1].cash
+          ? netWorthData[0].cash
           : 0,
       color: '#FF6384',
       legendFontColor: '#7F7F7F',
@@ -196,7 +198,7 @@ const DashboardScreen: React.FC<Props & { start?: () => void }> = ({navigation, 
       name: 'Investments',
       population:
         netWorthData.length > 0
-          ? netWorthData[netWorthData.length - 1].investments
+          ? netWorthData[0].investments
           : 0,
       color: '#36A2EB',
       legendFontColor: '#7F7F7F',
@@ -205,7 +207,7 @@ const DashboardScreen: React.FC<Props & { start?: () => void }> = ({navigation, 
       name: 'Real Estate',
       population:
         netWorthData.length > 0
-          ? netWorthData[netWorthData.length - 1].realEstate
+          ? netWorthData[0].realEstate
           : 0,
       color: '#FFCE56',
       legendFontColor: '#7F7F7F',
@@ -214,7 +216,7 @@ const DashboardScreen: React.FC<Props & { start?: () => void }> = ({navigation, 
       name: 'Retirement',
       population:
         netWorthData.length > 0
-          ? netWorthData[netWorthData.length - 1].retirementAccounts
+          ? netWorthData[0].retirementAccounts
           : 0,
       color: '#4BC0C0',
       legendFontColor: '#7F7F7F',
@@ -243,7 +245,7 @@ const DashboardScreen: React.FC<Props & { start?: () => void }> = ({navigation, 
 
   // Calculate Cash % of Net Worth
   const cashPercent = currentNetWorth !== 0 && netWorthData.length > 0
-    ? ((netWorthData[netWorthData.length - 1].cash || 0) / currentNetWorth * 100).toFixed(2)
+    ? ((netWorthData[0].cash || 0) / currentNetWorth * 100).toFixed(2)
     : '0.00';
 
   // Add a helper function for compact currency formatting
