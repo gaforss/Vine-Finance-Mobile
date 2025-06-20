@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   RefreshControl,
   Alert,
+  SafeAreaView,
 } from 'react-native';
 import {StackNavigationProp} from '@react-navigation/stack';
 import {RootStackParamList, Budget} from '../types';
@@ -162,153 +163,81 @@ const BudgetingScreen: React.FC<Props> = ({navigation}) => {
   const overallProgress = getProgressPercentage(totalSpent, totalBudget);
 
   return (
-    <ScrollView
-      style={styles.container}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-      }>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Budgeting</Text>
-        <TouchableOpacity
-          style={styles.addButton}
-          onPress={() => navigation.navigate('AddEntry')}>
-          <Text style={styles.addButtonText}>+ Add Budget</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Month Selector */}
-      <MonthSelector />
-
-      {/* Overall Budget Overview */}
-      <View style={styles.overviewCard}>
-        <Text style={styles.overviewTitle}>Monthly Overview</Text>
-
-        <View style={styles.overviewRow}>
-          <View style={styles.overviewItem}>
-            <Text style={styles.overviewLabel}>Total Budget</Text>
-            <Text style={styles.overviewAmount}>
-              {formatCurrency(totalBudget)}
-            </Text>
-          </View>
-          <View style={styles.overviewItem}>
-            <Text style={styles.overviewLabel}>Spent</Text>
-            <Text style={[styles.overviewAmount, {color: '#F44336'}]}>
-              {formatCurrency(totalSpent)}
-            </Text>
-          </View>
-          <View style={styles.overviewItem}>
-            <Text style={styles.overviewLabel}>Remaining</Text>
-            <Text style={[styles.overviewAmount, {color: '#4CAF50'}]}>
-              {formatCurrency(remaining)}
-            </Text>
-          </View>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#181f2a' }}>
+      <ScrollView
+        style={styles.container}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }>
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Budgeting</Text>
+          <TouchableOpacity
+            style={styles.addButton}
+            onPress={() => navigation.navigate('AddEntry')}>
+            <Text style={styles.addButtonText}>+ Add Budget</Text>
+          </TouchableOpacity>
         </View>
 
-        <View style={styles.progressSection}>
-          <View style={styles.progressHeader}>
-            <Text style={styles.progressLabel}>Overall Progress</Text>
-            <Text style={styles.progressPercentage}>
-              {overallProgress.toFixed(1)}%
-            </Text>
+        {/* Month Selector */}
+        <MonthSelector />
+
+        {/* Overall Budget Overview */}
+        <View style={styles.overviewCard}>
+          <Text style={styles.overviewTitle}>Monthly Overview</Text>
+          <View style={styles.overviewRow}>
+            <View style={styles.overviewItem}>
+              <Text style={styles.overviewLabel}>Total Budget</Text>
+              <Text style={styles.overviewAmount}>
+                {formatCurrency(totalBudget)}
+              </Text>
+            </View>
+            <View style={styles.overviewItem}>
+              <Text style={styles.overviewLabel}>Spent</Text>
+              <Text style={[styles.overviewAmount, {color: '#F44336'}]}>
+                {formatCurrency(totalSpent)}
+              </Text>
+            </View>
+            <View style={styles.overviewItem}>
+              <Text style={styles.overviewLabel}>Remaining</Text>
+              <Text style={[styles.overviewAmount, {color: '#23aaff'}]}>
+                {formatCurrency(remaining)}
+              </Text>
+            </View>
           </View>
-          <ProgressBar
-            percentage={overallProgress}
-            color={getProgressColor(overallProgress)}
-          />
+          <ProgressBar percentage={overallProgress} color={getProgressColor(overallProgress)} />
         </View>
-      </View>
 
-      {/* Budget Categories */}
-      <View style={styles.categoriesSection}>
-        <Text style={styles.sectionTitle}>Budget Categories</Text>
-
-        {budgets.length > 0 ? (
-          budgets.map(budget => {
-            const progress = getProgressPercentage(budget.spent, budget.amount);
-            const progressColor = getProgressColor(progress);
-
-            return (
-              <View key={budget._id} style={styles.budgetCard}>
-                <View style={styles.budgetHeader}>
-                  <Text style={styles.budgetCategory}>{budget.category}</Text>
-                  <TouchableOpacity
-                    style={styles.editButton}
-                    onPress={() =>
-                      navigation.navigate('EditEntry', {
-                        entryId: budget._id || '',
-                      })
-                    }>
-                    <Text style={styles.editButtonText}>Edit</Text>
-                  </TouchableOpacity>
+        {/* Budget Cards */}
+        <View style={{marginTop: 18}}>
+          {budgets.length === 0 ? (
+            <Text style={styles.emptyText}>No budgets found for this month.</Text>
+          ) : (
+            budgets.map((budget, idx) => {
+              if (!budget || typeof budget.amount !== 'number' || typeof budget.spent !== 'number' || !budget.category) {
+                return null;
+              }
+              const percent = getProgressPercentage(budget.spent, budget.amount);
+              return (
+                <View style={styles.card} key={budget._id || idx}>
+                  <View style={styles.cardHeader}>
+                    <Text style={styles.categoryPill}>{budget.category}</Text>
+                    {budget._id && (
+                      <TouchableOpacity onPress={() => navigation.navigate('EditEntry', { entryId: budget._id as string })}>
+                        <Text style={styles.editText}>Edit</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                  <Text style={styles.cardAmount}>{formatCurrency(budget.amount)}</Text>
+                  <Text style={styles.cardSpent}>Spent: <Text style={{color: getProgressColor(percent)}}>{formatCurrency(budget.spent)}</Text></Text>
+                  <ProgressBar percentage={percent} color={getProgressColor(percent)} />
                 </View>
-
-                <View style={styles.budgetAmounts}>
-                  <View style={styles.amountRow}>
-                    <Text style={styles.amountLabel}>Budget:</Text>
-                    <Text style={styles.amountValue}>
-                      {formatCurrency(budget.amount)}
-                    </Text>
-                  </View>
-                  <View style={styles.amountRow}>
-                    <Text style={styles.amountLabel}>Spent:</Text>
-                    <Text style={[styles.amountValue, {color: '#F44336'}]}>
-                      {formatCurrency(budget.spent)}
-                    </Text>
-                  </View>
-                  <View style={styles.amountRow}>
-                    <Text style={styles.amountLabel}>Remaining:</Text>
-                    <Text style={[styles.amountValue, {color: '#4CAF50'}]}>
-                      {formatCurrency(budget.amount - budget.spent)}
-                    </Text>
-                  </View>
-                </View>
-
-                <View style={styles.progressSection}>
-                  <View style={styles.progressHeader}>
-                    <Text style={styles.progressLabel}>Progress</Text>
-                    <Text style={styles.progressPercentage}>
-                      {progress.toFixed(1)}%
-                    </Text>
-                  </View>
-                  <ProgressBar percentage={progress} color={progressColor} />
-                </View>
-              </View>
-            );
-          })
-        ) : (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyStateIcon}>📊</Text>
-            <Text style={styles.emptyStateTitle}>No Budget Categories</Text>
-            <Text style={styles.emptyStateText}>
-              Create your first budget category to start tracking your spending.
-            </Text>
-            <TouchableOpacity
-              style={styles.emptyStateButton}
-              onPress={() => navigation.navigate('AddEntry')}>
-              <Text style={styles.emptyStateButtonText}>Create Budget</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-      </View>
-
-      {/* Quick Actions */}
-      <View style={styles.quickActions}>
-        <TouchableOpacity
-          style={styles.quickActionButton}
-          onPress={() => navigation.navigate('AddEntry')}>
-          <Text style={styles.quickActionIcon}>➕</Text>
-          <Text style={styles.quickActionText}>Add Category</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.quickActionButton}
-          onPress={() => navigation.navigate('AddEntry')}>
-          <Text style={styles.quickActionIcon}>💰</Text>
-          <Text style={styles.quickActionText}>Record Expense</Text>
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
+              );
+            })
+          )}
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 
@@ -329,114 +258,150 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
-    paddingTop: 40,
-    backgroundColor: '#181f2a',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+    marginTop: 10,
+    paddingHorizontal: 8,
   },
   headerTitle: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: 'bold',
-    color: '#fff',
+    color: '#23aaff',
+    letterSpacing: 0.5,
   },
   addButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: '#23aaff',
+    borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 20,
   },
   addButtonText: {
     color: '#fff',
-    fontWeight: '600',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
   monthSelector: {
-    paddingHorizontal: 20,
-    paddingVertical: 15,
-    backgroundColor: '#fff',
+    marginBottom: 10,
+    marginTop: 4,
   },
   monthButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    marginRight: 10,
-    borderRadius: 20,
-    backgroundColor: '#f0f0f0',
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 10,
+    backgroundColor: '#222b3a',
+    marginRight: 8,
   },
   monthButtonActive: {
-    backgroundColor: '#2E7D32',
+    backgroundColor: '#23aaff',
   },
   monthButtonText: {
-    fontSize: 14,
-    color: '#666',
+    color: '#b0b8c1',
     fontWeight: '600',
+    fontSize: 15,
   },
   monthButtonTextActive: {
     color: '#fff',
   },
   overviewCard: {
     backgroundColor: '#222b3a',
-    margin: 20,
-    marginTop: 10,
-    borderRadius: 15,
-    padding: 20,
+    borderRadius: 18,
+    padding: 18,
+    marginBottom: 18,
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.18,
+    shadowRadius: 8,
+    elevation: 4,
   },
   overviewTitle: {
+    color: '#e6eaf0',
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 15,
+    fontWeight: '700',
+    marginBottom: 10,
   },
   overviewRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 20,
+    marginBottom: 10,
   },
   overviewItem: {
     alignItems: 'center',
     flex: 1,
   },
   overviewLabel: {
-    fontSize: 12,
-    color: '#666',
-    marginBottom: 5,
+    color: '#b0b8c1',
+    fontSize: 14,
+    marginBottom: 2,
   },
   overviewAmount: {
-    fontSize: 16,
+    color: '#23aaff',
+    fontSize: 18,
     fontWeight: 'bold',
-    color: '#333',
-  },
-  progressSection: {
-    marginTop: 15,
-  },
-  progressHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  progressLabel: {
-    fontSize: 14,
-    color: '#666',
-  },
-  progressPercentage: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#333',
   },
   progressBarContainer: {
     height: 8,
-    backgroundColor: '#f0f0f0',
-    borderRadius: 4,
+    backgroundColor: '#2c3650',
+    borderRadius: 6,
     overflow: 'hidden',
+    marginTop: 8,
+    marginBottom: 2,
   },
   progressBar: {
-    height: '100%',
-    borderRadius: 4,
+    height: 8,
+    borderRadius: 6,
+  },
+  card: {
+    backgroundColor: '#222b3a',
+    borderRadius: 18,
+    padding: 18,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.18,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  categoryPill: {
+    backgroundColor: '#23395d',
+    color: '#23aaff',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    fontWeight: '600',
+    fontSize: 14,
+    textTransform: 'capitalize',
+    overflow: 'hidden',
+  },
+  editText: {
+    color: '#23aaff',
+    fontWeight: 'bold',
+    fontSize: 15,
+    marginLeft: 10,
+  },
+  cardAmount: {
+    color: '#e6eaf0',
+    fontSize: 22,
+    fontWeight: 'bold',
+    marginBottom: 6,
+    marginTop: 2,
+  },
+  cardSpent: {
+    color: '#b0b8c1',
+    fontSize: 15,
+    marginBottom: 4,
+  },
+  emptyText: {
+    color: '#b0b8c1',
+    textAlign: 'center',
+    marginTop: 40,
+    fontSize: 16,
   },
   categoriesSection: {
     paddingHorizontal: 20,

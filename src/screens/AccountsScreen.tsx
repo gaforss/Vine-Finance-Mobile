@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, SectionList, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, SectionList, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, SafeAreaView } from 'react-native';
 import { apiService } from '../services/api';
 
 interface Account {
@@ -84,46 +84,48 @@ const AccountsScreen: React.FC = () => {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Accounts</Text>
-      {loading ? (
-        <ActivityIndicator color="#23aaff" />
-      ) : (
-        <SectionList
-          sections={sections}
-          keyExtractor={(item, index) => (item && typeof item._id === 'string' ? item._id : `account-${index}`)}
-          ListEmptyComponent={<Text style={styles.emptyText}>No accounts found.</Text>}
-          renderSectionHeader={({ section: { title } }) => (
-            <Text style={styles.sectionHeader}>{title}</Text>
-          )}
-          renderItem={({ item }) => {
-            if (!item || typeof item._id !== 'string' || typeof item.amount !== 'number') {
-              return null;
-            }
-            return (
-              <View style={styles.card}>
-                <View style={styles.cardHeader}>
-                  <Text style={styles.accountName}>{item.name || 'Unnamed'}</Text>
-                  <View style={styles.typePill}>
-                    <Text style={styles.typePillText}>{item.category || ''}</Text>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#181f2a' }}>
+      <View style={styles.container}>
+        <Text style={styles.title}>Accounts</Text>
+        {loading ? (
+          <ActivityIndicator color="#23aaff" />
+        ) : (
+          <SectionList
+            sections={sections}
+            keyExtractor={(item, index) => (item && typeof item._id === 'string' ? item._id : `account-${index}`)}
+            ListEmptyComponent={<Text style={styles.emptyText}>No accounts found.</Text>}
+            renderSectionHeader={({ section: { title } }) => (
+              <Text style={styles.sectionHeader}>{title}</Text>
+            )}
+            renderItem={({ item }) => {
+              if (!item || typeof item._id !== 'string' || typeof item.amount !== 'number') {
+                return null;
+              }
+              return (
+                <View style={styles.card}>
+                  <View style={styles.cardHeader}>
+                    <Text style={styles.accountName}>{item.name || 'Unnamed'}</Text>
+                    <View style={styles.typePill}>
+                      <Text style={styles.typePillText}>{item.category || ''}</Text>
+                    </View>
                   </View>
+                  <Text style={styles.accountBalance}>
+                    {typeof item.amount === 'number' ? `$${item.amount.toLocaleString()}` : '$0'}
+                  </Text>
+                  {item.institutionName ? (
+                    <Text style={styles.institutionText}>{item.institutionName}{item.mask ? ` •••${item.mask}` : ''}</Text>
+                  ) : null}
+                  <TouchableOpacity style={styles.deleteButton} onPress={() => handleDelete(item._id)}>
+                    <Text style={styles.deleteText}>Delete</Text>
+                  </TouchableOpacity>
                 </View>
-                <Text style={styles.accountBalance}>
-                  {typeof item.amount === 'number' ? `$${item.amount.toLocaleString()}` : '$0'}
-                </Text>
-                {item.institutionName ? (
-                  <Text style={styles.institutionText}>{item.institutionName}{item.mask ? ` •••${item.mask}` : ''}</Text>
-                ) : null}
-                <TouchableOpacity style={styles.deleteButton} onPress={() => handleDelete(item._id)}>
-                  <Text style={styles.deleteText}>Delete</Text>
-                </TouchableOpacity>
-              </View>
-            );
-          }}
-        />
-      )}
-      {/* TODO: Add buttons for Add/Edit/Link Account */}
-    </View>
+              );
+            }}
+          />
+        )}
+        {/* TODO: Add buttons for Add/Edit/Link Account */}
+      </View>
+    </SafeAreaView>
   );
 };
 

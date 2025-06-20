@@ -1,12 +1,14 @@
 import React from 'react';
-import {View, Text, StyleSheet} from 'react-native';
+import {View, Text, StyleSheet, SafeAreaView} from 'react-native';
 
 const ProfileScreen: React.FC = () => {
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Profile</Text>
-      <Text style={styles.subtitle}>Coming soon...</Text>
-    </View>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#181f2a' }}>
+      <View style={styles.container}>
+        <Text style={styles.title}>Profile</Text>
+        <Text style={styles.subtitle}>Coming soon...</Text>
+      </View>
+    </SafeAreaView>
   );
 };
 

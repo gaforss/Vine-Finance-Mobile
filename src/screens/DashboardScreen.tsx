@@ -8,6 +8,7 @@ import {
   RefreshControl,
   Alert,
   Dimensions,
+  SafeAreaView,
 } from 'react-native';
 import {LineChart, PieChart} from 'react-native-chart-kit';
 import {StackNavigationProp} from '@react-navigation/stack';
@@ -261,230 +262,232 @@ const DashboardScreen: React.FC<Props & { start?: () => void }> = ({navigation, 
   };
 
   return (
-    <ScrollView
-      style={styles.container}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-      }>
-      <CopilotStep text="This is your financial snapshot. Here you see your overall net worth and key metrics." order={1} name="snapshot">
-        <WalkthroughableView style={styles.header}>
-          <Text style={styles.title}>Financial Snapshot</Text>
-          <CopilotStep text="Tap here to log a new entry." order={2} name="addEntry">
-            <WalkthroughableView>
-              <TouchableOpacity
-                style={styles.addButton}
-                onPress={() => navigation.navigate('AddEntry')}
-              >
-                <Text style={styles.addButtonText}>Log Entry</Text>
-              </TouchableOpacity>
-            </WalkthroughableView>
-          </CopilotStep>
-        </WalkthroughableView>
-      </CopilotStep>
-
-      {netWorthData.length === 0 ? (
-        <View style={{padding: 20, alignItems: 'center'}}>
-          <Text style={{color: '#888', fontSize: 16, marginTop: 40}}>
-            No entries found. Add your first net worth entry to get started!
-          </Text>
-        </View>
-      ) : (
-        <>
-          {/* Net Worth Overview Section */}
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Net Worth Overview</Text>
-            <Text style={styles.netWorthValue}>{formatCurrency(currentNetWorth)}</Text>
-          </View>
-
-          {/* Net Worth Chart Section - move directly below overview and fit nicely */}
-          <CopilotStep text="This chart shows your net worth over time. You can scroll for more details." order={3} name="netWorthChart">
-            <WalkthroughableView style={[styles.card, { paddingVertical: 16, alignItems: 'center', backgroundColor: '#222b3a' }]}> 
-              <View style={{ width: '100%', alignItems: 'center' }}>
-                <LineChart
-                  data={chartData}
-                  width={screenWidth - 40}
-                  height={220}
-                  chartConfig={chartConfig}
-                  bezier
-                  style={{ borderRadius: 12, backgroundColor: '#222b3a' }}
-                  formatYLabel={formatCompactCurrency}
-                />
-              </View>
-            </WalkthroughableView>
-          </CopilotStep>
-
-          {/* Key Metrics Row */}
-          <View style={[styles.metricsRow, {width: '100%', paddingHorizontal: 20}]}> 
-            <View style={[styles.metricCard, {flex: 1, marginRight: 8}]}> 
-              <View style={{flexDirection: 'row', alignItems: 'center', marginBottom: 2}}>
-                <Tooltip
-                  isVisible={showAnnualGrowthTip}
-                  content={<Text>Annual Growth measures how much your net worth has increased over the past year. A good benchmark is 5-10%.</Text>}
-                  placement="top"
-                  onClose={() => setShowAnnualGrowthTip(false)}
-                  backgroundColor="rgba(0,0,0,0.7)"
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#181f2a' }}>
+      <ScrollView
+        style={styles.container}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }>
+        <CopilotStep text="This is your financial snapshot. Here you see your overall net worth and key metrics." order={1} name="snapshot">
+          <WalkthroughableView style={styles.header}>
+            <Text style={styles.title}>Financial Snapshot</Text>
+            <CopilotStep text="Tap here to log a new entry." order={2} name="addEntry">
+              <WalkthroughableView>
+                <TouchableOpacity
+                  style={styles.addButton}
+                  onPress={() => navigation.navigate('AddEntry')}
                 >
-                  <TouchableOpacity onPress={() => setShowAnnualGrowthTip(true)}>
-                    <Ionicons name="information-circle-outline" size={18} color="#23aaff" style={{ marginRight: 4 }} />
-                  </TouchableOpacity>
-                </Tooltip>
-                <Text style={styles.metricLabel}>Annual Growth</Text>
-              </View>
-              <Text style={[styles.metricValue, {color: getGrowthColor(annualGrowth), marginBottom: 2}]}> 
-                {formatPercentage(annualGrowth)}
-              </Text>
-              <Text style={styles.metricSubtext}>Year over year</Text>
-            </View>
-            <View style={[styles.metricCard, {flex: 1, marginLeft: 8}]}>  
-              <View style={{flexDirection: 'row', alignItems: 'center', marginBottom: 2}}>
-                <Tooltip
-                  isVisible={showCashPercentTip}
-                  content={<Text>Cash % / Net Worth shows the percentage of your net worth that is held in cash. A benchmark of 5-20% is healthy.</Text>}
-                  placement="top"
-                  onClose={() => setShowCashPercentTip(false)}
-                  backgroundColor="rgba(0,0,0,0.7)"
-                >
-                  <TouchableOpacity onPress={() => setShowCashPercentTip(true)}>
-                    <Ionicons name="information-circle-outline" size={18} color="#23aaff" style={{ marginRight: 4 }} />
-                  </TouchableOpacity>
-                </Tooltip>
-                <Text style={styles.metricLabel}>Cash % / Net Worth</Text>
-              </View>
-              <Text style={[styles.metricValue, {color: '#23aaff', marginBottom: 2}]}> 
-                {cashPercent}%
-              </Text>
-              <Text style={styles.metricSubtext}>Cash as % of Net Worth</Text>
-            </View>
-          </View>
+                  <Text style={styles.addButtonText}>Log Entry</Text>
+                </TouchableOpacity>
+              </WalkthroughableView>
+            </CopilotStep>
+          </WalkthroughableView>
+        </CopilotStep>
 
-          {/* Asset Trends - Separate Charts */}
-          {netWorthData.length > 0 && (
-            <>
-              <View style={[styles.card, {backgroundColor: '#222b3a'}]}>
-                <Text style={styles.cardTitle}>Cash Trend</Text>
-                <View style={{ width: '100%', alignItems: 'center', paddingVertical: 8 }}>
+        {netWorthData.length === 0 ? (
+          <View style={{padding: 20, alignItems: 'center'}}>
+            <Text style={{color: '#888', fontSize: 16, marginTop: 40}}>
+              No entries found. Add your first net worth entry to get started!
+            </Text>
+          </View>
+        ) : (
+          <>
+            {/* Net Worth Overview Section */}
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>Net Worth Overview</Text>
+              <Text style={styles.netWorthValue}>{formatCurrency(currentNetWorth)}</Text>
+            </View>
+
+            {/* Net Worth Chart Section - move directly below overview and fit nicely */}
+            <CopilotStep text="This chart shows your net worth over time. You can scroll for more details." order={3} name="netWorthChart">
+              <WalkthroughableView style={[styles.card, { paddingVertical: 16, alignItems: 'center', backgroundColor: '#222b3a' }]}> 
+                <View style={{ width: '100%', alignItems: 'center' }}>
                   <LineChart
-                    data={{
-                      labels: netWorthData.slice(-6).map(entry => {
-                        const date = new Date(entry.date);
-                        return `${date.getMonth() + 1}/${date.getDate()}`;
-                      }),
-                      datasets: [
-                        {
-                          data: netWorthData.slice(-6).map(entry => entry.cash || 0),
-                          color: (opacity = 1) => `rgba(35, 170, 255, ${opacity})`,
-                          strokeWidth: 2,
-                        },
-                      ],
-                    }}
+                    data={chartData}
                     width={screenWidth - 40}
-                    height={180}
-                    chartConfig={{
-                      backgroundColor: '#222b3a',
-                      backgroundGradientFrom: '#222b3a',
-                      backgroundGradientTo: '#222b3a',
-                      fillShadowGradient: '#222b3a',
-                      fillShadowGradientOpacity: 1,
-                      decimalPlaces: 0,
-                      color: (opacity = 1) => `rgba(35, 170, 255, ${opacity})`,
-                      labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-                      style: { borderRadius: 16, backgroundColor: '#222b3a' },
-                      propsForDots: { r: '4', strokeWidth: '2', stroke: '#fff' },
-                    }}
+                    height={220}
+                    chartConfig={chartConfig}
                     bezier
                     style={{ borderRadius: 12, backgroundColor: '#222b3a' }}
                     formatYLabel={formatCompactCurrency}
-                    withDots={false}
-                    withHorizontalLines={false}
-                    withVerticalLines={false}
                   />
                 </View>
-              </View>
-              <View style={[styles.card, {backgroundColor: '#222b3a'}]}>
-                <Text style={styles.cardTitle}>Equities Trend</Text>
-                <View style={{ width: '100%', alignItems: 'center', paddingVertical: 8 }}>
-                  <LineChart
-                    data={{
-                      labels: netWorthData.slice(-6).map(entry => {
-                        const date = new Date(entry.date);
-                        return `${date.getMonth() + 1}/${date.getDate()}`;
-                      }),
-                      datasets: [
-                        {
-                          data: netWorthData.slice(-6).map(entry => entry.investments || 0),
-                          color: (opacity = 1) => `rgba(54, 162, 235, ${opacity})`,
-                          strokeWidth: 2,
-                        },
-                      ],
-                    }}
-                    width={screenWidth - 40}
-                    height={180}
-                    chartConfig={{
-                      backgroundColor: '#222b3a',
-                      backgroundGradientFrom: '#222b3a',
-                      backgroundGradientTo: '#222b3a',
-                      fillShadowGradient: '#222b3a',
-                      fillShadowGradientOpacity: 1,
-                      decimalPlaces: 0,
-                      color: (opacity = 1) => `rgba(54, 162, 235, ${opacity})`,
-                      labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-                      style: { borderRadius: 16, backgroundColor: '#222b3a' },
-                      propsForDots: { r: '4', strokeWidth: '2', stroke: '#fff' },
-                    }}
-                    bezier
-                    style={{ borderRadius: 12, backgroundColor: '#222b3a' }}
-                    formatYLabel={formatCompactCurrency}
-                    withDots={false}
-                    withHorizontalLines={false}
-                    withVerticalLines={false}
-                  />
+              </WalkthroughableView>
+            </CopilotStep>
+
+            {/* Key Metrics Row */}
+            <View style={[styles.metricsRow, {width: '100%', paddingHorizontal: 20}]}> 
+              <View style={[styles.metricCard, {flex: 1, marginRight: 8}]}> 
+                <View style={{flexDirection: 'row', alignItems: 'center', marginBottom: 2}}>
+                  <Tooltip
+                    isVisible={showAnnualGrowthTip}
+                    content={<Text>Annual Growth measures how much your net worth has increased over the past year. A good benchmark is 5-10%.</Text>}
+                    placement="top"
+                    onClose={() => setShowAnnualGrowthTip(false)}
+                    backgroundColor="rgba(0,0,0,0.7)"
+                  >
+                    <TouchableOpacity onPress={() => setShowAnnualGrowthTip(true)}>
+                      <Ionicons name="information-circle-outline" size={18} color="#23aaff" style={{ marginRight: 4 }} />
+                    </TouchableOpacity>
+                  </Tooltip>
+                  <Text style={styles.metricLabel}>Annual Growth</Text>
                 </View>
+                <Text style={[styles.metricValue, {color: getGrowthColor(annualGrowth), marginBottom: 2}]}> 
+                  {formatPercentage(annualGrowth)}
+                </Text>
+                <Text style={styles.metricSubtext}>Year over year</Text>
               </View>
-              <View style={[styles.card, {backgroundColor: '#222b3a'}]}>
-                <Text style={styles.cardTitle}>House Trend</Text>
-                <View style={{ width: '100%', alignItems: 'center', paddingVertical: 8 }}>
-                  <LineChart
-                    data={{
-                      labels: netWorthData.slice(-6).map(entry => {
-                        const date = new Date(entry.date);
-                        return `${date.getMonth() + 1}/${date.getDate()}`;
-                      }),
-                      datasets: [
-                        {
-                          data: netWorthData.slice(-6).map(entry => entry.realEstate || 0),
-                          color: (opacity = 1) => `rgba(255, 99, 132, ${opacity})`,
-                          strokeWidth: 2,
-                        },
-                      ],
-                    }}
-                    width={screenWidth - 40}
-                    height={180}
-                    chartConfig={{
-                      backgroundColor: '#222b3a',
-                      backgroundGradientFrom: '#222b3a',
-                      backgroundGradientTo: '#222b3a',
-                      fillShadowGradient: '#222b3a',
-                      fillShadowGradientOpacity: 1,
-                      decimalPlaces: 0,
-                      color: (opacity = 1) => `rgba(255, 99, 132, ${opacity})`,
-                      labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-                      style: { borderRadius: 16, backgroundColor: '#222b3a' },
-                      propsForDots: { r: '4', strokeWidth: '2', stroke: '#fff' },
-                    }}
-                    bezier
-                    style={{ borderRadius: 12, backgroundColor: '#222b3a' }}
-                    formatYLabel={formatCompactCurrency}
-                    withDots={false}
-                    withHorizontalLines={false}
-                    withVerticalLines={false}
-                  />
+              <View style={[styles.metricCard, {flex: 1, marginLeft: 8}]}>  
+                <View style={{flexDirection: 'row', alignItems: 'center', marginBottom: 2}}>
+                  <Tooltip
+                    isVisible={showCashPercentTip}
+                    content={<Text>Cash % / Net Worth shows the percentage of your net worth that is held in cash. A benchmark of 5-20% is healthy.</Text>}
+                    placement="top"
+                    onClose={() => setShowCashPercentTip(false)}
+                    backgroundColor="rgba(0,0,0,0.7)"
+                  >
+                    <TouchableOpacity onPress={() => setShowCashPercentTip(true)}>
+                      <Ionicons name="information-circle-outline" size={18} color="#23aaff" style={{ marginRight: 4 }} />
+                    </TouchableOpacity>
+                  </Tooltip>
+                  <Text style={styles.metricLabel}>Cash % / Net Worth</Text>
                 </View>
+                <Text style={[styles.metricValue, {color: '#23aaff', marginBottom: 2}]}> 
+                  {cashPercent}%
+                </Text>
+                <Text style={styles.metricSubtext}>Cash as % of Net Worth</Text>
               </View>
-            </>
-          )}
-        </>
-      )}
-    </ScrollView>
+            </View>
+
+            {/* Asset Trends - Separate Charts */}
+            {netWorthData.length > 0 && (
+              <>
+                <View style={[styles.card, {backgroundColor: '#222b3a'}]}>
+                  <Text style={styles.cardTitle}>Cash Trend</Text>
+                  <View style={{ width: '100%', alignItems: 'center', paddingVertical: 8 }}>
+                    <LineChart
+                      data={{
+                        labels: netWorthData.slice(-6).map(entry => {
+                          const date = new Date(entry.date);
+                          return `${date.getMonth() + 1}/${date.getDate()}`;
+                        }),
+                        datasets: [
+                          {
+                            data: netWorthData.slice(-6).map(entry => entry.cash || 0),
+                            color: (opacity = 1) => `rgba(35, 170, 255, ${opacity})`,
+                            strokeWidth: 2,
+                          },
+                        ],
+                      }}
+                      width={screenWidth - 40}
+                      height={180}
+                      chartConfig={{
+                        backgroundColor: '#222b3a',
+                        backgroundGradientFrom: '#222b3a',
+                        backgroundGradientTo: '#222b3a',
+                        fillShadowGradient: '#222b3a',
+                        fillShadowGradientOpacity: 1,
+                        decimalPlaces: 0,
+                        color: (opacity = 1) => `rgba(35, 170, 255, ${opacity})`,
+                        labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+                        style: { borderRadius: 16, backgroundColor: '#222b3a' },
+                        propsForDots: { r: '4', strokeWidth: '2', stroke: '#fff' },
+                      }}
+                      bezier
+                      style={{ borderRadius: 12, backgroundColor: '#222b3a' }}
+                      formatYLabel={formatCompactCurrency}
+                      withDots={false}
+                      withHorizontalLines={false}
+                      withVerticalLines={false}
+                    />
+                  </View>
+                </View>
+                <View style={[styles.card, {backgroundColor: '#222b3a'}]}>
+                  <Text style={styles.cardTitle}>Equities Trend</Text>
+                  <View style={{ width: '100%', alignItems: 'center', paddingVertical: 8 }}>
+                    <LineChart
+                      data={{
+                        labels: netWorthData.slice(-6).map(entry => {
+                          const date = new Date(entry.date);
+                          return `${date.getMonth() + 1}/${date.getDate()}`;
+                        }),
+                        datasets: [
+                          {
+                            data: netWorthData.slice(-6).map(entry => entry.investments || 0),
+                            color: (opacity = 1) => `rgba(54, 162, 235, ${opacity})`,
+                            strokeWidth: 2,
+                          },
+                        ],
+                      }}
+                      width={screenWidth - 40}
+                      height={180}
+                      chartConfig={{
+                        backgroundColor: '#222b3a',
+                        backgroundGradientFrom: '#222b3a',
+                        backgroundGradientTo: '#222b3a',
+                        fillShadowGradient: '#222b3a',
+                        fillShadowGradientOpacity: 1,
+                        decimalPlaces: 0,
+                        color: (opacity = 1) => `rgba(54, 162, 235, ${opacity})`,
+                        labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+                        style: { borderRadius: 16, backgroundColor: '#222b3a' },
+                        propsForDots: { r: '4', strokeWidth: '2', stroke: '#fff' },
+                      }}
+                      bezier
+                      style={{ borderRadius: 12, backgroundColor: '#222b3a' }}
+                      formatYLabel={formatCompactCurrency}
+                      withDots={false}
+                      withHorizontalLines={false}
+                      withVerticalLines={false}
+                    />
+                  </View>
+                </View>
+                <View style={[styles.card, {backgroundColor: '#222b3a'}]}>
+                  <Text style={styles.cardTitle}>House Trend</Text>
+                  <View style={{ width: '100%', alignItems: 'center', paddingVertical: 8 }}>
+                    <LineChart
+                      data={{
+                        labels: netWorthData.slice(-6).map(entry => {
+                          const date = new Date(entry.date);
+                          return `${date.getMonth() + 1}/${date.getDate()}`;
+                        }),
+                        datasets: [
+                          {
+                            data: netWorthData.slice(-6).map(entry => entry.realEstate || 0),
+                            color: (opacity = 1) => `rgba(255, 99, 132, ${opacity})`,
+                            strokeWidth: 2,
+                          },
+                        ],
+                      }}
+                      width={screenWidth - 40}
+                      height={180}
+                      chartConfig={{
+                        backgroundColor: '#222b3a',
+                        backgroundGradientFrom: '#222b3a',
+                        backgroundGradientTo: '#222b3a',
+                        fillShadowGradient: '#222b3a',
+                        fillShadowGradientOpacity: 1,
+                        decimalPlaces: 0,
+                        color: (opacity = 1) => `rgba(255, 99, 132, ${opacity})`,
+                        labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+                        style: { borderRadius: 16, backgroundColor: '#222b3a' },
+                        propsForDots: { r: '4', strokeWidth: '2', stroke: '#fff' },
+                      }}
+                      bezier
+                      style={{ borderRadius: 12, backgroundColor: '#222b3a' }}
+                      formatYLabel={formatCompactCurrency}
+                      withDots={false}
+                      withHorizontalLines={false}
+                      withVerticalLines={false}
+                    />
+                  </View>
+                </View>
+              </>
+            )}
+          </>
+        )}
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 

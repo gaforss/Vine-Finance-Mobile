@@ -9,6 +9,7 @@ import {
   Alert,
   Dimensions,
   FlatList,
+  SafeAreaView,
 } from 'react-native';
 import {LineChart, BarChart} from 'react-native-chart-kit';
 import {StackNavigationProp} from '@react-navigation/stack';
@@ -212,201 +213,203 @@ const RealEstateScreen: React.FC<Props> = ({navigation}) => {
   };
 
   return (
-    <ScrollView
-      style={styles.container}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-      }>
-      <View style={styles.header}>
-        <Text style={styles.title}>Real Estate Portfolio</Text>
-        <TouchableOpacity
-          style={styles.addButton}
-          onPress={() =>
-            Alert.alert(
-              'Coming Soon',
-              'Add Property feature will be available soon!',
-            )
-          }>
-          <Text style={styles.addButtonText}>+ Add Property</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Portfolio Overview */}
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Portfolio Overview</Text>
-        <View style={styles.overviewGrid}>
-          <View style={styles.overviewItem}>
-            <Text style={styles.overviewLabel}>Total Equity</Text>
-            <Text style={styles.overviewValue}>
-              {formatCurrency(totalEquity)}
-            </Text>
-          </View>
-          <View style={styles.overviewItem}>
-            <Text style={styles.overviewLabel}>Annual Rent</Text>
-            <Text style={styles.overviewValue}>
-              {formatCurrency(totalRentIncome)}
-            </Text>
-          </View>
-          <View style={styles.overviewItem}>
-            <Text style={styles.overviewLabel}>Properties</Text>
-            <Text style={styles.overviewValue}>{properties.length}</Text>
-          </View>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#181f2a' }}>
+      <ScrollView
+        style={styles.container}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }>
+        <View style={styles.header}>
+          <Text style={styles.title}>Real Estate Portfolio</Text>
+          <TouchableOpacity
+            style={styles.addButton}
+            onPress={() =>
+              Alert.alert(
+                'Coming Soon',
+                'Add Property feature will be available soon!',
+              )
+            }>
+            <Text style={styles.addButtonText}>+ Add Property</Text>
+          </TouchableOpacity>
         </View>
-      </View>
 
-      {/* Financial Metrics */}
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Financial Metrics</Text>
-        <View style={styles.metricsGrid}>
-          <View style={styles.metricCard}>
-            <Text style={styles.metricCardLabel}>Total NOI</Text>
-            <Text style={styles.metricCardValue}>
-              {formatCurrency(totalNOI)}
-            </Text>
-            <Text style={styles.metricCardSubtext}>Net Operating Income</Text>
-          </View>
-          <View style={styles.metricCard}>
-            <Text style={styles.metricCardLabel}>Avg Cap Rate</Text>
-            <Text style={styles.metricCardValue}>
-              {formatPercentage(averageCapRate)}
-            </Text>
-            <Text style={styles.metricCardSubtext}>Capitalization Rate</Text>
-          </View>
-          <View style={styles.metricCard}>
-            <Text style={styles.metricCardLabel}>Avg CoC Return</Text>
-            <Text style={styles.metricCardValue}>
-              {formatPercentage(averageCoCReturn)}
-            </Text>
-            <Text style={styles.metricCardSubtext}>Cash on Cash Return</Text>
-          </View>
-        </View>
-      </View>
-
-      {/* Property Values Chart */}
-      {properties.length > 0 && (
+        {/* Portfolio Overview */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Property Values</Text>
-          <BarChart
-            data={chartData}
-            width={screenWidth - 40}
-            height={220}
-            yAxisLabel="$"
-            yAxisSuffix=""
-            chartConfig={{
-              backgroundColor: '#2d2d2d',
-              backgroundGradientFrom: '#2d2d2d',
-              backgroundGradientTo: '#2d2d2d',
-              decimalPlaces: 0,
-              color: (opacity = 1) => `rgba(0, 112, 186, ${opacity})`,
-              labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-              style: {
-                borderRadius: 16,
-                backgroundColor: '#2d2d2d',
-              },
-              fillShadowGradient: '#2d2d2d',
-              fillShadowGradientOpacity: 1,
-            }}
-            style={Object.assign({}, styles.chart, {backgroundColor: '#2d2d2d'})}
-          />
+          <Text style={styles.cardTitle}>Portfolio Overview</Text>
+          <View style={styles.overviewGrid}>
+            <View style={styles.overviewItem}>
+              <Text style={styles.overviewLabel}>Total Equity</Text>
+              <Text style={styles.overviewValue}>
+                {formatCurrency(totalEquity)}
+              </Text>
+            </View>
+            <View style={styles.overviewItem}>
+              <Text style={styles.overviewLabel}>Annual Rent</Text>
+              <Text style={styles.overviewValue}>
+                {formatCurrency(totalRentIncome)}
+              </Text>
+            </View>
+            <View style={styles.overviewItem}>
+              <Text style={styles.overviewLabel}>Properties</Text>
+              <Text style={styles.overviewValue}>{properties.length}</Text>
+            </View>
+          </View>
         </View>
-      )}
 
-      {/* Cash Flow Chart */}
-      {properties.length > 0 && (
+        {/* Financial Metrics */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Monthly Cash Flow</Text>
-          <LineChart
-            data={cashFlowData}
-            width={screenWidth - 40}
-            height={220}
-            chartConfig={{
-              backgroundColor: '#2d2d2d',
-              backgroundGradientFrom: '#2d2d2d',
-              backgroundGradientTo: '#2d2d2d',
-              decimalPlaces: 0,
-              color: (opacity = 1) => `rgba(40, 167, 69, ${opacity})`,
-              labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-              style: {
-                borderRadius: 16,
-                backgroundColor: '#2d2d2d',
-              },
-              propsForDots: {
-                r: '6',
-                strokeWidth: '2',
-                stroke: '#28a745',
-              },
-              fillShadowGradient: '#2d2d2d',
-              fillShadowGradientOpacity: 1,
-            }}
-            bezier
-            style={Object.assign({}, styles.chart, {backgroundColor: '#2d2d2d'})}
-          />
+          <Text style={styles.cardTitle}>Financial Metrics</Text>
+          <View style={styles.metricsGrid}>
+            <View style={styles.metricCard}>
+              <Text style={styles.metricCardLabel}>Total NOI</Text>
+              <Text style={styles.metricCardValue}>
+                {formatCurrency(totalNOI)}
+              </Text>
+              <Text style={styles.metricCardSubtext}>Net Operating Income</Text>
+            </View>
+            <View style={styles.metricCard}>
+              <Text style={styles.metricCardLabel}>Avg Cap Rate</Text>
+              <Text style={styles.metricCardValue}>
+                {formatPercentage(averageCapRate)}
+              </Text>
+              <Text style={styles.metricCardSubtext}>Capitalization Rate</Text>
+            </View>
+            <View style={styles.metricCard}>
+              <Text style={styles.metricCardLabel}>Avg CoC Return</Text>
+              <Text style={styles.metricCardValue}>
+                {formatPercentage(averageCoCReturn)}
+              </Text>
+              <Text style={styles.metricCardSubtext}>Cash on Cash Return</Text>
+            </View>
+          </View>
         </View>
-      )}
 
-      {/* Properties List */}
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>
-          My Properties ({properties.length})
-        </Text>
-        {properties.length > 0 ? (
-          <FlatList
-            data={properties}
-            renderItem={renderPropertyCard}
-            keyExtractor={(item, index) => item._id || `property-${index}`}
-            scrollEnabled={false}
-            showsVerticalScrollIndicator={false}
-          />
-        ) : (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyStateText}>No properties added yet</Text>
-            <Text style={styles.emptyStateSubtext}>
-              Add your first property to start tracking your real estate
-              portfolio
-            </Text>
+        {/* Property Values Chart */}
+        {properties.length > 0 && (
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Property Values</Text>
+            <BarChart
+              data={chartData}
+              width={screenWidth - 40}
+              height={220}
+              yAxisLabel="$"
+              yAxisSuffix=""
+              chartConfig={{
+                backgroundColor: '#2d2d2d',
+                backgroundGradientFrom: '#2d2d2d',
+                backgroundGradientTo: '#2d2d2d',
+                decimalPlaces: 0,
+                color: (opacity = 1) => `rgba(0, 112, 186, ${opacity})`,
+                labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+                style: {
+                  borderRadius: 16,
+                  backgroundColor: '#2d2d2d',
+                },
+                fillShadowGradient: '#2d2d2d',
+                fillShadowGradientOpacity: 1,
+              }}
+              style={Object.assign({}, styles.chart, {backgroundColor: '#2d2d2d'})}
+            />
           </View>
         )}
-      </View>
 
-      {/* Quick Actions */}
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Quick Actions</Text>
-        <View style={styles.actionButtons}>
-          <TouchableOpacity
-            style={styles.quickActionButton}
-            onPress={() =>
-              Alert.alert(
-                'Coming Soon',
-                'Property analysis tools will be available soon!',
-              )
-            }>
-            <Text style={styles.quickActionButtonText}>Property Analysis</Text>
-          </TouchableOpacity>
+        {/* Cash Flow Chart */}
+        {properties.length > 0 && (
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Monthly Cash Flow</Text>
+            <LineChart
+              data={cashFlowData}
+              width={screenWidth - 40}
+              height={220}
+              chartConfig={{
+                backgroundColor: '#2d2d2d',
+                backgroundGradientFrom: '#2d2d2d',
+                backgroundGradientTo: '#2d2d2d',
+                decimalPlaces: 0,
+                color: (opacity = 1) => `rgba(40, 167, 69, ${opacity})`,
+                labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+                style: {
+                  borderRadius: 16,
+                  backgroundColor: '#2d2d2d',
+                },
+                propsForDots: {
+                  r: '6',
+                  strokeWidth: '2',
+                  stroke: '#28a745',
+                },
+                fillShadowGradient: '#2d2d2d',
+                fillShadowGradientOpacity: 1,
+              }}
+              bezier
+              style={Object.assign({}, styles.chart, {backgroundColor: '#2d2d2d'})}
+            />
+          </View>
+        )}
 
-          <TouchableOpacity
-            style={styles.quickActionButton}
-            onPress={() =>
-              Alert.alert(
-                'Coming Soon',
-                'Document management will be available soon!',
-              )
-            }>
-            <Text style={styles.quickActionButtonText}>Documents</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.quickActionButton}
-            onPress={() =>
-              Alert.alert(
-                'Coming Soon',
-                'Market insights will be available soon!',
-              )
-            }>
-            <Text style={styles.quickActionButtonText}>Market Insights</Text>
-          </TouchableOpacity>
+        {/* Properties List */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>
+            My Properties ({properties.length})
+          </Text>
+          {properties.length > 0 ? (
+            <FlatList
+              data={properties}
+              renderItem={renderPropertyCard}
+              keyExtractor={(item, index) => item._id || `property-${index}`}
+              scrollEnabled={false}
+              showsVerticalScrollIndicator={false}
+            />
+          ) : (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyStateText}>No properties added yet</Text>
+              <Text style={styles.emptyStateSubtext}>
+                Add your first property to start tracking your real estate
+                portfolio
+              </Text>
+            </View>
+          )}
         </View>
-      </View>
-    </ScrollView>
+
+        {/* Quick Actions */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Quick Actions</Text>
+          <View style={styles.actionButtons}>
+            <TouchableOpacity
+              style={styles.quickActionButton}
+              onPress={() =>
+                Alert.alert(
+                  'Coming Soon',
+                  'Property analysis tools will be available soon!',
+                )
+              }>
+              <Text style={styles.quickActionButtonText}>Property Analysis</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.quickActionButton}
+              onPress={() =>
+                Alert.alert(
+                  'Coming Soon',
+                  'Document management will be available soon!',
+                )
+              }>
+              <Text style={styles.quickActionButtonText}>Documents</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.quickActionButton}
+              onPress={() =>
+                Alert.alert(
+                  'Coming Soon',
+                  'Market insights will be available soon!',
+                )
+              }>
+              <Text style={styles.quickActionButtonText}>Market Insights</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 
