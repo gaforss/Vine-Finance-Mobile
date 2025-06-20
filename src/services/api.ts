@@ -512,6 +512,57 @@ class ApiService {
       };
     }
   }
+
+  // Transaction Methods
+  async getTransactions(accountId: string): Promise<ApiResponse<any[]>> {
+    try {
+      console.log('🔍 Fetching transactions for account:', accountId);
+      // Call the correct backend endpoint for Plaid-linked accounts
+      const response = await this.api.get(`/plaid/transactions/${accountId}`);
+      console.log('✅ Transactions response:', response.data);
+      // The backend returns an array directly, not wrapped in { success, data }
+      if (Array.isArray(response.data)) {
+        return { success: true, data: response.data };
+      }
+      // If backend returns an object, try to extract data
+      if (response.data && Array.isArray(response.data.data)) {
+        return { success: true, data: response.data.data };
+      }
+      return { success: false, error: 'Unexpected response format' };
+    } catch (error: any) {
+      console.error('❌ Transactions fetch error:', error);
+      return {
+        success: false,
+        error: error.response?.data?.message || 'Failed to fetch transactions',
+      };
+    }
+  }
+
+  // Plaid Link Token
+  async createPlaidLinkToken(): Promise<ApiResponse<{link_token: string}>> {
+    try {
+      const response = await this.api.post('/plaid/create_link_token');
+      if (response.data && response.data.link_token) {
+        return { success: true, data: { link_token: response.data.link_token } };
+      }
+      return { success: false, error: 'No link token returned' };
+    } catch (error: any) {
+      return { success: false, error: error.response?.data?.error || 'Failed to create Plaid link token' };
+    }
+  }
+
+  // Add Manual Account
+  async addManualAccount(account: { name: string; type: string; amount: number }): Promise<ApiResponse<any>> {
+    try {
+      const response = await this.api.post('/accounts', account);
+      if (response.data && (response.data.success || response.data._id)) {
+        return { success: true, data: response.data };
+      }
+      return { success: false, error: 'Failed to add account' };
+    } catch (error: any) {
+      return { success: false, error: error.response?.data?.error || 'Failed to add account' };
+    }
+  }
 }
 
 export const apiService = new ApiService();

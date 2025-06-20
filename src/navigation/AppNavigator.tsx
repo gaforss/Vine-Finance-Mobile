@@ -16,6 +16,7 @@ import ProfileScreen from '../screens/ProfileScreen';
 import AddEntryScreen from '../screens/AddEntryScreen';
 import EditEntryScreen from '../screens/EditEntryScreen';
 import SettingsScreen from '../screens/SettingsScreen';
+import TransactionsScreen from '../screens/TransactionsScreen';
 
 // Import components
 import TabBarIcon from '../components/TabBarIcon';
@@ -150,6 +151,14 @@ const AppNavigator: React.FC = () => {
           component={SettingsScreen}
           options={{
             title: 'Settings',
+            presentation: 'modal',
+          }}
+        />
+        <Stack.Screen
+          name="Transactions"
+          component={TransactionsScreen}
+          options={{
+            title: 'Transactions',
             presentation: 'modal',
           }}
         />

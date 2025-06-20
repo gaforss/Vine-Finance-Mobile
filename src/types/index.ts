@@ -156,6 +156,7 @@ export type RootStackParamList = {
   AddEntry: undefined;
   EditEntry: {entryId: string};
   Settings: undefined;
+  Transactions: { accountId: string; accountName: string };
 };
 
 export type MainTabParamList = {

@@ -1,6 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, SectionList, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, SafeAreaView } from 'react-native';
+import { View, Text, SectionList, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, SafeAreaView, Modal, TextInput } from 'react-native';
 import { apiService } from '../services/api';
+import { useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
+import { RootStackParamList } from '../types';
+import { Linking } from 'react-native';
 
 interface Account {
   _id: string;
@@ -19,6 +23,12 @@ interface AccountSection {
 const AccountsScreen: React.FC = () => {
   const [sections, setSections] = useState<AccountSection[]>([]);
   const [loading, setLoading] = useState(true);
+  const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
+  const [showManualModal, setShowManualModal] = useState(false);
+  const [manualName, setManualName] = useState('');
+  const [manualType, setManualType] = useState('');
+  const [manualBalance, setManualBalance] = useState('');
+  const [manualLoading, setManualLoading] = useState(false);
 
   console.log('🏦 AccountsScreen: rendering');
 
@@ -83,9 +93,67 @@ const AccountsScreen: React.FC = () => {
     );
   };
 
+  const handlePlaidLink = async () => {
+    // Get Plaid Link token from backend
+    try {
+      console.log('🔗 Requesting Plaid link token...');
+      const response = await apiService.createPlaidLinkToken();
+      console.log('🔗 Plaid link token response:', response);
+      if (response.success && response.data?.link_token) {
+        const linkToken = response.data.link_token;
+        const url = `https://link.plaid.com/?token=${linkToken}`;
+        console.log('🔗 Plaid link token:', linkToken);
+        console.log('🔗 Plaid Link URL:', url);
+        Alert.alert('Plaid Debug', `Token: ${linkToken}\n\nURL: ${url}`);
+        Linking.openURL(url);
+      } else {
+        Alert.alert('Error', response.error || 'Failed to get Plaid link token');
+        console.error('Plaid link token error:', response);
+      }
+    } catch (err) {
+      Alert.alert('Error', 'Failed to start Plaid Link');
+      console.error('Plaid link token exception:', err);
+    }
+  };
+
+  const handleManualAdd = async () => {
+    if (!manualName || !manualType || !manualBalance) {
+      Alert.alert('Error', 'Please fill all fields');
+      return;
+    }
+    setManualLoading(true);
+    try {
+      const response = await apiService.addManualAccount({
+        name: manualName,
+        type: manualType,
+        amount: parseFloat(manualBalance),
+      });
+      if (response.success) {
+        setShowManualModal(false);
+        setManualName('');
+        setManualType('');
+        setManualBalance('');
+        fetchAccounts();
+      } else {
+        Alert.alert('Error', response.error || 'Failed to add account');
+      }
+    } catch (err) {
+      Alert.alert('Error', 'Failed to add account');
+    }
+    setManualLoading(false);
+  };
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#181f2a' }}>
       <View style={styles.container}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 }}>
+          <TouchableOpacity style={styles.linkPlaidButton} onPress={handlePlaidLink}>
+            <Text style={styles.linkPlaidText}>Link Account with Plaid</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.addManualButton} onPress={() => setShowManualModal(true)}>
+            <Text style={styles.addManualText}>Add Account Manually</Text>
+          </TouchableOpacity>
+        </View>
         <Text style={styles.title}>Accounts</Text>
         {loading ? (
           <ActivityIndicator color="#23aaff" />
@@ -118,12 +186,32 @@ const AccountsScreen: React.FC = () => {
                   <TouchableOpacity style={styles.deleteButton} onPress={() => handleDelete(item._id)}>
                     <Text style={styles.deleteText}>Delete</Text>
                   </TouchableOpacity>
+                  <TouchableOpacity style={styles.transactionsButton} onPress={() => navigation.navigate('Transactions', { accountId: item._id, accountName: item.name })}>
+                    <Text style={styles.transactionsText}>View Transactions</Text>
+                  </TouchableOpacity>
                 </View>
               );
             }}
           />
         )}
-        {/* TODO: Add buttons for Add/Edit/Link Account */}
+        <Modal visible={showManualModal} animationType="slide" transparent>
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Add Account Manually</Text>
+              <TextInput style={styles.modalInput} placeholder="Account Name" value={manualName} onChangeText={setManualName} />
+              <TextInput style={styles.modalInput} placeholder="Account Type" value={manualType} onChangeText={setManualType} />
+              <TextInput style={styles.modalInput} placeholder="Balance" value={manualBalance} onChangeText={setManualBalance} keyboardType="numeric" />
+              <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 16 }}>
+                <TouchableOpacity style={styles.modalCancelButton} onPress={() => setShowManualModal(false)}>
+                  <Text style={styles.modalCancelText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.modalAddButton} onPress={handleManualAdd} disabled={manualLoading}>
+                  <Text style={styles.modalAddText}>{manualLoading ? 'Adding...' : 'Add'}</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
       </View>
     </SafeAreaView>
   );
@@ -214,11 +302,95 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
+  transactionsButton: {
+    alignSelf: 'flex-end',
+    marginTop: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    backgroundColor: '#23aaff',
+    borderRadius: 8,
+    marginLeft: 8,
+  },
+  transactionsText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
   emptyText: {
     color: '#b0b8c1',
     textAlign: 'center',
     marginTop: 40,
     fontSize: 16,
+  },
+  linkPlaidButton: {
+    backgroundColor: '#23aaff',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginRight: 8,
+  },
+  linkPlaidText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 15,
+  },
+  addManualButton: {
+    backgroundColor: '#23395d',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  addManualText: {
+    color: '#23aaff',
+    fontWeight: 'bold',
+    fontSize: 15,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: '#222b3a',
+    borderRadius: 16,
+    padding: 24,
+    width: '85%',
+  },
+  modalTitle: {
+    color: '#23aaff',
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  modalInput: {
+    backgroundColor: '#181f2a',
+    color: '#e6eaf0',
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 12,
+    fontSize: 16,
+  },
+  modalCancelButton: {
+    marginRight: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  modalCancelText: {
+    color: '#b0b8c1',
+    fontSize: 15,
+  },
+  modalAddButton: {
+    backgroundColor: '#23aaff',
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  modalAddText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 15,
   },
 });
 
