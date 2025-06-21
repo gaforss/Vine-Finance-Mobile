@@ -84,9 +84,38 @@ export interface RentCollection {
 
 export interface Expense {
   _id?: string;
-  category: string;
+  user?: string;
+  date: string | Date;
   amount: number;
-  date: Date;
+  description: string;
+  category: string;
+}
+
+export interface Unit {
+  _id?: string;
+  name: string;
+  rentAmount: number;
+  tenant: string;
+}
+
+export interface Vacancy {
+  _id?: string;
+  startDate: string | Date;
+  endDate: string | Date;
+}
+
+export interface Document {
+  _id?: string;
+  name: string;
+  type: string;
+  path: string;
+}
+
+export interface ShortTermIncome {
+  _id?: string;
+  date: string | Date;
+  amount: number;
+  notes?: string;
 }
 
 export interface RealEstate {
@@ -94,7 +123,7 @@ export interface RealEstate {
   userId: string;
   url: string;
   propertyAddress: string;
-  purchaseDate: Date;
+  purchaseDate: Date | string;
   purchasePrice: number;
   value: number;
   mortgageBalance: number;
@@ -105,7 +134,10 @@ export interface RealEstate {
     | 'Vacation Home';
   rentCollected: RentCollection;
   expenses: Expense[];
-  documents: string[];
+  documents: Document[];
+  units: Unit[];
+  vacancies: Vacancy[];
+  shortTermIncome: ShortTermIncome[];
 }
 
 // Retirement Types
@@ -124,13 +156,13 @@ export interface RetirementGoals {
 }
 
 // Budgeting Types
-export interface Budget {
+export interface SavingsGoal {
   _id?: string;
-  userId: string;
-  category: string;
-  amount: number;
-  spent: number;
-  month: string; // Format: "YYYY-MM"
+  user?: string;
+  name: string;
+  targetAmount: number;
+  currentAmount: number;
+  endDate: string | Date;
 }
 
 // API Response Types
@@ -157,6 +189,9 @@ export type RootStackParamList = {
   EditEntry: {entryId: string};
   Settings: undefined;
   Transactions: { accountId: string; accountName: string };
+  Expenses: undefined;
+  SavingsGoals: undefined;
+  PropertyDetail: { property: RealEstate };
 };
 
 export type MainTabParamList = {
@@ -166,4 +201,6 @@ export type MainTabParamList = {
   RealEstate: undefined;
   Retirement: undefined;
   Profile: undefined;
+  Expenses: undefined;
+  SavingsGoals: undefined;
 };

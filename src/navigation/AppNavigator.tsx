@@ -10,13 +10,15 @@ import ForgotPasswordScreen from '../screens/auth/ForgotPasswordScreen';
 import DashboardScreen from '../screens/DashboardScreen';
 import AccountsScreen from '../screens/AccountsScreen';
 import BudgetingScreen from '../screens/BudgetingScreen';
-import RealEstateScreen from '../screens/RealEstateScreen';
+import RealEstateScreen, { PropertyDetailScreen } from '../screens/RealEstateScreen';
 import RetirementScreen from '../screens/RetirementScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import AddEntryScreen from '../screens/AddEntryScreen';
 import EditEntryScreen from '../screens/EditEntryScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import TransactionsScreen from '../screens/TransactionsScreen';
+import ExpensesScreen from '../screens/ExpensesScreen';
+import SavingsGoalsScreen from '../screens/SavingsGoalsScreen';
 
 // Import components
 import TabBarIcon from '../components/TabBarIcon';
@@ -160,6 +162,30 @@ const AppNavigator: React.FC = () => {
           options={{
             title: 'Transactions',
             presentation: 'modal',
+          }}
+        />
+        <Stack.Screen
+          name="Expenses"
+          component={ExpensesScreen}
+          options={{
+            title: 'Expenses',
+            presentation: 'modal',
+          }}
+        />
+        <Stack.Screen
+          name="SavingsGoals"
+          component={SavingsGoalsScreen}
+          options={{
+            title: 'Savings Goals',
+            presentation: 'modal',
+          }}
+        />
+        <Stack.Screen
+          name="PropertyDetail"
+          component={PropertyDetailScreen}
+          options={{
+            title: 'Property Details',
+            headerShown: true,
           }}
         />
       </Stack.Navigator>
