@@ -56,6 +56,13 @@ const propertyTypeIcons: Record<string, string> = {
   'Vacation Home': '🌴',
 };
 
+const propertyTypeColors: Record<string, string> = {
+  'Long-Term Rental': '#2E7D32',
+  'Short-Term Rental': '#1976D2',
+  'Primary Residence': '#8E24AA',
+  'Vacation Home': '#F9A825',
+};
+
 const PropertyForm = ({ visible, onClose, onSave, initialData }: any) => {
   const [form, setForm] = useState<Partial<RealEstate>>(initialData || emptyForm);
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -389,61 +396,141 @@ const RealEstateScreen: React.FC<Props> = ({navigation}) => {
   };
 
   const renderPropertyCard = ({item}: {item: RealEstate}) => {
-    console.log('RENDER PROPERTY:', item);
     const totalRent = Object.values(item.rentCollected || {}).reduce(
       (sum, rent) => sum + (rent.collected ? rent.amount : 0), 0);
     const totalExpenses = item.expenses?.reduce((sum, expense) => sum + expense.amount, 0) || 0;
     const capRate = item.value > 0 ? ((totalRent - totalExpenses) / item.value) * 100 : 0;
+    const typeColor = propertyTypeColors[item.propertyType || ''] || '#666';
+    const appreciation = item.appreciation ? (item.appreciation * 100).toFixed(1) : '0.0';
     return (
-      <View style={styles.propertyCard}>
-        <View style={styles.propertyHeader}>
-          <Text style={styles.propertyIcon}>{propertyTypeIcons[item.propertyType || ''] || ''}</Text>
-          <View>
-            <Text style={styles.propertyName}>{item.propertyType}</Text>
-            <Text style={styles.propertyAddress}>{item.propertyAddress}</Text>
+      <View style={{
+        backgroundColor: '#1a2233',
+        borderRadius: 20,
+        padding: 20,
+        marginBottom: 22,
+        shadowColor: '#000',
+        shadowOpacity: 0.13,
+        shadowRadius: 10,
+        elevation: 5,
+      }}>
+        {/* Header Row */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+          {item.url ? (
+            <Text style={{ fontSize: 20, marginRight: 8 }}>🔗</Text>
+          ) : null}
+          <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#fff', flex: 1 }}>{item.propertyAddress}</Text>
+          <View style={{ backgroundColor: typeColor, borderRadius: 16, paddingHorizontal: 12, paddingVertical: 4, marginLeft: 8 }}>
+            <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 13 }}>{item.propertyType}</Text>
+          </View>
+          <Text style={{ fontSize: 22, color: '#b0b8c1', marginLeft: 10 }}>⋮</Text>
+        </View>
+        {/* Center Icon */}
+        <View style={{ alignItems: 'center', marginVertical: 10 }}>
+          <View style={{ backgroundColor: '#22304a', borderRadius: 40, width: 64, height: 64, justifyContent: 'center', alignItems: 'center', marginBottom: 6, shadowColor: '#000', shadowOpacity: 0.10, shadowRadius: 6, elevation: 2 }}>
+            <Text style={{ fontSize: 36 }}>🏠</Text>
           </View>
         </View>
-        <View style={styles.propertyMetrics}>
-          <View style={styles.metricRow}>
-            <View style={styles.metric}>
-              <Text style={styles.metricLabel}>Current Value</Text>
-              <Text style={styles.metricValue}>{formatCurrency(item.value)}</Text>
-            </View>
-            <View style={styles.metric}>
-              <Text style={styles.metricLabel}>Annual Rent</Text>
-              <Text style={styles.metricValue}>{formatCurrency(totalRent)}</Text>
-            </View>
+        {/* Metrics Row */}
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 }}>
+          <View style={{ alignItems: 'center', flex: 1 }}>
+            <Text style={{ color: '#b0b8c1', fontSize: 13 }}>💵 Equity</Text>
+            <Text style={{ color: '#2ecc71', fontSize: 18, fontWeight: 'bold', marginTop: 2 }}>{formatCurrency(item.value - item.mortgageBalance)}</Text>
           </View>
-          <View style={styles.metricRow}>
-            <View style={styles.metric}>
-              <Text style={styles.metricLabel}>Equity</Text>
-              <Text style={[styles.metricValue, {color: '#28a745'}]}>{formatCurrency(item.value - item.mortgageBalance)}</Text>
-            </View>
-            <View style={styles.metric}>
-              <Text style={styles.metricLabel}>Cap Rate</Text>
-              <Text style={styles.metricValue}>{formatPercentage(capRate)}</Text>
-            </View>
+          <View style={{ alignItems: 'center', flex: 1 }}>
+            <Text style={{ color: '#b0b8c1', fontSize: 13 }}>💲 Zestimate</Text>
+            <Text style={{ color: '#1ea7fd', fontSize: 18, fontWeight: 'bold', marginTop: 2 }}>{formatCurrency(item.value)}</Text>
+            <Text style={{ color: '#2ecc71', fontSize: 13, marginTop: 2 }}>↑ {appreciation}%</Text>
+          </View>
+          <View style={{ alignItems: 'center', flex: 1 }}>
+            <Text style={{ color: '#b0b8c1', fontSize: 13 }}>💳 Mortgage</Text>
+            <Text style={{ color: '#ff7043', fontSize: 18, fontWeight: 'bold', marginTop: 2 }}>{formatCurrency(item.mortgageBalance)}</Text>
           </View>
         </View>
-        <View style={styles.propertyActions}>
-          <TouchableOpacity style={styles.editButton} onPress={() => { setEditing(item); setModalVisible(true); }}><Text style={styles.actionButtonText}>Edit</Text></TouchableOpacity>
-          <TouchableOpacity style={styles.deleteButton} onPress={() => handleDelete(item._id!)}><Text style={styles.actionButtonText}>Delete</Text></TouchableOpacity>
+        {/* Divider */}
+        <View style={{ height: 1, backgroundColor: '#22304a', marginVertical: 12 }} />
+        {/* Action Buttons */}
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+          <TouchableOpacity style={{ flex: 1, backgroundColor: '#2196f3', borderRadius: 8, paddingVertical: 10, marginRight: 6, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+            <Text style={{ color: '#fff', fontSize: 16, marginRight: 6 }}>👁️</Text>
+            <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 15 }}>View Details</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={{ flex: 1, backgroundColor: '#b0b8c1', borderRadius: 8, paddingVertical: 10, marginHorizontal: 6, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+            <Text style={{ color: '#fff', fontSize: 16, marginRight: 6 }}>📄</Text>
+            <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 15 }}>Property Docs</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={{ flex: 1, backgroundColor: '#ffc107', borderRadius: 8, paddingVertical: 10, marginLeft: 6, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+            <Text style={{ color: '#fff', fontSize: 16, marginRight: 6 }}>💵</Text>
+            <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 15 }}>Manage Expenses</Text>
+          </TouchableOpacity>
         </View>
       </View>
     );
   };
 
+  // Calculate cash flow and summary values
+  const totalIncome = properties.reduce((sum, p) => {
+    // Long-term rent
+    const longTerm = Object.values(p.rentCollected || {}).reduce((s, r) => s + (r.amount || 0), 0);
+    // Short-term income
+    const shortTerm = (p.shortTermIncome || []).reduce((s, i) => s + (i.amount || 0), 0);
+    return sum + longTerm + shortTerm;
+  }, 0);
+  const totalExpenses = properties.reduce((sum, p) => sum + (p.expenses?.reduce((s, e) => s + (e.amount || 0), 0) || 0), 0);
+  const realEstateIncome = totalIncome - totalExpenses;
+  // Rent unpaid: rent entries where collected === false
+  const rentUnpaid = properties.reduce((sum, p) => {
+    return sum + Object.values(p.rentCollected || {}).reduce((s, r) => s + (!r.collected ? r.amount || 0 : 0), 0);
+  }, 0);
+  // Overdue rent: rent entries where collected === false and due date < today (if available)
+  const today = new Date();
+  const overdueRent = properties.reduce((sum, p) => {
+    return sum + Object.entries(p.rentCollected || {}).reduce((s, [month, r]) => {
+      // Assume month is YYYY-MM, treat as overdue if before this month
+      if (!r.collected && month < today.toISOString().slice(0, 7)) {
+        return s + (r.amount || 0);
+      }
+      return s;
+    }, 0);
+  }, 0);
+
+  // Cash flow chart data (last 6 months)
+  const months = Array.from({ length: 6 }, (_, i) => {
+    const d = new Date();
+    d.setMonth(d.getMonth() - (5 - i));
+    return d.toISOString().slice(0, 7);
+  });
   const chartData = {
-    labels: properties.slice(0, 5).map(property => property.propertyType.substring(0, 8)),
+    labels: months.map(m => m.slice(5)),
     datasets: [
-      { data: properties.slice(0, 5).map(property => property.value) },
-    ],
-  };
-  const cashFlowData = {
-    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-    datasets: [
-      { data: [totalRentIncome / 6, totalRentIncome / 6, totalRentIncome / 6, totalRentIncome / 6, totalRentIncome / 6, totalRentIncome / 6] },
-    ],
+      {
+        data: months.map(month => {
+          // Sum all rent (long-term) and short-term income for this month, minus expenses
+          let income = 0;
+          let expenses = 0;
+          properties.forEach(p => {
+            // Long-term rent
+            if (p.rentCollected && p.rentCollected[month]) {
+              income += p.rentCollected[month].amount || 0;
+            }
+            // Short-term income
+            if (p.shortTermIncome) {
+              income += p.shortTermIncome.filter(i => {
+                const dateStr = typeof i.date === 'string' ? i.date : (i.date instanceof Date ? i.date.toISOString() : '');
+                return dateStr.slice(0, 7) === month;
+              }).reduce((s, i) => s + (i.amount || 0), 0);
+            }
+            // Expenses
+            if (p.expenses) {
+              expenses += p.expenses.filter(e => {
+                const dateStr = typeof e.date === 'string' ? e.date : (e.date instanceof Date ? e.date.toISOString() : '');
+                return dateStr.slice(0, 7) === month;
+              }).reduce((s, e) => s + (e.amount || 0), 0);
+            }
+          });
+          return income - expenses;
+        })
+      }
+    ]
   };
 
   const handlePropertyPress = (property: RealEstate) => {
@@ -458,9 +545,83 @@ const RealEstateScreen: React.FC<Props> = ({navigation}) => {
     );
   }
 
-  // Restore the full UI (property cards, metrics, add/edit/delete, etc.)
+  // Improved Cash Flow Card UI
   return (
     <SafeAreaView style={styles.container}>
+      <View style={{
+        backgroundColor: '#151e2e',
+        borderRadius: 16,
+        padding: 20,
+        marginBottom: 20,
+        borderWidth: 1,
+        borderColor: '#22304a',
+        shadowColor: '#000',
+        shadowOpacity: 0.10,
+        shadowRadius: 8,
+        elevation: 3,
+      }}>
+        <Text style={{
+          color: '#fff',
+          fontSize: 22,
+          fontWeight: 'bold',
+          textAlign: 'center',
+          marginBottom: 18,
+        }}>
+          Real Estate Income
+        </Text>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 18 }}>
+          <View style={{ alignItems: 'center', flex: 1 }}>
+            <Text style={{ color: '#b0b8c1', fontSize: 15 }}>Total Equity in Properties</Text>
+            <Text style={{ color: '#1ea7fd', fontSize: 22, fontWeight: 'bold', marginTop: 2 }}>{formatCurrency(totalEquity)}</Text>
+          </View>
+          <View style={{ alignItems: 'center', flex: 1 }}>
+            <Text style={{ color: '#b0b8c1', fontSize: 15 }}>Rent Unpaid</Text>
+            <Text style={{ color: '#1ea7fd', fontSize: 22, fontWeight: 'bold', marginTop: 2 }}>{formatCurrency(rentUnpaid)}</Text>
+          </View>
+          <View style={{ alignItems: 'center', flex: 1 }}>
+            <Text style={{ color: '#b0b8c1', fontSize: 15 }}>Overdue Rent</Text>
+            <Text style={{ color: '#1ea7fd', fontSize: 22, fontWeight: 'bold', marginTop: 2 }}>{formatCurrency(overdueRent)}</Text>
+          </View>
+        </View>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <View style={{ width: 24, height: 220, justifyContent: 'center', alignItems: 'center', marginRight: 4 }}>
+            <Text style={{
+              color: '#b0b8c1',
+              fontSize: 13,
+              fontWeight: 'bold',
+              transform: [{ rotate: '-90deg' }],
+              width: 180,
+              textAlign: 'center',
+            }}>
+              Cash Flow ($)
+            </Text>
+          </View>
+          <LineChart
+            data={chartData}
+            width={Dimensions.get('window').width - 56 - 24}
+            height={220}
+            yAxisLabel="$"
+            yAxisSuffix=""
+            chartConfig={{
+              backgroundColor: '#151e2e',
+              backgroundGradientFrom: '#151e2e',
+              backgroundGradientTo: '#151e2e',
+              decimalPlaces: 2,
+              color: (opacity = 1) => `rgba(30, 167, 253, ${opacity})`,
+              labelColor: (opacity = 1) => `rgba(176, 184, 193,${opacity})`,
+              propsForDots: { r: '3', strokeWidth: '2', stroke: '#1ea7fd' },
+              propsForBackgroundLines: { stroke: '#22304a' },
+              style: { borderRadius: 12 },
+            }}
+            bezier
+            style={{ borderRadius: 12, marginTop: 8 }}
+            fromZero
+            segments={5}
+            formatYLabel={y => `$${Number(y).toLocaleString()}`}
+          />
+        </View>
+      </View>
+      {/* Portfolio Overview and rest of UI */}
       <View style={styles.header}>
         <Text style={styles.title}>Real Estate Portfolio</Text>
         <TouchableOpacity onPress={() => { setEditing(null); setModalVisible(true); }}>
@@ -604,25 +765,38 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   propertyCard: {
-    backgroundColor: '#222b3a',
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 12,
+    backgroundColor: '#232b3a',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 18,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 4,
   },
   propertyHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 8,
   },
   propertyName: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
-    color: '#ffffff',
-    marginBottom: 4,
+    color: '#fff',
+    marginBottom: 2,
   },
   propertyAddress: {
     fontSize: 14,
-    color: '#888888',
+    color: '#aaa',
+    marginBottom: 2,
+  },
+  propertyAddressSub: {
+    fontSize: 12,
+    color: '#6fa1e6',
+    textDecorationLine: 'underline',
+    marginBottom: 2,
   },
   propertyMetrics: {
     marginBottom: 12,
@@ -677,7 +851,10 @@ const styles = StyleSheet.create({
   inputLabel: { color: '#333', fontWeight: '600', marginBottom: 4, marginTop: 8 },
   errorText: { color: '#F44336', marginBottom: 8, fontWeight: 'bold' },
   pickerWrapper: { borderWidth: 1, borderColor: '#ccc', borderRadius: 8, marginBottom: 12 },
-  propertyIcon: { fontSize: 32, marginRight: 12 },
+  propertyIcon: {
+    fontSize: 32,
+    marginRight: 14,
+  },
 });
 
 export default RealEstateScreen;

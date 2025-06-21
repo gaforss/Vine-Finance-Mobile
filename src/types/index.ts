@@ -138,6 +138,7 @@ export interface RealEstate {
   units: Unit[];
   vacancies: Vacancy[];
   shortTermIncome: ShortTermIncome[];
+  appreciation?: number;
 }
 
 // Retirement Types
