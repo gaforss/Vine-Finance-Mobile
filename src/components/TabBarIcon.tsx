@@ -1,5 +1,5 @@
 import React from 'react';
-import {Text} from 'react-native';
+import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 import {MainTabParamList} from '../types';
 
 console.log('🎯 TabBarIcon.tsx: Starting TabBarIcon setup');
@@ -11,6 +11,17 @@ interface TabBarIconProps {
   size: number;
 }
 
+const iconMap: Record<keyof MainTabParamList, string> = {
+  Dashboard: 'chart-line',
+  Accounts: 'university',
+  Budgeting: 'clipboard-list',
+  RealEstate: 'home',
+  Retirement: 'piggy-bank',
+  Profile: 'user-circle',
+  Expenses: 'money-bill-wave',
+  SavingsGoals: 'bullseye',
+};
+
 const TabBarIcon: React.FC<TabBarIconProps> = ({
   route,
   focused,
@@ -21,36 +32,22 @@ const TabBarIcon: React.FC<TabBarIconProps> = ({
   console.log('🎯 TabBarIcon.tsx: TabBarIcon props - focused:', focused, 'color:', color, 'size:', size);
 
   try {
-    const getIconName = (routeName: keyof MainTabParamList): string => {
-      console.log('🎯 TabBarIcon.tsx: Getting icon name for route:', routeName);
-      
-      switch (routeName) {
-        case 'Dashboard':
-          return '📊';
-        case 'Accounts':
-          return '🏦';
-        case 'Budgeting':
-          return '📋';
-        case 'RealEstate':
-          return '🏠';
-        case 'Retirement':
-          return '🎯';
-        case 'Profile':
-          return '👤';
-        default:
-          console.warn('🎯 TabBarIcon.tsx: Unknown route:', routeName);
-          return '📱';
-      }
-    };
-
-    const iconName = getIconName(route);
+    const iconName = iconMap[route] || 'question-circle';
     console.log('🎯 TabBarIcon.tsx: Using icon name:', iconName);
 
-    return <Text style={{fontSize: size, color}}>{iconName}</Text>;
+    return (
+      <FontAwesome5
+        name={iconName}
+        size={focused ? size + 2 : size}
+        color={focused ? color : '#b0b8c1'}
+        solid={focused}
+        style={{ marginBottom: -2 }}
+      />
+    );
   } catch (error) {
     console.error('❌ TabBarIcon.tsx: Error rendering TabBarIcon:', error);
     // Return a fallback icon
-    return <Text style={{fontSize: size, color}}>📱</Text>;
+    return <FontAwesome5 name="question-circle" size={size} color="#b0b8c1" />;
   }
 };
 

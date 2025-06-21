@@ -5,6 +5,7 @@ import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../types';
 import { Linking } from 'react-native';
+import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 
 interface Account {
   _id: string;
@@ -143,13 +144,67 @@ const AccountsScreen: React.FC = () => {
     setManualLoading(false);
   };
 
+  const totalBalance = sections
+    .flatMap(section => section.data)
+    .reduce((sum, acct) => sum + (typeof acct.amount === 'number' ? acct.amount : 0), 0);
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#181f2a' }}>
       <View style={styles.container}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 }}>
-          <TouchableOpacity style={styles.linkPlaidButton} onPress={handlePlaidLink}>
-            <Text style={styles.linkPlaidText}>Link Account with Plaid</Text>
+        {/* Plaid Link Card */}
+        <View style={{
+          backgroundColor: '#1a2233',
+          borderRadius: 18,
+          padding: 24,
+          marginBottom: 18,
+          alignItems: 'center',
+          shadowColor: '#000',
+          shadowOpacity: 0.10,
+          shadowRadius: 8,
+          elevation: 3,
+        }}>
+          <FontAwesome5 name="lock" size={24} color="#b0b8c1" style={{ marginBottom: 12 }} />
+          <Text style={{ color: '#e6eaf0', fontSize: 18, fontWeight: '500', textAlign: 'center', marginBottom: 12 }}>
+            Securely link your <Text style={{ fontWeight: 'bold', color: '#fff' }}>Accounts</Text> for Better Visibility
+          </Text>
+          <TouchableOpacity
+            style={{
+              backgroundColor: '#23d160',
+              borderRadius: 8,
+              paddingVertical: 14,
+              paddingHorizontal: 32,
+              marginBottom: 18,
+              marginTop: 4,
+            }}
+            onPress={handlePlaidLink}
+          >
+            <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 17 }}>
+              <FontAwesome5 name="lock" size={16} color="#fff" /> Securely Link An Account
+            </Text>
           </TouchableOpacity>
+          {/* Illustration placeholder */}
+          <View style={{ width: 160, height: 120, backgroundColor: '#23395d', borderRadius: 16, marginTop: 8, marginBottom: 4, alignItems: 'center', justifyContent: 'center' }}>
+            <FontAwesome5 name="user" size={48} color="#23aaff" />
+          </View>
+        </View>
+        {/* Balances summary card */}
+        <View style={{
+          backgroundColor: '#222b3a',
+          borderRadius: 18,
+          padding: 18,
+          marginBottom: 18,
+          alignItems: 'center',
+          shadowColor: '#000',
+          shadowOpacity: 0.12,
+          shadowRadius: 8,
+          elevation: 3,
+        }}>
+          <Text style={{ color: '#b0b8c1', fontSize: 15, marginBottom: 6 }}>Total Balance</Text>
+          <Text style={{ color: '#23aaff', fontSize: 28, fontWeight: 'bold' }}>
+            ${totalBalance.toLocaleString()}
+          </Text>
+        </View>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 }}>
           <TouchableOpacity style={styles.addManualButton} onPress={() => setShowManualModal(true)}>
             <Text style={styles.addManualText}>Add Account Manually</Text>
           </TouchableOpacity>
@@ -321,18 +376,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 40,
     fontSize: 16,
-  },
-  linkPlaidButton: {
-    backgroundColor: '#23aaff',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    marginRight: 8,
-  },
-  linkPlaidText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 15,
   },
   addManualButton: {
     backgroundColor: '#23395d',

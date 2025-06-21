@@ -10,7 +10,7 @@ import {
   Dimensions,
   SafeAreaView,
 } from 'react-native';
-import {LineChart, PieChart} from 'react-native-chart-kit';
+import {LineChart, PieChart, BarChart} from 'react-native-chart-kit';
 import {StackNavigationProp} from '@react-navigation/stack';
 import {RootStackParamList, NetWorth} from '../types';
 import { apiService } from '../services/api';
@@ -19,6 +19,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import Tooltip from 'react-native-walkthrough-tooltip';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
+import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
+import LinearGradient from 'react-native-linear-gradient';
 console.log('DASHBOARD IMPORTED apiService:', apiService);
 
 type DashboardScreenNavigationProp = StackNavigationProp<
@@ -191,21 +193,38 @@ const DashboardScreen: React.FC<Props & { start?: () => void }> = ({navigation, 
     );
   });
   const chartLiabilities = netWorthData.slice(-12).map(entry => entry.liabilities || 0);
+
+  const sanitize = (arr: number[]): number[] =>
+    arr.map((v: number) => (typeof v === 'number' && isFinite(v) && !isNaN(v) ? v : 0));
+
+  const chartNetWorthSafe = sanitize(chartNetWorth);
+  const chartAssetsSafe = sanitize(chartAssets);
+  const chartLiabilitiesSafe = sanitize(chartLiabilities);
+
+  // After sanitizing chart data:
+  const N = Math.min(chartMonths.length, chartNetWorthSafe.length, chartAssetsSafe.length, chartLiabilitiesSafe.length);
+  const months = chartMonths.slice(0, N);
+  const netWorth = chartNetWorthSafe.slice(0, N);
+  const assets = chartAssetsSafe.slice(0, N);
+  const liabilities = chartLiabilitiesSafe.slice(0, N);
+
+  console.log('Chart data:', { months, netWorth, assets, liabilities });
+
   const multiChartData = {
-    labels: chartMonths,
+    labels: months,
     datasets: [
       {
-        data: chartNetWorth,
+        data: netWorth,
         color: (opacity = 1) => `#ffd600`, // Yellow line
         strokeWidth: 3,
       },
       {
-        data: chartAssets,
+        data: assets,
         color: (opacity = 1) => `#1a2a4e`, // Dark blue
         strokeWidth: 2,
       },
       {
-        data: chartLiabilities,
+        data: liabilities,
         color: (opacity = 1) => `#23aaff`, // Light blue
         strokeWidth: 2,
       },
@@ -272,13 +291,15 @@ const DashboardScreen: React.FC<Props & { start?: () => void }> = ({navigation, 
   };
 
   // Calculate Cash % of Net Worth
-  const cashPercent = currentNetWorth !== 0 && netWorthData.length > 0
-    ? ((netWorthData[0].cash || 0) / currentNetWorth * 100).toFixed(2)
-    : '0.00';
+  const cashPercent =
+    currentNetWorth !== 0 && netWorthData.length > 0 && isFinite(currentNetWorth)
+      ? ((netWorthData[0].cash || 0) / currentNetWorth * 100).toFixed(2)
+      : '0.00';
 
   // Add a helper function for compact currency formatting
   const formatCompactCurrency = (value: string | number) => {
     const num = Number(value);
+    if (isNaN(num)) return '$0';
     if (Math.abs(num) >= 1_000_000) {
       return `$${(num / 1_000_000).toFixed(1)}M`;
     } else if (Math.abs(num) >= 1_000) {
@@ -288,6 +309,11 @@ const DashboardScreen: React.FC<Props & { start?: () => void }> = ({navigation, 
     }
   };
 
+  const safeAnnualGrowth =
+    _previousNetWorth !== 0 && isFinite(_previousNetWorth)
+      ? parseFloat((((currentNetWorth - _previousNetWorth) / _previousNetWorth) * 100).toFixed(2))
+      : 0;
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#181f2a' }}>
       <ScrollView
@@ -295,22 +321,92 @@ const DashboardScreen: React.FC<Props & { start?: () => void }> = ({navigation, 
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }>
-        <CopilotStep text="This is your financial snapshot. Here you see your overall net worth and key metrics." order={1} name="snapshot">
-          <WalkthroughableView style={styles.header}>
-            <Text style={styles.title}>Financial Snapshot</Text>
-            <CopilotStep text="Tap here to log a new entry." order={2} name="addEntry">
-              <WalkthroughableView>
-                <TouchableOpacity
-                  style={styles.addButton}
-                  onPress={() => navigation.navigate('AddEntry')}
-                >
-                  <Text style={styles.addButtonText}>Log Entry</Text>
-                </TouchableOpacity>
-              </WalkthroughableView>
-            </CopilotStep>
-          </WalkthroughableView>
-        </CopilotStep>
-
+        <View style={styles.snapshotCard}>
+          <Text style={styles.snapshotTitle}>Financial Snapshot</Text>
+          <TouchableOpacity onPress={() => navigation.navigate('AddEntry')} style={{alignSelf: 'center'}}>
+            <LinearGradient
+              colors={['#2563eb', '#1e40af']}
+              style={styles.snapshotButton}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <FontAwesome5 name="plus" size={18} color="#fff" />
+              <Text style={styles.snapshotButtonText}>Log Monthly Entry</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+          <View style={{ marginTop: 16 }}>
+            {/* Overlay BarChart and LineChart for multi-series effect */}
+            <BarChart
+              data={{
+                labels: months,
+                datasets: [
+                  { data: assets, color: () => '#1e3a8a' },
+                  { data: liabilities, color: () => '#38bdf8' },
+                ],
+              }}
+              width={screenWidth - 64}
+              height={180}
+              yAxisLabel=""
+              yAxisSuffix=""
+              chartConfig={{
+                backgroundGradientFrom: '#222b3a',
+                backgroundGradientTo: '#222b3a',
+                decimalPlaces: 0,
+                color: () => '#1e3a8a',
+                labelColor: () => '#b0b8c1',
+                propsForBackgroundLines: { stroke: 'transparent' },
+              }}
+              withInnerLines={false}
+              withCustomBarColorFromData={true}
+              flatColor={true}
+              showBarTops={false}
+              style={{ borderRadius: 16, position: 'absolute', backgroundColor: '#222b3a' }}
+              fromZero
+            />
+            <LineChart
+              data={{
+                labels: months,
+                datasets: [
+                  { data: netWorth, color: () => '#ffd600', strokeWidth: 3 },
+                ],
+              }}
+              width={screenWidth - 64}
+              height={180}
+              yAxisLabel=""
+              chartConfig={{
+                backgroundGradientFrom: '#222b3a',
+                backgroundGradientTo: '#222b3a',
+                decimalPlaces: 0,
+                color: () => '#ffd600',
+                labelColor: () => '#b0b8c1',
+                propsForBackgroundLines: { stroke: 'transparent' },
+                propsForDots: { r: '0' },
+              }}
+              withInnerLines={false}
+              withOuterLines={false}
+              withDots={false}
+              bezier
+              style={{ borderRadius: 16, backgroundColor: '#222b3a' }}
+              formatYLabel={formatCompactCurrency}
+              fromZero
+            />
+          </View>
+          {/* Legend */}
+          <View style={styles.legend}>
+            <View style={styles.legendItem}>
+              <View style={[styles.dot, { backgroundColor: '#ffd600' }]} />
+              <Text style={styles.legendText}>Net Worth</Text>
+            </View>
+            <View style={styles.legendItem}>
+              <View style={[styles.dot, { backgroundColor: '#1e3a8a' }]} />
+              <Text style={styles.legendText}>Assets</Text>
+            </View>
+            <View style={styles.legendItem}>
+              <View style={[styles.dot, { backgroundColor: '#38bdf8' }]} />
+              <Text style={styles.legendText}>Liabilities</Text>
+            </View>
+          </View>
+        </View>
         {netWorthData.length === 0 ? (
           <View style={{padding: 20, alignItems: 'center'}}>
             <Text style={{color: '#888', fontSize: 16, marginTop: 40}}>
@@ -319,55 +415,10 @@ const DashboardScreen: React.FC<Props & { start?: () => void }> = ({navigation, 
           </View>
         ) : (
           <>
-            {/* Net Worth Overview Section */}
             <View style={styles.card}>
               <Text style={styles.cardTitle}>Net Worth Overview</Text>
               <Text style={styles.netWorthValue}>{formatCurrency(currentNetWorth)}</Text>
             </View>
-
-            {/* Net Worth Chart Section - move directly below overview and fit nicely */}
-            <CopilotStep text="This chart shows your net worth over time. You can scroll for more details." order={3} name="netWorthChart">
-              <WalkthroughableView style={[styles.card, { paddingVertical: 16, alignItems: 'center', backgroundColor: '#222b3a' }]}> 
-                <View style={{ width: '100%', alignItems: 'center' }}>
-                  <LineChart
-                    data={multiChartData}
-                    width={screenWidth - 40}
-                    height={240}
-                    chartConfig={{
-                      ...chartConfig,
-                      color: (opacity = 1) => `#ffd600`, // Default to yellow for Net Worth
-                      labelColor: (opacity = 1) => `rgba(255,255,255,${opacity})`,
-                      propsForDots: { r: '0' },
-                      propsForBackgroundLines: { stroke: 'transparent' },
-                    }}
-                    bezier={false}
-                    style={{ borderRadius: 12, backgroundColor: '#222b3a', marginBottom: 8 }}
-                    formatYLabel={formatCompactCurrency}
-                    withDots={false}
-                    withInnerLines={false}
-                    withOuterLines={false}
-                    fromZero
-                  />
-                  {/* Custom Legend */}
-                  <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginBottom: 12 }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', marginHorizontal: 8 }}>
-                      <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: '#ffd600', marginRight: 6 }} />
-                      <Text style={{ color: '#e6eaf0', fontSize: 15, fontWeight: '600', marginRight: 12 }}>Net Worth</Text>
-                    </View>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', marginHorizontal: 8 }}>
-                      <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: '#1a2a4e', marginRight: 6 }} />
-                      <Text style={{ color: '#e6eaf0', fontSize: 15, fontWeight: '600', marginRight: 12 }}>Assets</Text>
-                    </View>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', marginHorizontal: 8 }}>
-                      <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: '#23aaff', marginRight: 6 }} />
-                      <Text style={{ color: '#e6eaf0', fontSize: 15, fontWeight: '600' }}>Liabilities</Text>
-                    </View>
-                  </View>
-                </View>
-              </WalkthroughableView>
-            </CopilotStep>
-
-            {/* Key Metrics Row */}
             <View style={[styles.metricsRow, {width: '100%', paddingHorizontal: 20}]}> 
               <View style={[styles.metricCard, {flex: 1, marginRight: 8}]}> 
                 <View style={{flexDirection: 'row', alignItems: 'center', marginBottom: 2}}>
@@ -384,8 +435,8 @@ const DashboardScreen: React.FC<Props & { start?: () => void }> = ({navigation, 
                   </Tooltip>
                   <Text style={styles.metricLabel}>Annual Growth</Text>
                 </View>
-                <Text style={[styles.metricValue, {color: getGrowthColor(annualGrowth), marginBottom: 2}]}> 
-                  {formatPercentage(annualGrowth)}
+                <Text style={[styles.metricValue, {color: getGrowthColor(safeAnnualGrowth), marginBottom: 2}]}> 
+                  {formatPercentage(safeAnnualGrowth)}
                 </Text>
                 <Text style={styles.metricSubtext}>Year over year</Text>
               </View>
@@ -410,132 +461,129 @@ const DashboardScreen: React.FC<Props & { start?: () => void }> = ({navigation, 
                 <Text style={styles.metricSubtext}>Cash as % of Net Worth</Text>
               </View>
             </View>
-
             {/* Asset Trends - Separate Charts */}
-            {netWorthData.length > 0 && (
-              <>
-                <View style={[styles.card, {backgroundColor: '#222b3a'}]}>
-                  <Text style={styles.cardTitle}>Cash Trend</Text>
-                  <View style={{ width: '100%', alignItems: 'center', paddingVertical: 8 }}>
-                    <LineChart
-                      data={{
-                        labels: netWorthData.slice(-6).map(entry => {
-                          const date = new Date(entry.date);
-                          return `${date.getMonth() + 1}/${date.getDate()}`;
-                        }),
-                        datasets: [
-                          {
-                            data: netWorthData.slice(-6).map(entry => entry.cash || 0),
-                            color: (opacity = 1) => `rgba(35, 170, 255, ${opacity})`,
-                            strokeWidth: 2,
-                          },
-                        ],
-                      }}
-                      width={screenWidth - 40}
-                      height={180}
-                      chartConfig={{
-                        backgroundColor: '#222b3a',
-                        backgroundGradientFrom: '#222b3a',
-                        backgroundGradientTo: '#222b3a',
-                        fillShadowGradient: '#222b3a',
-                        fillShadowGradientOpacity: 1,
-                        decimalPlaces: 0,
-                        color: (opacity = 1) => `rgba(35, 170, 255, ${opacity})`,
-                        labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-                        style: { borderRadius: 16, backgroundColor: '#222b3a' },
-                        propsForDots: { r: '4', strokeWidth: '2', stroke: '#fff' },
-                      }}
-                      bezier
-                      style={{ borderRadius: 12, backgroundColor: '#222b3a' }}
-                      formatYLabel={formatCompactCurrency}
-                      withDots={false}
-                      withHorizontalLines={false}
-                      withVerticalLines={false}
-                    />
-                  </View>
+            <View>
+              <View style={[styles.card, {backgroundColor: '#222b3a'}]}>
+                <Text style={styles.cardTitle}>Cash Trend</Text>
+                <View style={{ width: '100%', alignItems: 'center', paddingVertical: 8 }}>
+                  <LineChart
+                    data={{
+                      labels: netWorthData.slice(-6).map(entry => {
+                        const date = new Date(entry.date);
+                        return `${date.getMonth() + 1}/${date.getDate()}`;
+                      }),
+                      datasets: [
+                        {
+                          data: netWorthData.slice(-6).map(entry => entry.cash || 0),
+                          color: (opacity = 1) => `rgba(35, 170, 255, ${opacity})`,
+                          strokeWidth: 2,
+                        },
+                      ],
+                    }}
+                    width={screenWidth - 40}
+                    height={180}
+                    chartConfig={{
+                      backgroundColor: '#222b3a',
+                      backgroundGradientFrom: '#222b3a',
+                      backgroundGradientTo: '#222b3a',
+                      fillShadowGradient: '#222b3a',
+                      fillShadowGradientOpacity: 1,
+                      decimalPlaces: 0,
+                      color: (opacity = 1) => `rgba(35, 170, 255, ${opacity})`,
+                      labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+                      style: { borderRadius: 16, backgroundColor: '#222b3a' },
+                      propsForDots: { r: '4', strokeWidth: '2', stroke: '#fff' },
+                    }}
+                    bezier
+                    style={{ borderRadius: 12, backgroundColor: '#222b3a' }}
+                    formatYLabel={formatCompactCurrency}
+                    withDots={false}
+                    withHorizontalLines={false}
+                    withVerticalLines={false}
+                  />
                 </View>
-                <View style={[styles.card, {backgroundColor: '#222b3a'}]}>
-                  <Text style={styles.cardTitle}>Equities Trend</Text>
-                  <View style={{ width: '100%', alignItems: 'center', paddingVertical: 8 }}>
-                    <LineChart
-                      data={{
-                        labels: netWorthData.slice(-6).map(entry => {
-                          const date = new Date(entry.date);
-                          return `${date.getMonth() + 1}/${date.getDate()}`;
-                        }),
-                        datasets: [
-                          {
-                            data: netWorthData.slice(-6).map(entry => entry.investments || 0),
-                            color: (opacity = 1) => `rgba(54, 162, 235, ${opacity})`,
-                            strokeWidth: 2,
-                          },
-                        ],
-                      }}
-                      width={screenWidth - 40}
-                      height={180}
-                      chartConfig={{
-                        backgroundColor: '#222b3a',
-                        backgroundGradientFrom: '#222b3a',
-                        backgroundGradientTo: '#222b3a',
-                        fillShadowGradient: '#222b3a',
-                        fillShadowGradientOpacity: 1,
-                        decimalPlaces: 0,
-                        color: (opacity = 1) => `rgba(54, 162, 235, ${opacity})`,
-                        labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-                        style: { borderRadius: 16, backgroundColor: '#222b3a' },
-                        propsForDots: { r: '4', strokeWidth: '2', stroke: '#fff' },
-                      }}
-                      bezier
-                      style={{ borderRadius: 12, backgroundColor: '#222b3a' }}
-                      formatYLabel={formatCompactCurrency}
-                      withDots={false}
-                      withHorizontalLines={false}
-                      withVerticalLines={false}
-                    />
-                  </View>
+              </View>
+              <View style={[styles.card, {backgroundColor: '#222b3a'}]}>
+                <Text style={styles.cardTitle}>Equities Trend</Text>
+                <View style={{ width: '100%', alignItems: 'center', paddingVertical: 8 }}>
+                  <LineChart
+                    data={{
+                      labels: netWorthData.slice(-6).map(entry => {
+                        const date = new Date(entry.date);
+                        return `${date.getMonth() + 1}/${date.getDate()}`;
+                      }),
+                      datasets: [
+                        {
+                          data: netWorthData.slice(-6).map(entry => entry.investments || 0),
+                          color: (opacity = 1) => `rgba(54, 162, 235, ${opacity})`,
+                          strokeWidth: 2,
+                        },
+                      ],
+                    }}
+                    width={screenWidth - 40}
+                    height={180}
+                    chartConfig={{
+                      backgroundColor: '#222b3a',
+                      backgroundGradientFrom: '#222b3a',
+                      backgroundGradientTo: '#222b3a',
+                      fillShadowGradient: '#222b3a',
+                      fillShadowGradientOpacity: 1,
+                      decimalPlaces: 0,
+                      color: (opacity = 1) => `rgba(54, 162, 235, ${opacity})`,
+                      labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+                      style: { borderRadius: 16, backgroundColor: '#222b3a' },
+                      propsForDots: { r: '4', strokeWidth: '2', stroke: '#fff' },
+                    }}
+                    bezier
+                    style={{ borderRadius: 12, backgroundColor: '#222b3a' }}
+                    formatYLabel={formatCompactCurrency}
+                    withDots={false}
+                    withHorizontalLines={false}
+                    withVerticalLines={false}
+                  />
                 </View>
-                <View style={[styles.card, {backgroundColor: '#222b3a'}]}>
-                  <Text style={styles.cardTitle}>House Trend</Text>
-                  <View style={{ width: '100%', alignItems: 'center', paddingVertical: 8 }}>
-                    <LineChart
-                      data={{
-                        labels: netWorthData.slice(-6).map(entry => {
-                          const date = new Date(entry.date);
-                          return `${date.getMonth() + 1}/${date.getDate()}`;
-                        }),
-                        datasets: [
-                          {
-                            data: netWorthData.slice(-6).map(entry => entry.realEstate || 0),
-                            color: (opacity = 1) => `rgba(255, 99, 132, ${opacity})`,
-                            strokeWidth: 2,
-                          },
-                        ],
-                      }}
-                      width={screenWidth - 40}
-                      height={180}
-                      chartConfig={{
-                        backgroundColor: '#222b3a',
-                        backgroundGradientFrom: '#222b3a',
-                        backgroundGradientTo: '#222b3a',
-                        fillShadowGradient: '#222b3a',
-                        fillShadowGradientOpacity: 1,
-                        decimalPlaces: 0,
-                        color: (opacity = 1) => `rgba(255, 99, 132, ${opacity})`,
-                        labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-                        style: { borderRadius: 16, backgroundColor: '#222b3a' },
-                        propsForDots: { r: '4', strokeWidth: '2', stroke: '#fff' },
-                      }}
-                      bezier
-                      style={{ borderRadius: 12, backgroundColor: '#222b3a' }}
-                      formatYLabel={formatCompactCurrency}
-                      withDots={false}
-                      withHorizontalLines={false}
-                      withVerticalLines={false}
-                    />
-                  </View>
+              </View>
+              <View style={[styles.card, {backgroundColor: '#222b3a'}]}>
+                <Text style={styles.cardTitle}>House Trend</Text>
+                <View style={{ width: '100%', alignItems: 'center', paddingVertical: 8 }}>
+                  <LineChart
+                    data={{
+                      labels: netWorthData.slice(-6).map(entry => {
+                        const date = new Date(entry.date);
+                        return `${date.getMonth() + 1}/${date.getDate()}`;
+                      }),
+                      datasets: [
+                        {
+                          data: netWorthData.slice(-6).map(entry => entry.realEstate || 0),
+                          color: (opacity = 1) => `rgba(255, 99, 132, ${opacity})`,
+                          strokeWidth: 2,
+                        },
+                      ],
+                    }}
+                    width={screenWidth - 40}
+                    height={180}
+                    chartConfig={{
+                      backgroundColor: '#222b3a',
+                      backgroundGradientFrom: '#222b3a',
+                      backgroundGradientTo: '#222b3a',
+                      fillShadowGradient: '#222b3a',
+                      fillShadowGradientOpacity: 1,
+                      decimalPlaces: 0,
+                      color: (opacity = 1) => `rgba(255, 99, 132, ${opacity})`,
+                      labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+                      style: { borderRadius: 16, backgroundColor: '#222b3a' },
+                      propsForDots: { r: '4', strokeWidth: '2', stroke: '#fff' },
+                    }}
+                    bezier
+                    style={{ borderRadius: 12, backgroundColor: '#222b3a' }}
+                    formatYLabel={formatCompactCurrency}
+                    withDots={false}
+                    withHorizontalLines={false}
+                    withVerticalLines={false}
+                  />
                 </View>
-              </>
-            )}
+              </View>
+            </View>
           </>
         )}
       </ScrollView>
@@ -648,6 +696,65 @@ const styles = StyleSheet.create({
   actionButtonText: {
     color: '#fff',
     fontWeight: '600',
+  },
+  snapshotCard: {
+    backgroundColor: '#222b3a',
+    borderRadius: 16,
+    padding: 24,
+    margin: 16,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
+  },
+  snapshotTitle: {
+    color: '#c7d0e0',
+    fontSize: 22,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  snapshotButton: {
+    flexDirection: 'row',
+    alignSelf: 'center',
+    alignItems: 'center',
+    borderRadius: 24,
+    paddingVertical: 10,
+    paddingHorizontal: 28,
+    marginBottom: 8,
+    shadowColor: '#2563eb',
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 4,
+  },
+  snapshotButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 17,
+    marginLeft: 8,
+  },
+  legend: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 18,
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 10,
+  },
+  dot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginRight: 6,
+  },
+  legendText: {
+    color: '#b0b8c1',
+    fontSize: 15,
+    fontWeight: '500',
   },
 });
 
