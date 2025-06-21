@@ -20,6 +20,7 @@ import { Picker } from '@react-native-picker/picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import Toast from 'react-native-root-toast';
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
+import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 
 type RealEstateScreenNavigationProp = StackNavigationProp<
   RootStackParamList,
@@ -298,6 +299,8 @@ const RealEstateScreen: React.FC<Props> = ({navigation}) => {
   const [totalNOI, setTotalNOI] = useState(0);
   const [averageCapRate, setAverageCapRate] = useState(0);
   const [averageCoCReturn, setAverageCoCReturn] = useState(0);
+  const [detailModalVisible, setDetailModalVisible] = useState(false);
+  const [selectedProperty, setSelectedProperty] = useState<RealEstate | null>(null);
 
   const screenWidth = Dimensions.get('window').width;
 
@@ -395,6 +398,30 @@ const RealEstateScreen: React.FC<Props> = ({navigation}) => {
     return `${value.toFixed(1)}%`;
   };
 
+  const openDetailModal = (property: RealEstate) => {
+    setSelectedProperty(property);
+    setDetailModalVisible(true);
+  };
+  const closeDetailModal = () => {
+    setDetailModalVisible(false);
+    setSelectedProperty(null);
+  };
+
+  // Add handler to mark rent as collected
+  const handleMarkCollected = async (property: RealEstate, month: string) => {
+    try {
+      await apiService.updateRentCollection(property._id!, month, { amount: property.rentCollected[month].amount, collected: true });
+      // Refresh property data in modal
+      const response = await apiService.getRealEstateProperties();
+      if (response.success && response.data) {
+        const updated = response.data.find((p: RealEstate) => p._id === property._id);
+        setSelectedProperty(updated || property);
+      }
+    } catch (e) {
+      Alert.alert('Error', 'Failed to update rent status');
+    }
+  };
+
   const renderPropertyCard = ({item}: {item: RealEstate}) => {
     const totalRent = Object.values(item.rentCollected || {}).reduce(
       (sum, rent) => sum + (rent.collected ? rent.amount : 0), 0);
@@ -449,18 +476,105 @@ const RealEstateScreen: React.FC<Props> = ({navigation}) => {
         {/* Divider */}
         <View style={{ height: 1, backgroundColor: '#22304a', marginVertical: 12 }} />
         {/* Action Buttons */}
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-          <TouchableOpacity style={{ flex: 1, backgroundColor: '#2196f3', borderRadius: 8, paddingVertical: 10, marginRight: 6, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
-            <Text style={{ color: '#fff', fontSize: 16, marginRight: 6 }}>👁️</Text>
-            <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 15 }}>View Details</Text>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
+          <TouchableOpacity
+            style={{
+              flex: 1,
+              backgroundColor: '#2196f3',
+              borderRadius: 8,
+              paddingVertical: 10,
+              marginRight: 6,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              shadowColor: '#000',
+              shadowOpacity: 0.08,
+              shadowRadius: 4,
+              elevation: 2,
+              overflow: 'hidden',
+            }}
+            onPress={() => openDetailModal(item)}
+          >
+            <FontAwesome5 name="eye" size={15} color="#fff" style={{ marginRight: 4 }} />
+            <Text
+              style={{
+                color: '#fff',
+                fontWeight: 'bold',
+                fontSize: 13,
+                flexShrink: 1,
+                maxWidth: 90,
+              }}
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
+              View Details
+            </Text>
           </TouchableOpacity>
-          <TouchableOpacity style={{ flex: 1, backgroundColor: '#b0b8c1', borderRadius: 8, paddingVertical: 10, marginHorizontal: 6, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
-            <Text style={{ color: '#fff', fontSize: 16, marginRight: 6 }}>📄</Text>
-            <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 15 }}>Property Docs</Text>
+          <TouchableOpacity
+            style={{
+              flex: 1,
+              backgroundColor: '#b0b8c1',
+              borderRadius: 8,
+              paddingVertical: 10,
+              marginHorizontal: 6,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              shadowColor: '#000',
+              shadowOpacity: 0.08,
+              shadowRadius: 4,
+              elevation: 2,
+              overflow: 'hidden',
+            }}
+            // onPress={...}
+          >
+            <FontAwesome5 name="file-alt" size={15} color="#fff" style={{ marginRight: 4 }} />
+            <Text
+              style={{
+                color: '#fff',
+                fontWeight: 'bold',
+                fontSize: 13,
+                flexShrink: 1,
+                maxWidth: 90,
+              }}
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
+              Property Docs
+            </Text>
           </TouchableOpacity>
-          <TouchableOpacity style={{ flex: 1, backgroundColor: '#ffc107', borderRadius: 8, paddingVertical: 10, marginLeft: 6, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
-            <Text style={{ color: '#fff', fontSize: 16, marginRight: 6 }}>💵</Text>
-            <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 15 }}>Manage Expenses</Text>
+          <TouchableOpacity
+            style={{
+              flex: 1,
+              backgroundColor: '#ffc107',
+              borderRadius: 8,
+              paddingVertical: 10,
+              marginLeft: 6,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              shadowColor: '#000',
+              shadowOpacity: 0.08,
+              shadowRadius: 4,
+              elevation: 2,
+              overflow: 'hidden',
+            }}
+            // onPress={...}
+          >
+            <FontAwesome5 name="money-bill-wave" size={15} color="#fff" style={{ marginRight: 4 }} />
+            <Text
+              style={{
+                color: '#fff',
+                fontWeight: 'bold',
+                fontSize: 13,
+                flexShrink: 1,
+                maxWidth: 90,
+              }}
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
+              Manage Expenses
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -548,6 +662,7 @@ const RealEstateScreen: React.FC<Props> = ({navigation}) => {
   // Improved Cash Flow Card UI
   return (
     <SafeAreaView style={styles.container}>
+      {/* Cash Flow Chart and Summary Boxes */}
       <View style={{
         backgroundColor: '#151e2e',
         borderRadius: 16,
@@ -571,7 +686,7 @@ const RealEstateScreen: React.FC<Props> = ({navigation}) => {
         </Text>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 18 }}>
           <View style={{ alignItems: 'center', flex: 1 }}>
-            <Text style={{ color: '#b0b8c1', fontSize: 15 }}>Total Equity in Properties</Text>
+            <Text style={{ color: '#b0b8c1', fontSize: 15 }}>Total Equity</Text>
             <Text style={{ color: '#1ea7fd', fontSize: 22, fontWeight: 'bold', marginTop: 2 }}>{formatCurrency(totalEquity)}</Text>
           </View>
           <View style={{ alignItems: 'center', flex: 1 }}>
@@ -621,37 +736,30 @@ const RealEstateScreen: React.FC<Props> = ({navigation}) => {
           />
         </View>
       </View>
-      {/* Portfolio Overview and rest of UI */}
-      <View style={styles.header}>
-        <Text style={styles.title}>Real Estate Portfolio</Text>
-        <TouchableOpacity onPress={() => { setEditing(null); setModalVisible(true); }}>
-          <Text style={{ color: '#2E7D32', fontSize: 18 }}>+ Add Property</Text>
-        </TouchableOpacity>
-      </View>
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Portfolio Overview</Text>
-        <View style={styles.overviewGrid}>
-          <View style={styles.overviewItem}>
-            <Text style={styles.overviewLabel}>Total Equity</Text>
-            <Text style={styles.overviewValue}>{formatCurrency(totalEquity)}</Text>
+      {/* Portfolio Summary Card */}
+      <View style={{
+        backgroundColor: '#1a2233',
+        borderRadius: 16,
+        padding: 20,
+        marginBottom: 18,
+        shadowColor: '#000',
+        shadowOpacity: 0.10,
+        shadowRadius: 8,
+        elevation: 3,
+      }}>
+        <Text style={{ color: '#fff', fontSize: 20, fontWeight: 'bold', marginBottom: 16, textAlign: 'center' }}>Portfolio Summary</Text>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+          <View style={{ alignItems: 'center', flex: 1 }}>
+            <Text style={{ color: '#b0b8c1', fontSize: 15 }}>Total NOI</Text>
+            <Text style={{ color: '#1ea7fd', fontSize: 22, fontWeight: 'bold', marginTop: 2 }}>{formatCurrency(totalNOI)}</Text>
           </View>
-          <View style={styles.overviewItem}>
-            <Text style={styles.overviewLabel}>Annual Rent</Text>
-            <Text style={styles.overviewValue}>{formatCurrency(totalRentIncome)}</Text>
+          <View style={{ alignItems: 'center', flex: 1 }}>
+            <Text style={{ color: '#b0b8c1', fontSize: 15 }}>Avg. Cap Rate</Text>
+            <Text style={{ color: '#1ea7fd', fontSize: 22, fontWeight: 'bold', marginTop: 2 }}>{formatPercentage(averageCapRate)}</Text>
           </View>
-          <View style={styles.overviewItem}>
-            <Text style={styles.overviewLabel}>NOI</Text>
-            <Text style={styles.overviewValue}>{formatCurrency(totalNOI)}</Text>
-          </View>
-        </View>
-        <View style={styles.overviewGrid}>
-          <View style={styles.overviewItem}>
-            <Text style={styles.overviewLabel}>Avg Cap Rate</Text>
-            <Text style={styles.overviewValue}>{formatPercentage(averageCapRate)}</Text>
-          </View>
-          <View style={styles.overviewItem}>
-            <Text style={styles.overviewLabel}>Avg CoC Return</Text>
-            <Text style={styles.overviewValue}>{formatPercentage(averageCoCReturn)}</Text>
+          <View style={{ alignItems: 'center', flex: 1 }}>
+            <Text style={{ color: '#b0b8c1', fontSize: 15 }}>Avg. CoC Return</Text>
+            <Text style={{ color: '#1ea7fd', fontSize: 22, fontWeight: 'bold', marginTop: 2 }}>{formatPercentage(averageCoCReturn)}</Text>
           </View>
         </View>
       </View>
@@ -668,6 +776,106 @@ const RealEstateScreen: React.FC<Props> = ({navigation}) => {
         onSave={handleSave}
         initialData={editing}
       />
+      {/* Property Details Modal */}
+      <Modal visible={detailModalVisible} animationType="slide" transparent onRequestClose={closeDetailModal}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center' }}>
+          <View style={{ backgroundColor: '#233047', borderRadius: 16, width: '92%', maxWidth: 500, padding: 0, overflow: 'hidden' }}>
+            {/* Header */}
+            <View style={{ backgroundColor: '#34425a', padding: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Text style={{ color: '#fff', fontSize: 22, fontWeight: 'bold' }}>Property Details</Text>
+              <TouchableOpacity onPress={closeDetailModal}><Text style={{ color: '#b0b8c1', fontSize: 28 }}>×</Text></TouchableOpacity>
+            </View>
+            {selectedProperty && (
+              <ScrollView style={{ maxHeight: 600 }} contentContainerStyle={{ padding: 24 }}>
+                <Text style={{ color: '#fff', fontSize: 24, fontWeight: 'bold', textAlign: 'center', marginBottom: 2 }}>{selectedProperty.propertyAddress}</Text>
+                {selectedProperty.url ? (
+                  <Text style={{ color: '#6fa1e6', fontSize: 15, textAlign: 'center', marginBottom: 18, textDecorationLine: 'underline' }}>View on Zillow</Text>
+                ) : null}
+                {/* Key Info */}
+                <View style={{ backgroundColor: '#1a2233', borderRadius: 10, marginBottom: 18 }}>
+                  <Text style={{ color: '#b0b8c1', fontSize: 16, fontWeight: 'bold', padding: 12 }}>Key Info</Text>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 12, paddingBottom: 12 }}>
+                    <Text style={{ color: '#b0b8c1', fontSize: 15 }}>Property Value</Text>
+                    <Text style={{ color: '#2ecc71', fontSize: 16, fontWeight: 'bold' }}>{formatCurrency(selectedProperty.value)}</Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 12, paddingBottom: 12 }}>
+                    <Text style={{ color: '#b0b8c1', fontSize: 15 }}>Purchased</Text>
+                    <Text style={{ color: '#fff', fontSize: 15 }}>{selectedProperty.purchaseDate ? (typeof selectedProperty.purchaseDate === 'string' ? new Date(selectedProperty.purchaseDate).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) : selectedProperty.purchaseDate.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })) : ''}</Text>
+                  </View>
+                </View>
+                {/* Financial Performance */}
+                <View style={{ backgroundColor: '#1a2233', borderRadius: 10, marginBottom: 18 }}>
+                  <Text style={{ color: '#b0b8c1', fontSize: 16, fontWeight: 'bold', padding: 12 }}>Financial Performance</Text>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 12, paddingBottom: 10, alignItems: 'center' }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <FontAwesome5 name="wallet" size={15} color="#b0b8c1" style={{ marginRight: 6 }} />
+                      <Text style={{ color: '#b0b8c1', fontSize: 15 }}>NOI</Text>
+                    </View>
+                    <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>{formatCurrency(
+                      Object.values(selectedProperty.rentCollected || {}).reduce((sum, r) => sum + (r.amount || 0), 0) - (selectedProperty.expenses?.reduce((sum, e) => sum + (e.amount || 0), 0) || 0)
+                    )}</Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 12, paddingBottom: 10, alignItems: 'center' }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <FontAwesome5 name="percentage" size={15} color="#b0b8c1" style={{ marginRight: 6 }} />
+                      <Text style={{ color: '#b0b8c1', fontSize: 15 }}>Cap Rate</Text>
+                    </View>
+                    <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>{selectedProperty.value > 0 ? (((Object.values(selectedProperty.rentCollected || {}).reduce((sum, r) => sum + (r.amount || 0), 0) - (selectedProperty.expenses?.reduce((sum, e) => sum + (e.amount || 0), 0) || 0)) / selectedProperty.value) * 100).toFixed(2) + '%' : '0.00%'}</Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 12, paddingBottom: 10, alignItems: 'center' }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <FontAwesome5 name="money-bill-wave" size={15} color="#b0b8c1" style={{ marginRight: 6 }} />
+                      <Text style={{ color: '#b0b8c1', fontSize: 15 }}>CoC Return</Text>
+                    </View>
+                    <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>{selectedProperty.purchasePrice > 0 ? (((Object.values(selectedProperty.rentCollected || {}).reduce((sum, r) => sum + (r.amount || 0), 0) - (selectedProperty.expenses?.reduce((sum, e) => sum + (e.amount || 0), 0) || 0)) / selectedProperty.purchasePrice) * 100).toFixed(2) + '%' : '0.00%'}</Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 12, paddingBottom: 10, alignItems: 'center' }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <FontAwesome5 name="file-invoice-dollar" size={15} color="#b0b8c1" style={{ marginRight: 6 }} />
+                      <Text style={{ color: '#b0b8c1', fontSize: 15 }}>Expenses</Text>
+                    </View>
+                    <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>{formatCurrency(selectedProperty.expenses?.reduce((sum, e) => sum + (e.amount || 0), 0) || 0)}</Text>
+                  </View>
+                </View>
+                {/* Rent Collection Status Table */}
+                <View style={{ backgroundColor: '#1a2233', borderRadius: 10, marginBottom: 18 }}>
+                  <Text style={{ color: '#b0b8c1', fontSize: 16, fontWeight: 'bold', padding: 12 }}>Rent Collection Status</Text>
+                  <View style={{ flexDirection: 'row', paddingHorizontal: 12, paddingBottom: 8 }}>
+                    <Text style={{ color: '#b0b8c1', fontWeight: 'bold', flex: 1 }}>Month</Text>
+                    <Text style={{ color: '#b0b8c1', fontWeight: 'bold', flex: 1 }}>Amount</Text>
+                    <Text style={{ color: '#b0b8c1', fontWeight: 'bold', flex: 1 }}>Status</Text>
+                    <Text style={{ color: '#b0b8c1', fontWeight: 'bold', flex: 1 }}>Actions</Text>
+                  </View>
+                  {selectedProperty.rentCollected && Object.entries(selectedProperty.rentCollected).length > 0 ? (
+                    Object.entries(selectedProperty.rentCollected).map(([month, r], idx) => (
+                      <View key={month} style={{ flexDirection: 'row', paddingHorizontal: 12, paddingVertical: 6, backgroundColor: idx % 2 === 0 ? '#233047' : 'transparent', borderRadius: 6 }}>
+                        <Text style={{ color: '#fff', flex: 1 }}>{month}</Text>
+                        <Text style={{ color: '#fff', flex: 1 }}>{formatCurrency(r.amount)}</Text>
+                        <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
+                          {r.collected ? (
+                            <View style={{ backgroundColor: '#2ecc71', borderRadius: 8, paddingHorizontal: 6, paddingVertical: 1 }}>
+                              <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 11 }}>Collected</Text>
+                            </View>
+                          ) : (
+                            <TouchableOpacity onPress={() => handleMarkCollected(selectedProperty, month)} style={{ backgroundColor: '#2196f3', borderRadius: 8, paddingHorizontal: 6, paddingVertical: 1, marginRight: 6 }}>
+                              <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 11 }}>Mark as Collected</Text>
+                            </TouchableOpacity>
+                          )}
+                        </View>
+                        <TouchableOpacity style={{ flex: 1 }} onPress={() => { /* TODO: Edit rent entry */ }}>
+                          <Text style={{ color: '#ffc107', fontWeight: 'bold', fontSize: 13 }}>Edit</Text>
+                        </TouchableOpacity>
+                      </View>
+                    ))
+                  ) : (
+                    <Text style={{ color: '#b0b8c1', textAlign: 'center', padding: 12 }}>No rent records found.</Text>
+                  )}
+                </View>
+              </ScrollView>
+            )}
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
