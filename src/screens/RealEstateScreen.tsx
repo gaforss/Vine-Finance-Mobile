@@ -11,6 +11,7 @@ import {
   Modal,
   TextInput,
   Alert,
+  Linking,
 } from 'react-native';
 import {LineChart, BarChart} from 'react-native-chart-kit';
 import {StackNavigationProp} from '@react-navigation/stack';
@@ -21,6 +22,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import Toast from 'react-native-root-toast';
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
 import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
+import DocumentPicker from 'react-native-document-picker';
 
 type RealEstateScreenNavigationProp = StackNavigationProp<
   RootStackParamList,
@@ -301,6 +303,25 @@ const RealEstateScreen: React.FC<Props> = ({navigation}) => {
   const [averageCoCReturn, setAverageCoCReturn] = useState(0);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [selectedProperty, setSelectedProperty] = useState<RealEstate | null>(null);
+  const [rentForm, setRentForm] = useState({ startDate: '', endDate: '', amount: '' });
+  const [showStartPicker, setShowStartPicker] = useState(false);
+  const [showEndPicker, setShowEndPicker] = useState(false);
+  const [addingRent, setAddingRent] = useState(false);
+  const [docsModalVisible, setDocsModalVisible] = useState(false);
+  const [docsProperty, setDocsProperty] = useState<RealEstate | null>(null);
+  const [docs, setDocs] = useState<any[]>([]);
+  const [docName, setDocName] = useState('');
+  const [docFile, setDocFile] = useState<any>(null);
+  const [uploadingDoc, setUploadingDoc] = useState(false);
+  const [renameModalVisible, setRenameModalVisible] = useState(false);
+  const [renameDocId, setRenameDocId] = useState<string | null>(null);
+  const [renameDocValue, setRenameDocValue] = useState('');
+  const [expensesModalVisible, setExpensesModalVisible] = useState(false);
+  const [expensesProperty, setExpensesProperty] = useState<RealEstate | null>(null);
+  const [expenses, setExpenses] = useState<any[]>([]);
+  const [expenseForm, setExpenseForm] = useState({ date: '', category: 'Property Tax', amount: '' });
+  const [showExpenseDatePicker, setShowExpenseDatePicker] = useState(false);
+  const [addingExpense, setAddingExpense] = useState(false);
 
   const screenWidth = Dimensions.get('window').width;
 
@@ -422,6 +443,165 @@ const RealEstateScreen: React.FC<Props> = ({navigation}) => {
     }
   };
 
+  const handleAddRentPayment = async () => {
+    if (!selectedProperty) return;
+    if (!rentForm.startDate || !rentForm.endDate || !rentForm.amount) {
+      Alert.alert('Error', 'Please fill all fields');
+      return;
+    }
+    setAddingRent(true);
+    try {
+      await apiService.addRentPayment(selectedProperty._id!, {
+        startDate: rentForm.startDate,
+        endDate: rentForm.endDate,
+        amount: parseFloat(rentForm.amount),
+      });
+      // Refresh property data in modal
+      const response = await apiService.getRealEstateProperties();
+      if (response.success && response.data) {
+        const updated = response.data.find((p: RealEstate) => p._id === selectedProperty._id);
+        setSelectedProperty(updated || selectedProperty);
+      }
+      setRentForm({ startDate: '', endDate: '', amount: '' });
+    } catch (e) {
+      Alert.alert('Error', 'Failed to add rent payment');
+    } finally {
+      setAddingRent(false);
+    }
+  };
+
+  const openDocsModal = async (property: RealEstate) => {
+    setDocsProperty(property);
+    setDocs([]);
+    setDocName('');
+    setDocFile(null);
+    setDocsModalVisible(true);
+    // Fetch docs
+    try {
+      const resp = await apiService.listDocuments(property._id!);
+      if (resp.success && resp.data) setDocs(resp.data);
+    } catch {}
+  };
+  const closeDocsModal = () => {
+    setDocsModalVisible(false);
+    setDocsProperty(null);
+    setDocs([]);
+    setDocName('');
+    setDocFile(null);
+  };
+  const handlePickDoc = async () => {
+    try {
+      const res = await DocumentPicker.pickSingle({ type: [DocumentPicker.types.allFiles] });
+      setDocFile(res);
+    } catch (e) {}
+  };
+  const handleUploadDoc = async () => {
+    if (!docsProperty || !docFile || !docName) {
+      Alert.alert('Error', 'Please provide a name and select a file.');
+      return;
+    }
+    setUploadingDoc(true);
+    try {
+      await apiService.uploadDocument(docsProperty._id!, { ...docFile, name: docName });
+      // Refresh docs
+      const resp = await apiService.listDocuments(docsProperty._id!);
+      if (resp.success && resp.data) setDocs(resp.data);
+      setDocName('');
+      setDocFile(null);
+    } catch (e) {
+      Alert.alert('Error', 'Failed to upload document');
+    } finally {
+      setUploadingDoc(false);
+    }
+  };
+
+  const handleDownloadDoc = (doc: any) => {
+    if (doc.path) Linking.openURL(doc.path);
+  };
+  const handleDeleteDoc = async (doc: any) => {
+    if (!docsProperty) return;
+    Alert.alert('Delete Document', 'Are you sure you want to delete this document?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: async () => {
+        try {
+          await apiService.deleteDocument(docsProperty._id!, doc._id);
+          const resp = await apiService.listDocuments(docsProperty._id!);
+          if (resp.success && resp.data) setDocs(resp.data);
+        } catch {
+          Alert.alert('Error', 'Failed to delete document');
+        }
+      }}
+    ]);
+  };
+  const handleOpenRename = (doc: any) => {
+    setRenameDocId(doc._id);
+    setRenameDocValue(doc.name || '');
+    setRenameModalVisible(true);
+  };
+  const handleRenameDoc = async () => {
+    if (!docsProperty || !renameDocId || !renameDocValue) return;
+    try {
+      await apiService.renameDocument(docsProperty._id!, renameDocId, renameDocValue);
+      const resp = await apiService.listDocuments(docsProperty._id!);
+      if (resp.success && resp.data) setDocs(resp.data);
+      setRenameModalVisible(false);
+      setRenameDocId(null);
+      setRenameDocValue('');
+    } catch {
+      Alert.alert('Error', 'Failed to rename document');
+    }
+  };
+
+  const openExpensesModal = async (property: RealEstate) => {
+    setExpensesProperty(property);
+    setExpenses([]);
+    setExpenseForm({ date: '', category: 'Property Tax', amount: '' });
+    setExpensesModalVisible(true);
+    // Fetch expenses
+    try {
+      const resp = await apiService.listPropertyExpenses(property._id!);
+      if (resp.success && resp.data) setExpenses(resp.data);
+    } catch {}
+  };
+  const closeExpensesModal = () => {
+    setExpensesModalVisible(false);
+    setExpensesProperty(null);
+    setExpenses([]);
+    setExpenseForm({ date: '', category: 'Property Tax', amount: '' });
+  };
+  const handleAddExpense = async () => {
+    if (!expensesProperty || !expenseForm.date || !expenseForm.category || !expenseForm.amount) {
+      Alert.alert('Error', 'Please fill all fields.');
+      return;
+    }
+    setAddingExpense(true);
+    try {
+      await apiService.addPropertyExpense(expensesProperty._id!, {
+        date: expenseForm.date,
+        category: expenseForm.category,
+        amount: parseFloat(expenseForm.amount),
+        description: '',
+      });
+      // Refresh expenses
+      const resp = await apiService.listPropertyExpenses(expensesProperty._id!);
+      if (resp.success && resp.data) setExpenses(resp.data);
+      setExpenseForm({ date: '', category: 'Property Tax', amount: '' });
+    } catch (e) {
+      Alert.alert('Error', 'Failed to add expense');
+    } finally {
+      setAddingExpense(false);
+    }
+  };
+  const expenseCategories = [
+    'Property Tax',
+    'Insurance',
+    'Maintenance',
+    'Utilities',
+    'HOA Fees',
+    'Repairs',
+    'Other',
+  ];
+
   const renderPropertyCard = ({item}: {item: RealEstate}) => {
     const totalRent = Object.values(item.rentCollected || {}).reduce(
       (sum, rent) => sum + (rent.collected ? rent.amount : 0), 0);
@@ -526,7 +706,7 @@ const RealEstateScreen: React.FC<Props> = ({navigation}) => {
               elevation: 2,
               overflow: 'hidden',
             }}
-            // onPress={...}
+            onPress={() => openDocsModal(item)}
           >
             <FontAwesome5 name="file-alt" size={15} color="#fff" style={{ marginRight: 4 }} />
             <Text
@@ -559,7 +739,7 @@ const RealEstateScreen: React.FC<Props> = ({navigation}) => {
               elevation: 2,
               overflow: 'hidden',
             }}
-            // onPress={...}
+            onPress={() => openExpensesModal(item)}
           >
             <FontAwesome5 name="money-bill-wave" size={15} color="#fff" style={{ marginRight: 4 }} />
             <Text
@@ -611,33 +791,34 @@ const RealEstateScreen: React.FC<Props> = ({navigation}) => {
   const months = Array.from({ length: 6 }, (_, i) => {
     const d = new Date();
     d.setMonth(d.getMonth() - (5 - i));
-    return d.toISOString().slice(0, 7);
+    return d;
   });
   const chartData = {
-    labels: months.map(m => m.slice(5)),
+    labels: months.map(m => m.toLocaleString('default', { month: 'short' })), // ['Jan', 'Feb', ...]
     datasets: [
       {
         data: months.map(month => {
+          const key = month.toISOString().slice(0, 7);
           // Sum all rent (long-term) and short-term income for this month, minus expenses
           let income = 0;
           let expenses = 0;
           properties.forEach(p => {
             // Long-term rent
-            if (p.rentCollected && p.rentCollected[month]) {
-              income += p.rentCollected[month].amount || 0;
+            if (p.rentCollected && p.rentCollected[key]) {
+              income += p.rentCollected[key].amount || 0;
             }
             // Short-term income
             if (p.shortTermIncome) {
               income += p.shortTermIncome.filter(i => {
                 const dateStr = typeof i.date === 'string' ? i.date : (i.date instanceof Date ? i.date.toISOString() : '');
-                return dateStr.slice(0, 7) === month;
+                return dateStr.slice(0, 7) === key;
               }).reduce((s, i) => s + (i.amount || 0), 0);
             }
             // Expenses
             if (p.expenses) {
               expenses += p.expenses.filter(e => {
                 const dateStr = typeof e.date === 'string' ? e.date : (e.date instanceof Date ? e.date.toISOString() : '');
-                return dateStr.slice(0, 7) === month;
+                return dateStr.slice(0, 7) === key;
               }).reduce((s, e) => s + (e.amount || 0), 0);
             }
           });
@@ -715,8 +896,10 @@ const RealEstateScreen: React.FC<Props> = ({navigation}) => {
             data={chartData}
             width={Dimensions.get('window').width - 56 - 24}
             height={220}
-            yAxisLabel="$"
             yAxisSuffix=""
+            withDots={false}
+            withInnerLines={false}
+            withOuterLines={false}
             chartConfig={{
               backgroundColor: '#151e2e',
               backgroundGradientFrom: '#151e2e',
@@ -724,7 +907,6 @@ const RealEstateScreen: React.FC<Props> = ({navigation}) => {
               decimalPlaces: 2,
               color: (opacity = 1) => `rgba(30, 167, 253, ${opacity})`,
               labelColor: (opacity = 1) => `rgba(176, 184, 193,${opacity})`,
-              propsForDots: { r: '3', strokeWidth: '2', stroke: '#1ea7fd' },
               propsForBackgroundLines: { stroke: '#22304a' },
               style: { borderRadius: 12 },
             }}
@@ -871,8 +1053,224 @@ const RealEstateScreen: React.FC<Props> = ({navigation}) => {
                     <Text style={{ color: '#b0b8c1', textAlign: 'center', padding: 12 }}>No rent records found.</Text>
                   )}
                 </View>
+                {selectedProperty && selectedProperty.propertyType === 'Long-Term Rental' && (
+                  <View style={{ backgroundColor: '#29354a', borderRadius: 10, padding: 18, marginBottom: 18 }}>
+                    <Text style={{ color: '#b0b8c1', fontSize: 16, fontWeight: 'bold', marginBottom: 10 }}>Add Rent Payment</Text>
+                    <Text style={{ color: '#b0b8c1', fontSize: 14, marginBottom: 4 }}>Start of Rental Term:</Text>
+                    <TouchableOpacity
+                      style={{ borderWidth: 1, borderColor: '#3a4660', borderRadius: 8, padding: 10, marginBottom: 10, backgroundColor: '#233047' }}
+                      onPress={() => setShowStartPicker(true)}
+                    >
+                      <Text style={{ color: rentForm.startDate ? '#fff' : '#b0b8c1' }}>{rentForm.startDate ? new Date(rentForm.startDate).toLocaleDateString() : '---------- ----'}</Text>
+                    </TouchableOpacity>
+                    {showStartPicker && (
+                      <DateTimePicker
+                        value={rentForm.startDate ? new Date(rentForm.startDate) : new Date()}
+                        mode="date"
+                        display="default"
+                        onChange={(_, date) => {
+                          setShowStartPicker(false);
+                          if (date) setRentForm(f => ({ ...f, startDate: date.toISOString() }));
+                        }}
+                      />
+                    )}
+                    <Text style={{ color: '#b0b8c1', fontSize: 14, marginBottom: 4 }}>End of Rental Term:</Text>
+                    <TouchableOpacity
+                      style={{ borderWidth: 1, borderColor: '#3a4660', borderRadius: 8, padding: 10, marginBottom: 10, backgroundColor: '#233047' }}
+                      onPress={() => setShowEndPicker(true)}
+                    >
+                      <Text style={{ color: rentForm.endDate ? '#fff' : '#b0b8c1' }}>{rentForm.endDate ? new Date(rentForm.endDate).toLocaleDateString() : '---------- ----'}</Text>
+                    </TouchableOpacity>
+                    {showEndPicker && (
+                      <DateTimePicker
+                        value={rentForm.endDate ? new Date(rentForm.endDate) : new Date()}
+                        mode="date"
+                        display="default"
+                        onChange={(_, date) => {
+                          setShowEndPicker(false);
+                          if (date) setRentForm(f => ({ ...f, endDate: date.toISOString() }));
+                        }}
+                      />
+                    )}
+                    <Text style={{ color: '#b0b8c1', fontSize: 14, marginBottom: 4 }}>Monthly Rent Value:</Text>
+                    <TextInput
+                      style={{ borderWidth: 1, borderColor: '#3a4660', borderRadius: 8, padding: 10, marginBottom: 16, backgroundColor: '#233047', color: '#fff' }}
+                      placeholder="$..."
+                      placeholderTextColor="#b0b8c1"
+                      keyboardType="numeric"
+                      value={rentForm.amount}
+                      onChangeText={v => setRentForm(f => ({ ...f, amount: v }))}
+                    />
+                    <TouchableOpacity
+                      style={{ backgroundColor: '#1976D2', borderRadius: 8, paddingVertical: 12, alignItems: 'center' }}
+                      onPress={handleAddRentPayment}
+                      disabled={addingRent}
+                    >
+                      <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>{addingRent ? 'Adding...' : 'Add Rent Payment'}</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
               </ScrollView>
             )}
+          </View>
+        </View>
+      </Modal>
+      <Modal visible={docsModalVisible} animationType="slide" transparent onRequestClose={closeDocsModal}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center' }}>
+          <View style={{ backgroundColor: '#34425a', borderRadius: 12, width: '92%', maxWidth: 500, padding: 0, overflow: 'hidden' }}>
+            {/* Header */}
+            <View style={{ backgroundColor: '#3a4660', padding: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Text style={{ color: '#fff', fontSize: 22, fontWeight: 'bold' }}>Property Documents</Text>
+              <TouchableOpacity onPress={closeDocsModal}><Text style={{ color: '#b0b8c1', fontSize: 28 }}>×</Text></TouchableOpacity>
+            </View>
+            <ScrollView style={{ maxHeight: 600 }} contentContainerStyle={{ padding: 24 }}>
+              <Text style={{ color: '#b0b8c1', fontSize: 16, fontWeight: 'bold', marginBottom: 10 }}>Existing Documents</Text>
+              {docs.length === 0 ? (
+                <View style={{ backgroundColor: '#1a2233', borderRadius: 8, padding: 16, marginBottom: 18 }}>
+                  <Text style={{ color: '#b0b8c1', fontSize: 15 }}>No documents found for this property.</Text>
+                </View>
+              ) : (
+                docs.map(doc => (
+                  <View key={doc._id} style={{ backgroundColor: '#1a2233', borderRadius: 8, padding: 12, marginBottom: 10, flexDirection: 'row', alignItems: 'center' }}>
+                    <Text style={{ color: '#fff', fontSize: 15, flex: 1 }}>{doc.name || doc.type || 'Document'}</Text>
+                    <TouchableOpacity onPress={() => handleDownloadDoc(doc)} style={{ marginHorizontal: 4 }}>
+                      <FontAwesome5 name="download" size={16} color="#2196f3" />
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => handleOpenRename(doc)} style={{ marginHorizontal: 4 }}>
+                      <FontAwesome5 name="edit" size={16} color="#ffc107" />
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => handleDeleteDoc(doc)} style={{ marginHorizontal: 4 }}>
+                      <FontAwesome5 name="trash" size={16} color="#F44336" />
+                    </TouchableOpacity>
+                  </View>
+                ))
+              )}
+              <View style={{ height: 1, backgroundColor: '#3a4660', marginVertical: 18 }} />
+              <Text style={{ color: '#b0b8c1', fontSize: 16, fontWeight: 'bold', marginBottom: 10 }}>Upload New Document</Text>
+              <Text style={{ color: '#b0b8c1', fontSize: 14, marginBottom: 4 }}>Document Name</Text>
+              <TextInput
+                style={{ borderWidth: 1, borderColor: '#3a4660', borderRadius: 8, padding: 10, marginBottom: 12, backgroundColor: '#233047', color: '#fff' }}
+                placeholder="e.g., Lease Agreement 2024"
+                placeholderTextColor="#b0b8c1"
+                value={docName}
+                onChangeText={setDocName}
+              />
+              <Text style={{ color: '#b0b8c1', fontSize: 14, marginBottom: 4 }}>File</Text>
+              <TouchableOpacity
+                style={{ flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#3a4660', borderRadius: 8, padding: 10, marginBottom: 16, backgroundColor: '#233047' }}
+                onPress={handlePickDoc}
+              >
+                <Text style={{ color: '#fff', flex: 1 }}>{docFile ? docFile.name || docFile.fileName : 'No file chosen'}</Text>
+                <Text style={{ color: '#2196f3', fontWeight: 'bold', fontSize: 15 }}>Choose File</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={{ backgroundColor: '#1976D2', borderRadius: 8, paddingVertical: 12, alignItems: 'center', marginBottom: 18 }}
+                onPress={handleUploadDoc}
+                disabled={uploadingDoc}
+              >
+                <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>{uploadingDoc ? 'Uploading...' : 'Upload Document'}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={{ backgroundColor: '#b0b8c1', borderRadius: 8, paddingVertical: 12, alignItems: 'center' }}
+                onPress={closeDocsModal}
+              >
+                <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>Close</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+      <Modal visible={renameModalVisible} animationType="fade" transparent onRequestClose={() => setRenameModalVisible(false)}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}>
+          <View style={{ backgroundColor: '#34425a', borderRadius: 12, width: 320, padding: 24 }}>
+            <Text style={{ color: '#fff', fontSize: 18, fontWeight: 'bold', marginBottom: 16 }}>Rename Document</Text>
+            <TextInput
+              style={{ borderWidth: 1, borderColor: '#3a4660', borderRadius: 8, padding: 10, marginBottom: 16, backgroundColor: '#233047', color: '#fff' }}
+              value={renameDocValue}
+              onChangeText={setRenameDocValue}
+              placeholder="Document Name"
+              placeholderTextColor="#b0b8c1"
+            />
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
+              <TouchableOpacity onPress={() => setRenameModalVisible(false)} style={{ marginRight: 12 }}>
+                <Text style={{ color: '#b0b8c1', fontSize: 16 }}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={handleRenameDoc}>
+                <Text style={{ color: '#1976D2', fontWeight: 'bold', fontSize: 16 }}>Rename</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+      <Modal visible={expensesModalVisible} animationType="slide" transparent onRequestClose={closeExpensesModal}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center' }}>
+          <View style={{ backgroundColor: '#34425a', borderRadius: 12, width: '92%', maxWidth: 500, padding: 0, overflow: 'hidden' }}>
+            {/* Header */}
+            <View style={{ backgroundColor: '#3a4660', padding: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Text style={{ color: '#fff', fontSize: 22, fontWeight: 'bold' }}>Manage Expenses</Text>
+              <TouchableOpacity onPress={closeExpensesModal}><Text style={{ color: '#b0b8c1', fontSize: 28 }}>×</Text></TouchableOpacity>
+            </View>
+            <ScrollView style={{ maxHeight: 600 }} contentContainerStyle={{ padding: 24 }}>
+              <Text style={{ color: '#b0b8c1', fontSize: 14, marginBottom: 4 }}>Date</Text>
+              <TouchableOpacity
+                style={{ borderWidth: 1, borderColor: '#3a4660', borderRadius: 8, padding: 10, marginBottom: 12, backgroundColor: '#233047', flexDirection: 'row', alignItems: 'center' }}
+                onPress={() => setShowExpenseDatePicker(true)}
+              >
+                <Text style={{ color: expenseForm.date ? '#fff' : '#b0b8c1', flex: 1 }}>{expenseForm.date ? new Date(expenseForm.date).toLocaleDateString() : 'mm/dd/yyyy'}</Text>
+                <FontAwesome5 name="calendar-alt" size={16} color="#b0b8c1" />
+              </TouchableOpacity>
+              {showExpenseDatePicker && (
+                <DateTimePicker
+                  value={expenseForm.date ? new Date(expenseForm.date) : new Date()}
+                  mode="date"
+                  display="default"
+                  onChange={(_, date) => {
+                    setShowExpenseDatePicker(false);
+                    if (date) setExpenseForm(f => ({ ...f, date: date.toISOString() }));
+                  }}
+                />
+              )}
+              <Text style={{ color: '#b0b8c1', fontSize: 14, marginBottom: 4 }}>Category</Text>
+              <View style={{ borderWidth: 1, borderColor: '#3a4660', borderRadius: 8, marginBottom: 12, backgroundColor: '#233047' }}>
+                <Picker
+                  selectedValue={expenseForm.category}
+                  onValueChange={v => setExpenseForm(f => ({ ...f, category: v }))}
+                  style={{ color: '#fff' }}
+                  dropdownIconColor="#b0b8c1"
+                >
+                  {expenseCategories.map(cat => (
+                    <Picker.Item key={cat} label={cat} value={cat} />
+                  ))}
+                </Picker>
+              </View>
+              <Text style={{ color: '#b0b8c1', fontSize: 14, marginBottom: 4 }}>Amount</Text>
+              <TextInput
+                style={{ borderWidth: 1, borderColor: '#3a4660', borderRadius: 8, padding: 10, marginBottom: 16, backgroundColor: '#233047', color: '#fff' }}
+                placeholder="$..."
+                placeholderTextColor="#b0b8c1"
+                keyboardType="numeric"
+                value={expenseForm.amount}
+                onChangeText={v => setExpenseForm(f => ({ ...f, amount: v }))}
+              />
+              <TouchableOpacity
+                style={{ backgroundColor: '#1976D2', borderRadius: 8, paddingVertical: 12, alignItems: 'center', marginBottom: 18 }}
+                onPress={handleAddExpense}
+                disabled={addingExpense}
+              >
+                <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>{addingExpense ? 'Adding...' : 'Add Expense'}</Text>
+              </TouchableOpacity>
+              <View style={{ height: 1, backgroundColor: '#3a4660', marginVertical: 18 }} />
+              <Text style={{ color: '#b0b8c1', fontSize: 16, fontWeight: 'bold', marginBottom: 10 }}>Existing Expenses</Text>
+              {expenses.length === 0 ? (
+                <Text style={{ color: '#b0b8c1', fontSize: 15 }}>No expenses recorded for this property.</Text>
+              ) : (
+                expenses.map(exp => (
+                  <View key={exp._id} style={{ backgroundColor: '#1a2233', borderRadius: 8, padding: 12, marginBottom: 10, flexDirection: 'row', alignItems: 'center' }}>
+                    <Text style={{ color: '#fff', fontSize: 15, flex: 1 }}>{new Date(exp.date).toLocaleDateString()} - {exp.category} - ${exp.amount}</Text>
+                  </View>
+                ))
+              )}
+            </ScrollView>
           </View>
         </View>
       </Modal>

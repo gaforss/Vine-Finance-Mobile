@@ -173,14 +173,41 @@ const DashboardScreen: React.FC<Props & { start?: () => void }> = ({navigation, 
         (entry.otherAssets || 0) -
         (entry.liabilities || 0);
 
-  const chartData = {
-    labels: netWorthData.slice(-6).map(entry => {
-      const date = new Date(entry.date);
-      return `${date.getMonth() + 1}/${date.getDate()}`;
-    }),
+  // Prepare chart data for Net Worth (yellow line), Assets (dark blue), Liabilities (light blue)
+  const chartMonths = netWorthData.slice(-12).map(entry => {
+    const date = new Date(entry.date);
+    return date.toLocaleString('default', { month: 'short' });
+  });
+  const chartNetWorth = netWorthData.slice(-12).map(getEntryNetWorth);
+  const chartAssets = netWorthData.slice(-12).map(entry => {
+    return (
+      (entry.cash || 0) +
+      (entry.investments || 0) +
+      (entry.realEstate || 0) +
+      (entry.retirementAccounts || 0) +
+      (entry.vehicles || 0) +
+      (entry.personalProperty || 0) +
+      (entry.otherAssets || 0)
+    );
+  });
+  const chartLiabilities = netWorthData.slice(-12).map(entry => entry.liabilities || 0);
+  const multiChartData = {
+    labels: chartMonths,
     datasets: [
       {
-        data: netWorthData.slice(-6).map(getEntryNetWorth),
+        data: chartNetWorth,
+        color: (opacity = 1) => `#ffd600`, // Yellow line
+        strokeWidth: 3,
+      },
+      {
+        data: chartAssets,
+        color: (opacity = 1) => `#1a2a4e`, // Dark blue
+        strokeWidth: 2,
+      },
+      {
+        data: chartLiabilities,
+        color: (opacity = 1) => `#23aaff`, // Light blue
+        strokeWidth: 2,
       },
     ],
   };
@@ -303,14 +330,39 @@ const DashboardScreen: React.FC<Props & { start?: () => void }> = ({navigation, 
               <WalkthroughableView style={[styles.card, { paddingVertical: 16, alignItems: 'center', backgroundColor: '#222b3a' }]}> 
                 <View style={{ width: '100%', alignItems: 'center' }}>
                   <LineChart
-                    data={chartData}
+                    data={multiChartData}
                     width={screenWidth - 40}
-                    height={220}
-                    chartConfig={chartConfig}
-                    bezier
-                    style={{ borderRadius: 12, backgroundColor: '#222b3a' }}
+                    height={240}
+                    chartConfig={{
+                      ...chartConfig,
+                      color: (opacity = 1) => `#ffd600`, // Default to yellow for Net Worth
+                      labelColor: (opacity = 1) => `rgba(255,255,255,${opacity})`,
+                      propsForDots: { r: '0' },
+                      propsForBackgroundLines: { stroke: 'transparent' },
+                    }}
+                    bezier={false}
+                    style={{ borderRadius: 12, backgroundColor: '#222b3a', marginBottom: 8 }}
                     formatYLabel={formatCompactCurrency}
+                    withDots={false}
+                    withInnerLines={false}
+                    withOuterLines={false}
+                    fromZero
                   />
+                  {/* Custom Legend */}
+                  <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginBottom: 12 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginHorizontal: 8 }}>
+                      <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: '#ffd600', marginRight: 6 }} />
+                      <Text style={{ color: '#e6eaf0', fontSize: 15, fontWeight: '600', marginRight: 12 }}>Net Worth</Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginHorizontal: 8 }}>
+                      <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: '#1a2a4e', marginRight: 6 }} />
+                      <Text style={{ color: '#e6eaf0', fontSize: 15, fontWeight: '600', marginRight: 12 }}>Assets</Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginHorizontal: 8 }}>
+                      <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: '#23aaff', marginRight: 6 }} />
+                      <Text style={{ color: '#e6eaf0', fontSize: 15, fontWeight: '600' }}>Liabilities</Text>
+                    </View>
+                  </View>
                 </View>
               </WalkthroughableView>
             </CopilotStep>
