@@ -129,8 +129,7 @@ const AppNavigator: React.FC = () => {
           name="ForgotPassword"
           component={ForgotPasswordScreen}
           options={{
-            title: 'Forgot Password',
-            headerShown: true,
+            headerShown: false,
           }}
         />
 
