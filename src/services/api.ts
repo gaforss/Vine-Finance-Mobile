@@ -582,6 +582,17 @@ class ApiService {
     }
   }
 
+  // Fetch manual accounts (not Plaid)
+  async getManualAccounts(): Promise<ApiResponse<Account[]>> {
+    try {
+      const response = await this.api.get('/plaid/manual_accounts');
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      console.error('getManualAccounts error:', error, error?.response?.data);
+      return { success: false, error: error.response?.data?.message || 'Failed to fetch manual accounts' };
+    }
+  }
+
   // Update Account
   async updateAccount(accountId: string, data: Partial<Account>): Promise<ApiResponse<Account>> {
     try {

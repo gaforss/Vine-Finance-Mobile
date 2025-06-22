@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, SectionList, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, SafeAreaView, Modal, TextInput, ScrollView, ToastAndroid } from 'react-native';
+import { View, Text, SectionList, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, SafeAreaView, Modal, TextInput, ScrollView, ToastAndroid, FlatList } from 'react-native';
 import { apiService } from '../services/api';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -57,6 +57,18 @@ const CATEGORY_KEY_MAP: Record<string, string> = {
   miscellaneous: 'misc',
 };
 
+// Add this mapping at the top of your file (after CATEGORY_KEY_MAP):
+const MANUAL_CATEGORY_TO_BACKEND_KEY: Record<string, string> = {
+  'bank': 'bankAccounts',
+  'credit card': 'creditCards',
+  'loan': 'loans',
+  'investment': 'investments',
+  'retirement': 'retirement',
+  'insurance': 'insurance',
+  'crypto': 'digital',
+  'misc': 'miscellaneous',
+};
+
 // Temporary error boundary for debugging
 class DebugErrorBoundary extends React.Component<any, { hasError: boolean; error: any }> {
   constructor(props: any) {
@@ -93,54 +105,62 @@ const AccountsScreen: React.FC = () => {
   const fetchAccounts = async () => {
     setLoading(true);
     try {
-      const response = await apiService.getAccounts();
-      console.log('🏦 AccountsScreen: getAccounts response:', response);
-      if (response.success && response.data) {
-        // Log the raw data for inspection
-        console.log('🏦 AccountsScreen: raw data:', response.data);
-        // Transform categorized object into sections array, mapping Plaid fields
-        const newSections: AccountSection[] = Object.entries(response.data)
-          .map(([category, accounts]) => {
-            const mappedKey = CATEGORY_KEY_MAP[category] || category;
-            if (!Array.isArray(accounts)) {
-              console.warn(`AccountsScreen: accounts for category '${category}' is not an array`, accounts);
+      // Fetch both Plaid and manual accounts in parallel
+      const [plaidRes, manualRes] = await Promise.all([
+        apiService.getAccounts(),
+        apiService.getManualAccounts(),
+      ]);
+      console.log('🏦 AccountsScreen: getManualAccounts raw response:', manualRes);
+      // Start with Plaid data
+      let data = plaidRes.success && plaidRes.data ? { ...plaidRes.data } : {};
+      // Merge manual accounts into the correct categories (using web mapping)
+      if (manualRes.success && Array.isArray(manualRes.data)) {
+        for (const acct of manualRes.data) {
+          const backendKey = MANUAL_CATEGORY_TO_BACKEND_KEY[acct.category] || 'miscellaneous';
+          if (!data[backendKey]) data[backendKey] = [];
+          data[backendKey].push(acct);
+        }
+      }
+      // Transform categorized object into sections array, mapping Plaid fields
+      const newSections: AccountSection[] = Object.entries(data)
+        .map(([category, accounts]) => {
+          const mappedKey = CATEGORY_KEY_MAP[category] || category;
+          if (!Array.isArray(accounts)) {
+            console.warn(`AccountsScreen: accounts for category '${category}' is not an array`, accounts);
+            return null;
+          }
+          // Only include valid accounts (never null)
+          const validAccounts = accounts.map((acct: any) => {
+            if (!acct || typeof acct !== 'object') {
+              console.warn('AccountsScreen: Skipping invalid account:', acct);
               return null;
             }
-            // Only include valid accounts (never null)
-            const validAccounts = accounts.map((acct: any) => {
-              if (!acct || typeof acct !== 'object') {
-                console.warn('AccountsScreen: Skipping invalid account:', acct);
-                return null;
-              }
-              const mapped: Account = {
-                _id: acct.account_id || acct._id || acct.id || '',
-                name: acct.name || acct.official_name || 'Unnamed',
-                category: acct.type || mappedKey || '',
-                amount: (acct.balances && typeof acct.balances.current === 'number') ? acct.balances.current : (typeof acct.amount === 'number' ? acct.amount : 0),
-                institutionName: acct.institutionName || '',
-                mask: acct.mask || '',
-              };
-              return mapped;
-            }).filter((a): a is Account => !!a && typeof a._id === 'string');
-            return {
-              title: String(mappedKey),
-              data: validAccounts
+            const mapped: Account = {
+              _id: acct.account_id || acct._id || acct.id || '',
+              name: acct.name || acct.official_name || 'Unnamed',
+              category: acct.type || mappedKey || '',
+              amount: (acct.balances && typeof acct.balances.current === 'number') ? acct.balances.current : (typeof acct.amount === 'number' ? acct.amount : 0),
+              institutionName: acct.institutionName || '',
+              mask: acct.mask || '',
             };
-          })
-          .filter((section): section is AccountSection => !!section && typeof section.title === 'string' && Array.isArray(section.data))
-          .map(section => {
-            const filtered = {
-              ...section,
-              data: Array.isArray(section.data) ? section.data.filter(item => item && typeof item === 'object' && typeof item._id === 'string' && typeof item.amount === 'number') : []
-            };
-            return filtered;
-          })
-          .filter(section => section.data.length > 0);
-        setSections(newSections);
-        console.log('🏦 AccountsScreen: setSections with', newSections.length, 'sections', newSections);
-      } else {
-        setSections([]);
-      }
+            return mapped;
+          }).filter((a): a is Account => !!a && typeof a._id === 'string');
+          return {
+            title: String(mappedKey),
+            data: validAccounts
+          };
+        })
+        .filter((section): section is AccountSection => !!section && typeof section.title === 'string' && Array.isArray(section.data))
+        .map(section => {
+          const filtered = {
+            ...section,
+            data: Array.isArray(section.data) ? section.data.filter(item => item && typeof item === 'object' && typeof item._id === 'string' && typeof item.amount === 'number') : []
+          };
+          return filtered;
+        })
+        .filter(section => section.data.length > 0);
+      setSections(newSections);
+      console.log('🏦 AccountsScreen: setSections with', newSections.length, 'sections', newSections);
     } catch (err) {
       setSections([]);
     }
@@ -251,74 +271,81 @@ const AccountsScreen: React.FC = () => {
     .flatMap(section => section.data)
     .reduce((sum, acct) => sum + (typeof acct.amount === 'number' ? acct.amount : 0), 0);
 
+  // Helper to render each account card in grid
+  const renderAccountCard = ({ item: account }: { item: Account }) => {
+    const isPlaid = !!account.institutionName && account.institutionName !== 'Manual';
+    const iconName = isPlaid ? 'link' : 'plus';
+    return (
+      <View style={{ width: '100%', marginVertical: 10, marginHorizontal: 0 }}>
+        <View
+          style={{
+            backgroundColor: '#253047',
+            borderRadius: 22,
+            padding: 22,
+            shadowColor: '#000',
+            shadowOpacity: 0.10,
+            shadowRadius: 12,
+            shadowOffset: { width: 0, height: 6 },
+            elevation: 4,
+            minHeight: 200,
+            justifyContent: 'space-between',
+          }}
+        >
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <View style={{ width: 54, height: 54, borderRadius: 27, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' }}>
+              <FontAwesome5 name={iconName} size={26} color={'#0070ba'} />
+            </View>
+            <TouchableOpacity style={{ padding: 4 }} onPress={() => openManualModal(account)}>
+              <FontAwesome5 name="ellipsis-v" size={22} color="#b0b8c1" />
+            </TouchableOpacity>
+          </View>
+          <View style={{ marginTop: 18 }}>
+            <Text style={{ color: '#b0b8c1', fontSize: 15, fontWeight: '500', marginBottom: 2 }}>{String(account.institutionName || 'Manual Account')}</Text>
+            <Text style={{ color: '#fff', fontSize: 20, fontWeight: '700', marginBottom: 16 }}>{String(account.name || '')}</Text>
+            <Text style={{ color: '#b0b8c1', fontSize: 15, fontWeight: '500', marginBottom: 2 }}>Available Balance</Text>
+            <Text style={{ color: '#fff', fontSize: 28, fontWeight: 'bold', marginBottom: 2 }}>
+              {typeof account.amount === 'number' ? `$${account.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '0.00'}
+            </Text>
+          </View>
+        </View>
+      </View>
+    );
+  };
+
   return (
     <DebugErrorBoundary>
       <SafeAreaView style={{ flex: 1, backgroundColor: '#181f2a' }}>
-        {/* Balances summary as horizontal scrollable cards */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 12, marginBottom: 8 }} contentContainerStyle={{ paddingHorizontal: 16 }}>
-          {/* Example balances, replace with dynamic data as needed */}
-          <View style={styles.balanceCard}><FontAwesome5 name="money-bill-wave" size={20} color="#0070ba" /><Text style={styles.balanceCardLabel}>Cash</Text><Text style={styles.balanceCardAmount}>$100,085.00</Text></View>
-          <View style={styles.balanceCard}><FontAwesome5 name="chart-line" size={20} color="#4caf50" /><Text style={styles.balanceCardLabel}>Investments</Text><Text style={styles.balanceCardAmount}>$1,000.00</Text></View>
-          <View style={styles.balanceCard}><FontAwesome5 name="home" size={20} color="#ffb300" /><Text style={styles.balanceCardLabel}>Real Estate</Text><Text style={styles.balanceCardAmount}>$75,000.00</Text></View>
-          <View style={styles.balanceCard}><FontAwesome5 name="flag" size={20} color="#9575cd" /><Text style={styles.balanceCardLabel}>Retirement</Text><Text style={styles.balanceCardAmount}>$320.76</Text></View>
-          <View style={styles.balanceCard}><FontAwesome5 name="university" size={20} color="#e57373" /><Text style={styles.balanceCardLabel}>Liabilities</Text><Text style={styles.balanceCardAmount}>$410.00</Text></View>
-          <View style={styles.balanceCard}><FontAwesome5 name="shield-alt" size={20} color="#00bcd4" /><Text style={styles.balanceCardLabel}>Insurance</Text><Text style={styles.balanceCardAmount}>$0.00</Text></View>
-          <View style={styles.balanceCard}><FontAwesome5 name="asterisk" size={20} color="#bdbdbd" /><Text style={styles.balanceCardLabel}>Misc</Text><Text style={styles.balanceCardAmount}>$0.00</Text></View>
-        </ScrollView>
-        {/* Account Sections - modern headers and cards */}
         <ScrollView contentContainerStyle={{ paddingBottom: 120 }}>
-          {sections.map((section, sIdx) => {
-            const meta = CATEGORY_META[section.title?.toLowerCase?.()] || { title: section.title || '', icon: 'university' };
-            const color = CATEGORY_COLORS[section.title?.toLowerCase?.()] || '#0070ba';
-            return (
-              <View key={section.title || String(sIdx)} style={[styles.sectionCard, sIdx > 0 ? { marginTop: 16 } : null]}>
-                <View style={styles.sectionHeaderRow}>
-                  <FontAwesome5 name={meta.icon} size={18} color={color} style={{ marginRight: 8 }} />
-                  <Text style={styles.sectionHeader}>{(meta.title || '').toUpperCase()}</Text>
-                  <View style={styles.sectionDivider} />
-                </View>
-                {Array.isArray(section.data) && section.data.map((account, idx) => {
-                  if (!account || typeof account !== 'object') return null;
-                  const meta = CATEGORY_META[section.title?.toLowerCase?.()] || { icon: 'university' };
-                  const color = CATEGORY_COLORS[section.title?.toLowerCase?.()] || '#0070ba';
-                  const fadedColor = typeof color === 'string' && color.length === 7 ? color + '22' : '#0070ba22';
-                  return (
-                    <TouchableOpacity
-                      key={account._id || idx}
-                      style={styles.proCard}
-                      activeOpacity={0.85}
-                      onPress={() => openManualModal(account)}
-                    >
-                      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                        <View style={[styles.proIconCircle, { backgroundColor: fadedColor }]}>
-                          <FontAwesome5 name={meta.icon} size={22} color={color} />
-                        </View>
-                        <View style={{ marginLeft: 18, flex: 1 }}>
-                          <Text style={styles.proAccountName}>{String(account.name || '')}</Text>
-                          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }}>
-                            <Text style={styles.proInstitution}>{String(account.institutionName || 'Bank')}</Text>
-                            <View style={styles.proTypePill}><Text style={styles.proTypePillText}>{String(account.category || '')}</Text></View>
-                          </View>
-                        </View>
-                        <View style={{ alignItems: 'flex-end', minWidth: 100 }}>
-                          <Text style={styles.proBalance}>{typeof account.amount === 'number' ? `$${account.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '0.00'}</Text>
-                          <View style={{ flexDirection: 'row', marginTop: 8, gap: 8 }}>
-                            <TouchableOpacity style={styles.proIconBtn} onPress={() => openManualModal(account)}>
-                              <FontAwesome5 name="pencil-alt" size={13} color={color} />
-                            </TouchableOpacity>
-                            <TouchableOpacity style={styles.proIconBtn} onPress={() => handleDelete(account._id)}>
-                              <FontAwesome5 name="trash" size={13} color="#e57373" />
-                            </TouchableOpacity>
-                          </View>
-                        </View>
-                        <FontAwesome5 name="chevron-right" size={16} color="#b0b8c1" style={{ marginLeft: 12 }} />
-                      </View>
-                    </TouchableOpacity>
-                  );
-                })}
+          <Text style={{ fontSize: 28, fontWeight: 'bold', color: '#fff', marginTop: 18, marginLeft: 18, marginBottom: 8 }}>Balances</Text>
+          {/* Balances summary as horizontal scrollable cards */}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 18 }} contentContainerStyle={{ paddingHorizontal: 16 }}>
+            {/* Example balances, replace with dynamic data as needed */}
+            <View style={styles.balanceCard}><FontAwesome5 name="money-bill-wave" size={20} color="#0070ba" /><Text style={styles.balanceCardLabel}>Cash</Text><Text style={styles.balanceCardAmount}>$100,085.00</Text></View>
+            <View style={styles.balanceCard}><FontAwesome5 name="chart-line" size={20} color="#4caf50" /><Text style={styles.balanceCardLabel}>Investments</Text><Text style={styles.balanceCardAmount}>$1,000.00</Text></View>
+            <View style={styles.balanceCard}><FontAwesome5 name="home" size={20} color="#ffb300" /><Text style={styles.balanceCardLabel}>Real Estate</Text><Text style={styles.balanceCardAmount}>$75,000.00</Text></View>
+            <View style={styles.balanceCard}><FontAwesome5 name="flag" size={20} color="#9575cd" /><Text style={styles.balanceCardLabel}>Retirement</Text><Text style={styles.balanceCardAmount}>$320.76</Text></View>
+            <View style={styles.balanceCard}><FontAwesome5 name="university" size={20} color="#e57373" /><Text style={styles.balanceCardLabel}>Liabilities</Text><Text style={styles.balanceCardAmount}>$410.00</Text></View>
+            <View style={styles.balanceCard}><FontAwesome5 name="shield-alt" size={20} color="#00bcd4" /><Text style={styles.balanceCardLabel}>Insurance</Text><Text style={styles.balanceCardAmount}>$0.00</Text></View>
+            <View style={styles.balanceCard}><FontAwesome5 name="asterisk" size={20} color="#bdbdbd" /><Text style={styles.balanceCardLabel}>Misc</Text><Text style={styles.balanceCardAmount}>$0.00</Text></View>
+          </ScrollView>
+          <Text style={{ fontSize: 28, fontWeight: 'bold', color: '#fff', marginTop: 18, marginLeft: 18, marginBottom: 8 }}>Accounts</Text>
+          {sections.map((section, sIdx) => (
+            <View key={section.title || String(sIdx)} style={{ marginBottom: 8 }}>
+              <View style={styles.sectionHeaderRow}>
+                <FontAwesome5 name={CATEGORY_META[section.title?.toLowerCase?.()]?.icon || 'university'} size={18} color={CATEGORY_COLORS[section.title?.toLowerCase?.()] || '#0070ba'} style={{ marginRight: 8 }} />
+                <Text style={styles.sectionHeader}>{(CATEGORY_META[section.title?.toLowerCase?.()]?.title || section.title || '').toUpperCase()}</Text>
+                <View style={styles.sectionDivider} />
               </View>
-            );
-          })}
+              <FlatList
+                data={section.data}
+                renderItem={renderAccountCard}
+                keyExtractor={(item) => item._id || item.name}
+                numColumns={1}
+                scrollEnabled={false}
+                contentContainerStyle={{ paddingTop: 8, paddingBottom: 8 }}
+              />
+            </View>
+          ))}
         </ScrollView>
         {/* Sticky floating action bar */}
         <View style={styles.fabBar}>
