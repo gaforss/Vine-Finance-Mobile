@@ -7,8 +7,40 @@ import { LineChart, PieChart } from 'react-native-chart-kit';
 import { Dimensions } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import dayjs from 'dayjs';
+import { VictoryChart, VictoryAxis, VictoryArea, VictoryLegend } from 'victory-native';
+import Svg, { Defs, LinearGradient, Stop } from 'react-native-svg';
+
+console.log('Victory:', VictoryChart);
+console.log('Svg:', Svg);
 
 const PERIODS = ['monthly', 'yearly', 'weekly'];
+
+// Helper to group transactions by date and sum income/expenses
+function buildCashFlowTimeSeries(transactions: any[], days = 30) {
+  const dateMap: Record<string, { income: number; expenses: number }> = {};
+  transactions.forEach((txn: any) => {
+    const date = dayjs(txn.date).format('YYYY-MM-DD');
+    if (!dateMap[date]) dateMap[date] = { income: 0, expenses: 0 };
+    if (txn.amount < 0) {
+      dateMap[date].income += Math.abs(txn.amount);
+    } else {
+      dateMap[date].expenses += txn.amount;
+    }
+  });
+  const series = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const date = dayjs().subtract(i, 'day').format('YYYY-MM-DD');
+    const income = dateMap[date]?.income || 0;
+    const expenses = dateMap[date]?.expenses || 0;
+    series.push({
+      date,
+      income,
+      expenses,
+      net: income - expenses,
+    });
+  }
+  return series;
+}
 
 const BudgetingScreen: React.FC = () => {
   const [loading, setLoading] = useState(true);
@@ -79,10 +111,11 @@ const BudgetingScreen: React.FC = () => {
     setCashFlowSeriesLoading(true);
     apiService.getCashFlowSeries().then(res => {
       if (res.success && Array.isArray(res.data)) {
-        console.log('Cash flow series (raw):', res.data);
-        setCashFlowSeries(res.data);
+        // Adapt: process flat array of transactions into time series
+        const timeSeries = buildCashFlowTimeSeries(res.data, 30); // 30 days
+        setCashFlowSeries(timeSeries);
       } else {
-        console.warn('Cash flow series fetch failed or data not array:', res);
+        setCashFlowSeries([]);
       }
       setCashFlowSeriesLoading(false);
     });
@@ -247,10 +280,53 @@ const BudgetingScreen: React.FC = () => {
   const expensesData = cashFlowSeries.map(d => safeNumber(d.expenses));
   const netData = cashFlowSeries.map(d => safeNumber(d.net));
 
-  console.log('Chart labels:', chartLabels);
-  console.log('Income data:', incomeData);
-  console.log('Expenses data:', expensesData);
-  console.log('Net data:', netData);
+  console.log('incomeData:', incomeData);
+  console.log('expensesData:', expensesData);
+  console.log('netData:', netData);
+  console.log('chartLabels:', chartLabels);
+
+  console.log('VictoryGroup children types:',
+    typeof incomeData,
+    typeof expensesData,
+    typeof netData,
+    typeof chartLabels
+  );
+  console.log('VictoryGroup children values:', {
+    incomeData,
+    expensesData,
+    netData,
+    chartLabels
+  });
+
+  const isValidChartData =
+    Array.isArray(incomeData) &&
+    Array.isArray(expensesData) &&
+    Array.isArray(netData) &&
+    Array.isArray(chartLabels) &&
+    incomeData.length === expensesData.length &&
+    expensesData.length === netData.length &&
+    netData.length === chartLabels.length &&
+    incomeData.every(y => typeof y === 'number') &&
+    expensesData.every(y => typeof y === 'number') &&
+    netData.every(y => typeof y === 'number') &&
+    chartLabels.every(x => typeof x === 'string');
+
+  // Extra logging for debugging VictoryGroup children
+  const incomeAreaData = incomeData.map((y, i) => ({ x: chartLabels[i], y }));
+  const expensesAreaData = expensesData.map((y, i) => ({ x: chartLabels[i], y }));
+  const netAreaData = netData.map((y, i) => ({ x: chartLabels[i], y }));
+  console.log('incomeAreaData:', incomeAreaData);
+  console.log('expensesAreaData:', expensesAreaData);
+  console.log('netAreaData:', netAreaData);
+  const incomeAreaElem = <VictoryArea data={incomeAreaData} interpolation="monotoneX" style={{ data: { fill: "url(#incomeGradient)", stroke: "#23aaff", strokeWidth: 2 } }} />;
+  const expensesAreaElem = <VictoryArea data={expensesAreaData} interpolation="monotoneX" style={{ data: { fill: "url(#expensesGradient)", stroke: "#0070ba", strokeWidth: 2 } }} />;
+  const netAreaElem = <VictoryArea data={netAreaData} interpolation="monotoneX" style={{ data: { fill: "transparent", stroke: "#28a745", strokeWidth: 2 } }} />;
+  console.log('incomeAreaElem:', incomeAreaElem);
+  console.log('expensesAreaElem:', expensesAreaElem);
+  console.log('netAreaElem:', netAreaElem);
+  [incomeAreaElem, expensesAreaElem, netAreaElem].forEach((elem, idx) => {
+    console.log(`VictoryGroup child[${idx}] type:`, typeof elem, 'isArray:', Array.isArray(elem), 'keys:', elem && typeof elem === 'object' ? Object.keys(elem) : 'N/A');
+  });
 
   if (loading) {
     return (
@@ -295,51 +371,79 @@ const BudgetingScreen: React.FC = () => {
         </ScrollView>
 
         {/* Income vs. Expenses Section */}
-        <View style={{ marginHorizontal: 18, marginBottom: 18, backgroundColor: '#232c3d', borderRadius: 14, padding: 12 }}>
-          <Text style={styles.sectionTitle}>Income vs. Expenses</Text>
-          {/* Legend */}
-          <View style={{ flexDirection: 'row', marginBottom: 8 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: 16 }}>
-              <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: '#23aaff', marginRight: 6 }} />
-              <Text style={{ color: '#b0b8c1' }}>Income</Text>
-            </View>
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: 16 }}>
-              <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: '#0070ba', marginRight: 6 }} />
-              <Text style={{ color: '#b0b8c1' }}>Expenses</Text>
-            </View>
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: '#28a745', marginRight: 6 }} />
-              <Text style={{ color: '#b0b8c1' }}>Net Cash Flow</Text>
-            </View>
-          </View>
-          {cashFlowSeriesLoading ? (
-            <ActivityIndicator size="large" color="#0070ba" style={{ marginVertical: 32 }} />
-          ) : cashFlowSeries.length > 0 ? (
-            <LineChart
-              data={{
-                labels: chartLabels,
-                datasets: [
-                  { data: incomeData, color: () => '#23aaff', strokeWidth: 2 },
-                  { data: expensesData, color: () => '#0070ba', strokeWidth: 2 },
-                  { data: netData, color: () => '#28a745', strokeWidth: 2 },
-                ],
-              }}
-              width={Dimensions.get('window').width - 36}
-              height={220}
-              chartConfig={{
-                backgroundColor: '#232c3d',
-                backgroundGradientFrom: '#232c3d',
-                backgroundGradientTo: '#232c3d',
-                decimalPlaces: 0,
-                color: (opacity = 1) => `rgba(255,255,255,${opacity})`,
-                labelColor: () => '#b0b8c1',
-                propsForDots: { r: '3', strokeWidth: '2', stroke: '#fff' },
-              }}
-              bezier
-              style={{ borderRadius: 14 }}
-            />
+        <Text style={{ color: '#fff', fontSize: 20, fontWeight: 'bold', marginLeft: 8, marginBottom: 4 }}>Income vs. Expenses</Text>
+        <View style={{
+          backgroundColor: '#192235',
+          borderRadius: 18,
+          padding: 18,
+          marginHorizontal: 12,
+          marginTop: 8,
+          marginBottom: 18,
+          shadowColor: '#fff',
+          shadowOpacity: 0.08,
+          shadowRadius: 16,
+          shadowOffset: { width: 0, height: 4 },
+          elevation: 8,
+        }}>
+          {isValidChartData ? (
+            <Svg width={Dimensions.get('window').width - 16} height={260}>
+              <Defs>
+                <LinearGradient id="incomeGradient" x1="0" y1="0" x2="0" y2="1">
+                  <Stop offset="0%" stopColor="#23aaff" stopOpacity={0.4} />
+                  <Stop offset="100%" stopColor="#23aaff" stopOpacity={0.05} />
+                </LinearGradient>
+                <LinearGradient id="expensesGradient" x1="0" y1="0" x2="0" y2="1">
+                  <Stop offset="0%" stopColor="#0070ba" stopOpacity={0.4} />
+                  <Stop offset="100%" stopColor="#0070ba" stopOpacity={0.05} />
+                </LinearGradient>
+              </Defs>
+              <VictoryChart
+                width={Dimensions.get('window').width - 40}
+                height={220}
+                padding={{ top: 48, left: 60, right: 30, bottom: 40 }}
+                domainPadding={{ x: 20, y: 20 }}
+                standalone={false}
+                style={{ background: { fill: '#192235', borderRadius: 18 } }}
+              >
+                <VictoryLegend x={60} y={8}
+                  orientation="horizontal"
+                  gutter={18}
+                  style={{
+                    labels: { fill: "#b0b8c1", fontWeight: "bold", fontSize: 15 },
+                    border: { stroke: "none" },
+                    data: { stroke: "none" }
+                  }}
+                  data={[
+                    { name: "Income", symbol: { fill: "#23aaff", type: "square" } },
+                    { name: "Expenses", symbol: { fill: "#0070ba", type: "square" } },
+                    { name: "Net", symbol: { fill: "#28a745", type: "square" } }
+                  ]}
+                />
+                <VictoryAxis
+                  dependentAxis
+                  style={{
+                    axis: { stroke: "#22304a" },
+                    tickLabels: { fill: "#b0b8c1", fontSize: 15, fontWeight: "bold" },
+                    grid: { stroke: "#22304a", strokeDasharray: "6 6", opacity: 0.3 }
+                  }}
+                  tickFormat={(y: number) => y >= 1000 ? `$${(y/1000).toFixed(0)}k` : `$${y}`}
+                />
+                <VictoryAxis
+                  style={{
+                    axis: { stroke: "#22304a" },
+                    tickLabels: { fill: "#b0b8c1", fontSize: 15, fontWeight: "bold" }
+                  }}
+                  tickFormat={(t: string, i: number) => (i % 3 === 0 ? t : "")}
+                />
+                <VictoryArea data={incomeAreaData} interpolation="monotoneX" style={{ data: { fill: "url(#incomeGradient)", stroke: "#23aaff", strokeWidth: 2 } }} />
+                <VictoryArea data={expensesAreaData} interpolation="monotoneX" style={{ data: { fill: "url(#expensesGradient)", stroke: "#0070ba", strokeWidth: 2 } }} />
+                <VictoryArea data={netAreaData} interpolation="monotoneX" style={{ data: { fill: "transparent", stroke: "#28a745", strokeWidth: 2 } }} />
+              </VictoryChart>
+            </Svg>
           ) : (
-            <Text style={{ color: '#b0b8c1', fontStyle: 'italic', textAlign: 'center', marginVertical: 32 }}>No cash flow data available.</Text>
+            <Text style={{ color: 'red', textAlign: 'center', marginVertical: 20 }}>
+              Chart data is invalid or empty.
+            </Text>
           )}
         </View>
 

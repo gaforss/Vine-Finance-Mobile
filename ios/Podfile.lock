@@ -1679,7 +1679,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - SocketRocket
     - Yoga
-  - react-native-safe-area-context (5.4.1):
+  - react-native-safe-area-context (5.5.0):
     - React-Core
   - React-NativeModulesApple (0.80.0):
     - boost
@@ -2220,7 +2220,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - SocketRocket
     - Yoga
-  - RNSVG (15.12.0):
+  - RNSVG (13.14.1):
     - React-Core
   - RNVectorIcons (10.2.0):
     - boost
@@ -2554,7 +2554,7 @@ SPEC CHECKSUMS:
   React-Mapbuffer: f5754c33877eaf36e4c76c613b35615a181c85c5
   React-microtasksnativemodule: 23df6374a3ac422d8c2927839bcaeed61fee3dad
   react-native-document-picker: 2d371b47d3c7b15fc70d73989890830897a5faed
-  react-native-safe-area-context: dde2052b903c11d677c320b599c3244021c34ce8
+  react-native-safe-area-context: 7f6ffa9a73488f84feee2de12e2dcdccfb601967
   React-NativeModulesApple: e16d5c133019987285f001fbf1461a861e40426f
   React-oscompat: 7c0a341cc31e350da71ddf2e46de0a845d1d1626
   React-perflogger: c91e01612298b74f70d846ae3666d2b078c547e0
@@ -2591,7 +2591,7 @@ SPEC CHECKSUMS:
   RNDateTimePicker: 392bdc0d6863b5de2fe9b957c82c25b6a038db29
   RNGestureHandler: 0e89f9dd0ad9a66d39e52348c6354d9df463e0dc
   RNScreens: 6f26eb84a9475b21246f1a515923837771ff9be3
-  RNSVG: e17f99a7d2774ef99018dfed91e812e058fdbcdf
+  RNSVG: ae50dd253f44447b32d0f5a3657a97859f289891
   RNVectorIcons: 3406e3096f8858508d293d066c6850e97d5497d2
   SocketRocket: d4aabe649be1e368d1318fdf28a022d714d65748
   Yoga: 0c4b7d2aacc910a1f702694fa86be830386f4ceb
