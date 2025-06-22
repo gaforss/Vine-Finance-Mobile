@@ -1,6 +1,7 @@
 import React from 'react';
 import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 import {MainTabParamList} from '../types';
+import { View } from 'react-native';
 
 console.log('🎯 TabBarIcon.tsx: Starting TabBarIcon setup');
 
@@ -36,13 +37,23 @@ const TabBarIcon: React.FC<TabBarIconProps> = ({
     console.log('🎯 TabBarIcon.tsx: Using icon name:', iconName);
 
     return (
-      <FontAwesome5
-        name={iconName}
-        size={focused ? size + 2 : size}
-        color={focused ? color : '#b0b8c1'}
-        solid={focused}
-        style={{ marginBottom: -2 }}
-      />
+      <View
+        style={{
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: 44,
+          height: 44,
+          borderRadius: 22,
+          backgroundColor: focused ? 'rgba(35,170,255,0.12)' : 'transparent',
+        }}
+      >
+        <FontAwesome5
+          name={iconName}
+          size={18}
+          color={focused ? color : '#b0b8c1'}
+          solid={focused}
+        />
+      </View>
     );
   } catch (error) {
     console.error('❌ TabBarIcon.tsx: Error rendering TabBarIcon:', error);

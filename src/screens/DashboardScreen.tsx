@@ -38,17 +38,16 @@ const DashboardScreen: React.FC<Props & { start?: () => void }> = ({navigation, 
   const [netWorthData, setNetWorthData] = useState<NetWorth[]>([]);
   const [_loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [currentNetWorth, setCurrentNetWorth] = useState(0);
-  const [_previousNetWorth, setPreviousNetWorth] = useState(0);
-  const [annualGrowth, setAnnualGrowth] = useState(0);
-  const [monthlyGrowth, setMonthlyGrowth] = useState(0);
-  const [totalAssets, setTotalAssets] = useState(0);
-  const [totalLiabilities, setTotalLiabilities] = useState(0);
-  const [assetBreakdown, setAssetBreakdown] = useState({});
-  const [liabilityBreakdown, setLiabilityBreakdown] = useState({});
   const [showAnnualGrowthTip, setShowAnnualGrowthTip] = useState(false);
   const [showNetWorthTip, setShowNetWorthTip] = useState(false);
   const [showCashPercentTip, setShowCashPercentTip] = useState(false);
+  const [chartNetWorth, setChartNetWorth] = useState<number[]>([]);
+  const [chartAssets, setChartAssets] = useState<number[]>([]);
+  const [chartLiabilities, setChartLiabilities] = useState<number[]>([]);
+  const [chartNetWorthSafe, setChartNetWorthSafe] = useState<number[]>([]);
+  const [chartAssetsSafe, setChartAssetsSafe] = useState<number[]>([]);
+  const [chartLiabilitiesSafe, setChartLiabilitiesSafe] = useState<number[]>([]);
+  const [chartMonths, setChartMonths] = useState<string[]>([]);
 
   const screenWidth = Dimensions.get('window').width;
 
@@ -119,17 +118,76 @@ const DashboardScreen: React.FC<Props & { start?: () => void }> = ({navigation, 
         const latestNetWorth = calcNetWorth(latest);
         const previousNetWorth = calcNetWorth(previous);
 
-        setCurrentNetWorth(latestNetWorth);
-        setPreviousNetWorth(previousNetWorth);
-        setAnnualGrowth(
-          previousNetWorth !== 0
-            ? parseFloat((((latestNetWorth - previousNetWorth) / previousNetWorth) * 100).toFixed(2))
-            : 0
-        );
-        setAssetBreakdown(latest.assets || {});
-        setLiabilityBreakdown(latest.liabilities || {});
         console.log('DEBUG: Calculated currentNetWorth:', latestNetWorth, 'previousNetWorth:', previousNetWorth);
       }
+
+      // Use all entries sorted oldest to newest for chart
+      const sortedEntries = entries.slice().sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+      const chartNetWorthArr = sortedEntries.map((entry, idx) => {
+        const value = getEntryNetWorth(entry);
+        console.log(`🟡 [DashboardScreen] Chart Entry[${idx}] date=${entry.date}, calculatedNetWorth=${value}, entry=`, entry);
+        return value;
+      });
+      setChartNetWorth(chartNetWorthArr);
+
+      const chartAssetsArr = sortedEntries.map((entry, idx) => {
+        const value =
+          (entry.cash || 0) +
+          (entry.investments || 0) +
+          (entry.realEstate || 0) +
+          (entry.retirementAccounts || 0) +
+          (entry.vehicles || 0) +
+          (entry.personalProperty || 0) +
+          (entry.otherAssets || 0);
+        console.log(`🟡 [DashboardScreen] Chart Entry[${idx}] date=${entry.date}, calculatedAssets=${value}, entry=`, entry);
+        return value;
+      });
+      setChartAssets(chartAssetsArr);
+
+      const chartLiabilitiesArr = sortedEntries.map((entry, idx) => {
+        const value = entry.liabilities || 0;
+        console.log(`🟡 [DashboardScreen] Chart Entry[${idx}] date=${entry.date}, calculatedLiabilities=${value}, entry=`, entry);
+        return value;
+      });
+      setChartLiabilities(chartLiabilitiesArr);
+
+      const chartNetWorthSafeArr = sanitize(chartNetWorthArr);
+      const chartAssetsSafeArr = sanitize(chartAssetsArr);
+      const chartLiabilitiesSafeArr = sanitize(chartLiabilitiesArr);
+      setChartNetWorthSafe(chartNetWorthSafeArr);
+      setChartAssetsSafe(chartAssetsSafeArr);
+      setChartLiabilitiesSafe(chartLiabilitiesSafeArr);
+
+      // Clean x-axis: show at most 8 labels, spaced evenly
+      const N = Math.ceil(sortedEntries.length / 8); // Show ~8 labels max
+      const chartMonthsArr = sortedEntries.map((entry, idx) => {
+        const date = new Date(entry.date);
+        if (idx % N === 0) {
+          // Show 'Jan 2024' for January, 'Feb' for others
+          return date.getMonth() === 0
+            ? `${date.toLocaleString('default', { month: 'short' })} ${date.getFullYear()}`
+            : date.toLocaleString('default', { month: 'short' });
+        }
+        return '';
+      });
+      setChartMonths(chartMonthsArr);
+
+      // Log to confirm last chart value matches overview
+      if (chartNetWorthArr.length > 0) {
+        console.log('🟢 [DashboardScreen] Last chart net worth:', chartNetWorthArr[chartNetWorthArr.length - 1]);
+        if (sortedEntries.length > 0) {
+          console.log('🟢 [DashboardScreen] Latest entry net worth (overview):', getEntryNetWorth(sortedEntries[sortedEntries.length - 1]));
+        }
+      }
+
+      console.log('🟡 [DashboardScreen] chartNetWorth:', chartNetWorthArr);
+      console.log('🟡 [DashboardScreen] chartAssets:', chartAssetsArr);
+      console.log('🟡 [DashboardScreen] chartLiabilities:', chartLiabilitiesArr);
+      console.log('🟡 [DashboardScreen] chartNetWorthSafe:', chartNetWorthSafeArr);
+      console.log('🟡 [DashboardScreen] chartAssetsSafe:', chartAssetsSafeArr);
+      console.log('🟡 [DashboardScreen] chartLiabilitiesSafe:', chartLiabilitiesSafeArr);
+      console.log('🟡 [DashboardScreen] chartMonths:', chartMonthsArr);
     } catch (error) {
       console.error('Error loading dashboard data:', error);
       Alert.alert('Error', 'Failed to load dashboard data');
@@ -163,52 +221,26 @@ const DashboardScreen: React.FC<Props & { start?: () => void }> = ({navigation, 
   };
 
   // Helper to get net worth from entry, using backend field if present
-  const getEntryNetWorth = (entry: any) =>
-    typeof entry.netWorth === 'number'
-      ? entry.netWorth
-      : (entry.cash || 0) +
-        (entry.investments || 0) +
-        (entry.realEstate || 0) +
-        (entry.retirementAccounts || 0) +
-        (entry.vehicles || 0) +
-        (entry.personalProperty || 0) +
-        (entry.otherAssets || 0) -
-        (entry.liabilities || 0);
-
-  // Prepare chart data for Net Worth (yellow line), Assets (dark blue), Liabilities (light blue)
-  const chartMonths = netWorthData.slice(-12).map(entry => {
-    const date = new Date(entry.date);
-    return date.toLocaleString('default', { month: 'short' });
-  });
-  const chartNetWorth = netWorthData.slice(-12).map(getEntryNetWorth);
-  const chartAssets = netWorthData.slice(-12).map(entry => {
-    return (
+  const getEntryNetWorth = (entry: any) => {
+    if (typeof entry.netWorth === 'number') return entry.netWorth;
+    const assets =
       (entry.cash || 0) +
       (entry.investments || 0) +
       (entry.realEstate || 0) +
       (entry.retirementAccounts || 0) +
       (entry.vehicles || 0) +
       (entry.personalProperty || 0) +
-      (entry.otherAssets || 0)
-    );
-  });
-  const chartLiabilities = netWorthData.slice(-12).map(entry => entry.liabilities || 0);
+      (entry.otherAssets || 0) +
+      (entry.customFields || []).filter((f: any) => f.type === 'asset').reduce((a: number, b: any) => a + (b.amount || 0), 0);
+    const liabilities =
+      (entry.liabilities || 0) +
+      (entry.customFields || []).filter((f: any) => f.type === 'liability').reduce((a: number, b: any) => a + (b.amount || 0), 0);
+    return assets - liabilities;
+  };
 
+  // Prepare chart data for Net Worth (yellow line), Assets (dark blue), Liabilities (light blue)
   const sanitize = (arr: number[]): number[] =>
     arr.map((v: number) => (typeof v === 'number' && isFinite(v) && !isNaN(v) ? v : 0));
-
-  const chartNetWorthSafe = sanitize(chartNetWorth);
-  const chartAssetsSafe = sanitize(chartAssets);
-  const chartLiabilitiesSafe = sanitize(chartLiabilities);
-
-  // After sanitizing chart data:
-  const N = Math.min(chartMonths.length, chartNetWorthSafe.length, chartAssetsSafe.length, chartLiabilitiesSafe.length);
-  const months = chartMonths.slice(0, N);
-  const netWorth = chartNetWorthSafe.slice(0, N);
-  const assets = chartAssetsSafe.slice(0, N);
-  const liabilities = chartLiabilitiesSafe.slice(0, N);
-
-  console.log('Chart data:', { months, netWorth, assets, liabilities });
 
   const isValidChartData = (arr: number[]) =>
     Array.isArray(arr) && arr.length > 0 && arr.every(v => typeof v === 'number' && isFinite(v) && !isNaN(v));
@@ -216,57 +248,121 @@ const DashboardScreen: React.FC<Props & { start?: () => void }> = ({navigation, 
   const safeValue = (v: any) => (typeof v === 'number' && isFinite(v) && !isNaN(v) ? v : 0);
 
   console.log('Chart data validity:', {
-    netWorthValid: isValidChartData(netWorth),
-    assetsValid: isValidChartData(assets),
-    liabilitiesValid: isValidChartData(liabilities),
-    netWorth,
-    assets,
-    liabilities,
+    netWorthValid: isValidChartData(chartNetWorth),
+    assetsValid: isValidChartData(chartAssets),
+    liabilitiesValid: isValidChartData(chartLiabilities),
+    netWorth: chartNetWorth,
+    assets: chartAssets,
+    liabilities: chartLiabilities,
   });
 
+  // Helper to get the latest entry (chronologically, newest)
+  const getLatestEntry = () => {
+    if (!netWorthData.length) return null;
+    return netWorthData[0]; // NEWEST
+  };
+
+  // Helper to get the previous entry (second newest)
+  const getPreviousEntry = () => {
+    if (netWorthData.length < 2) return null;
+    return netWorthData[1];
+  };
+
+  // Helper to get the entry from 12 months ago (if monthly data)
+  const getEntry12MonthsAgo = () => {
+    if (netWorthData.length < 13) return null;
+    return netWorthData[12]; // 0-based index, 13th entry is 12 months ago
+  };
+
+  // Debug: Log net worth data array and sorted order
+  console.log('🟡 [DashboardScreen] netWorthData length:', netWorthData.length);
+  console.log('🟡 [DashboardScreen] netWorthData dates:', netWorthData.map(e => e.date));
+
+  // Use latest entry for all 'current' calculations
+  const latestEntry = getLatestEntry();
+  const previousEntry = getPreviousEntry();
+  const entry12MonthsAgo = getEntry12MonthsAgo();
+
+  // Debug: Log latest, previous, and 12-months-ago entries
+  console.log('🟢 [DashboardScreen] latestEntry (newest):', latestEntry);
+  console.log('🟢 [DashboardScreen] previousEntry (second newest):', previousEntry);
+  console.log('🟢 [DashboardScreen] entry12MonthsAgo (13th newest):', entry12MonthsAgo);
+
+  // Net Worth Overview
+  const currentNetWorth = latestEntry ? getEntryNetWorth(latestEntry) : 0;
+  console.log('🟢 [DashboardScreen] currentNetWorth (latestEntry):', currentNetWorth);
+
+  // Annual Growth: compare to 12 months ago if possible, else previous
+  const annualGrowth = entry12MonthsAgo
+    ? ((currentNetWorth - getEntryNetWorth(entry12MonthsAgo)) / Math.abs(getEntryNetWorth(entry12MonthsAgo))) * 100
+    : (previousEntry && getEntryNetWorth(previousEntry) !== 0)
+      ? ((currentNetWorth - getEntryNetWorth(previousEntry)) / Math.abs(getEntryNetWorth(previousEntry))) * 100
+      : 0;
+  console.log('🟢 [DashboardScreen] annualGrowth calculation:', {
+    currentNetWorth,
+    compareNetWorth: entry12MonthsAgo ? getEntryNetWorth(entry12MonthsAgo) : previousEntry ? getEntryNetWorth(previousEntry) : 0,
+    annualGrowth,
+    used12MonthsAgo: !!entry12MonthsAgo,
+    usedPrevious: !entry12MonthsAgo && !!previousEntry
+  });
+
+  // Cash % of Net Worth
+  const cashPercent =
+    currentNetWorth !== 0 && latestEntry && isFinite(currentNetWorth)
+      ? ((latestEntry.cash || 0) / currentNetWorth * 100).toFixed(2)
+      : '0.00';
+  console.log('🟡 [DashboardScreen] cashPercent:', cashPercent);
+
+  // Pie chart data (latest entry)
   const pieData = [
     {
       name: 'Cash',
-      population: netWorthData.length > 0 ? safeValue(netWorthData[0].cash) : 0,
+      population: latestEntry ? safeValue(latestEntry.cash) : 0,
       color: '#FF6384',
       legendFontColor: '#7F7F7F',
     },
     {
       name: 'Investments',
-      population: netWorthData.length > 0 ? safeValue(netWorthData[0].investments) : 0,
+      population: latestEntry ? safeValue(latestEntry.investments) : 0,
       color: '#36A2EB',
       legendFontColor: '#7F7F7F',
     },
     {
       name: 'Real Estate',
-      population: netWorthData.length > 0 ? safeValue(netWorthData[0].realEstate) : 0,
+      population: latestEntry ? safeValue(latestEntry.realEstate) : 0,
       color: '#FFCE56',
       legendFontColor: '#7F7F7F',
     },
     {
       name: 'Retirement',
-      population: netWorthData.length > 0 ? safeValue(netWorthData[0].retirementAccounts) : 0,
+      population: latestEntry ? safeValue(latestEntry.retirementAccounts) : 0,
       color: '#4BC0C0',
       legendFontColor: '#7F7F7F',
     },
   ];
-  console.log('Pie data validity:', pieData.map(item => ({ name: item.name, valid: typeof item.population === 'number' && isFinite(item.population) && !isNaN(item.population), value: item.population })));
+  console.log('🟡 [DashboardScreen] pieData:', pieData);
+
+  // Asset and liability breakdowns (latest entry)
+  const assetBreakdown = (latestEntry && (latestEntry as any).assets) ? (latestEntry as any).assets : {};
+  const liabilityBreakdown = (latestEntry && (latestEntry as any).liabilities) ? (latestEntry as any).liabilities : {};
+  console.log('🟡 [DashboardScreen] assetBreakdown:', assetBreakdown);
+  console.log('🟡 [DashboardScreen] liabilityBreakdown:', liabilityBreakdown);
 
   const multiChartData = {
-    labels: months,
+    labels: chartMonths,
     datasets: [
       {
-        data: netWorth,
+        data: chartNetWorthSafe,
         color: (opacity = 1) => `#ffd600`, // Yellow line
         strokeWidth: 3,
       },
       {
-        data: assets,
+        data: chartAssetsSafe,
         color: (opacity = 1) => `#1a2a4e`, // Dark blue
         strokeWidth: 2,
       },
       {
-        data: liabilities,
+        data: chartLiabilitiesSafe,
         color: (opacity = 1) => `#23aaff`, // Light blue
         strokeWidth: 2,
       },
@@ -293,12 +389,6 @@ const DashboardScreen: React.FC<Props & { start?: () => void }> = ({navigation, 
     fillShadowGradientOpacity: 1,
   };
 
-  // Calculate Cash % of Net Worth
-  const cashPercent =
-    currentNetWorth !== 0 && netWorthData.length > 0 && isFinite(currentNetWorth)
-      ? ((netWorthData[0].cash || 0) / currentNetWorth * 100).toFixed(2)
-      : '0.00';
-
   // Add a helper function for compact currency formatting
   const formatCompactCurrency = (value: string | number) => {
     const num = Number(value);
@@ -312,15 +402,48 @@ const DashboardScreen: React.FC<Props & { start?: () => void }> = ({navigation, 
     }
   };
 
-  const safeAnnualGrowth =
-    _previousNetWorth !== 0 && isFinite(_previousNetWorth)
-      ? parseFloat((((currentNetWorth - _previousNetWorth) / _previousNetWorth) * 100).toFixed(2))
-      : 0;
+  console.log('🟡 [DashboardScreen] netWorthData:', netWorthData);
+
+  if (netWorthData.length === 0) {
+    console.log('🟡 [DashboardScreen] No net worth data available.');
+  }
+
+  // Debug: Log data for Cash, Equities, and House trend charts
+  const last6 = netWorthData.slice(0, 6).reverse();
+  last6.forEach((entry, idx) => {
+    const date = entry.date;
+    console.log(`[CashChart] Entry[${idx}] date=${date}, cash=${entry.cash}, entry=`, entry);
+    // Equities: investments + retirementAccounts + personalProperty + otherAssets + customFields (asset, not cash/real estate)
+    const equities =
+      (entry.investments || 0) +
+      (entry.retirementAccounts || 0) +
+      (entry.personalProperty || 0) +
+      (entry.otherAssets || 0) +
+      (entry.customFields || []).filter(f => f.type === 'asset' && f.name !== 'Cash' && f.name !== 'Real Estate').reduce((a, b) => a + (b.amount || 0), 0);
+    console.log(`[EquitiesChart] Entry[${idx}] date=${date}, equities=${equities}, entry=`, entry);
+    // House: realEstate + customFields (asset, name includes 'real estate')
+    const house =
+      (entry.realEstate || 0) +
+      (entry.customFields || []).filter(f => f.type === 'asset' && f.name && f.name.toLowerCase().includes('real estate')).reduce((a, b) => a + (b.amount || 0), 0);
+    console.log(`[HouseChart] Entry[${idx}] date=${date}, house=${house}, entry=`, entry);
+    // Log all custom field names for this entry
+    console.log(`[HouseChart] Entry[${idx}] customFields:`, (entry.customFields || []).map(f => f.name));
+  });
+
+  // House Trend chart data with y-axis padding
+  const houseDataRaw = last6.map(entry =>
+    (entry.realEstate || 0) +
+    (entry.customFields || []).filter(f => f.type === 'asset' && f.name && f.name.toLowerCase().includes('real estate')).reduce((a, b) => a + (b.amount || 0), 0)
+  );
+  const minHouse = Math.min(...houseDataRaw);
+  const maxHouse = Math.max(...houseDataRaw);
+  const padHouse = Math.max(10000, Math.round((maxHouse - minHouse) * 0.5));
+  const paddedHouseData = [minHouse - padHouse, ...houseDataRaw, maxHouse + padHouse];
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#181f2a' }}>
       <ScrollView
-        style={styles.container}
+        style={[styles.container, { backgroundColor: '#181f2a' }]}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }>
@@ -337,19 +460,19 @@ const DashboardScreen: React.FC<Props & { start?: () => void }> = ({navigation, 
               <Text style={styles.snapshotButtonText}>Log Monthly Entry</Text>
             </LinearGradient>
           </TouchableOpacity>
-          <View style={{ marginTop: 16 }}>
+          <View style={{ marginTop: 16, alignItems: 'flex-start', width: '100%' }}>
             {/* Overlay BarChart and LineChart for multi-series effect */}
-            {isValidChartData(netWorth) && isValidChartData(assets) && isValidChartData(liabilities) ? (
+            {isValidChartData(chartNetWorthSafe) && isValidChartData(chartAssetsSafe) && isValidChartData(chartLiabilitiesSafe) ? (
               <>
                 <BarChart
                   data={{
-                    labels: months,
+                    labels: chartMonths,
                     datasets: [
-                      { data: assets, color: () => '#1e3a8a' },
-                      { data: liabilities, color: () => '#38bdf8' },
+                      { data: chartAssetsSafe, color: () => '#1e3a8a' },
+                      { data: chartLiabilitiesSafe, color: () => '#38bdf8' },
                     ],
                   }}
-                  width={screenWidth - 64}
+                  width={screenWidth - 80}
                   height={180}
                   yAxisLabel=""
                   yAxisSuffix=""
@@ -365,17 +488,17 @@ const DashboardScreen: React.FC<Props & { start?: () => void }> = ({navigation, 
                   withCustomBarColorFromData={true}
                   flatColor={true}
                   showBarTops={false}
-                  style={{ borderRadius: 16, position: 'absolute', backgroundColor: '#222b3a' }}
+                  style={{ borderRadius: 16, position: 'absolute', backgroundColor: '#222b3a', marginLeft: 0 }}
                   fromZero
                 />
                 <LineChart
                   data={{
-                    labels: months,
+                    labels: chartMonths,
                     datasets: [
-                      { data: netWorth, color: () => '#ffd600', strokeWidth: 3 },
+                      { data: chartNetWorthSafe, color: () => '#ffd600', strokeWidth: 3 },
                     ],
                   }}
-                  width={screenWidth - 64}
+                  width={screenWidth - 80}
                   height={180}
                   yAxisLabel=""
                   chartConfig={{
@@ -391,7 +514,7 @@ const DashboardScreen: React.FC<Props & { start?: () => void }> = ({navigation, 
                   withOuterLines={false}
                   withDots={false}
                   bezier
-                  style={{ borderRadius: 16, backgroundColor: '#222b3a' }}
+                  style={{ borderRadius: 16, backgroundColor: '#222b3a', marginLeft: 0 }}
                   formatYLabel={formatCompactCurrency}
                   fromZero
                 />
@@ -444,8 +567,8 @@ const DashboardScreen: React.FC<Props & { start?: () => void }> = ({navigation, 
                   </Tooltip>
                   <Text style={styles.metricLabel}>Annual Growth</Text>
                 </View>
-                <Text style={[styles.metricValue, {color: getGrowthColor(safeAnnualGrowth), marginBottom: 2}]}> 
-                  {formatPercentage(safeAnnualGrowth)}
+                <Text style={[styles.metricValue, {color: getGrowthColor(annualGrowth), marginBottom: 2}]}> 
+                  {formatPercentage(annualGrowth)}
                 </Text>
                 <Text style={styles.metricSubtext}>Year over year</Text>
               </View>
@@ -477,13 +600,17 @@ const DashboardScreen: React.FC<Props & { start?: () => void }> = ({navigation, 
                 <View style={{ width: '100%', alignItems: 'center', paddingVertical: 8 }}>
                   <LineChart
                     data={{
-                      labels: netWorthData.slice(-6).map(entry => {
+                      labels: last6.map(entry => {
                         const date = new Date(entry.date);
                         return `${date.getMonth() + 1}/${date.getDate()}`;
                       }),
                       datasets: [
                         {
-                          data: netWorthData.slice(-6).map(entry => entry.cash || 0),
+                          data: last6.map((entry, idx) => {
+                            const value = entry.cash || 0;
+                            console.log(`[CashChart] ChartData[${idx}] date=${entry.date}, value=${value}`);
+                            return value;
+                          }),
                           color: (opacity = 1) => `rgba(35, 170, 255, ${opacity})`,
                           strokeWidth: 2,
                         },
@@ -517,13 +644,22 @@ const DashboardScreen: React.FC<Props & { start?: () => void }> = ({navigation, 
                 <View style={{ width: '100%', alignItems: 'center', paddingVertical: 8 }}>
                   <LineChart
                     data={{
-                      labels: netWorthData.slice(-6).map(entry => {
+                      labels: last6.map(entry => {
                         const date = new Date(entry.date);
                         return `${date.getMonth() + 1}/${date.getDate()}`;
                       }),
                       datasets: [
                         {
-                          data: netWorthData.slice(-6).map(entry => entry.investments || 0),
+                          data: last6.map((entry, idx) => {
+                            const value =
+                              (entry.investments || 0) +
+                              (entry.retirementAccounts || 0) +
+                              (entry.personalProperty || 0) +
+                              (entry.otherAssets || 0) +
+                              (entry.customFields || []).filter(f => f.type === 'asset' && f.name !== 'Cash' && f.name !== 'Real Estate').reduce((a, b) => a + (b.amount || 0), 0);
+                            console.log(`[EquitiesChart] ChartData[${idx}] date=${entry.date}, value=${value}`);
+                            return value;
+                          }),
                           color: (opacity = 1) => `rgba(54, 162, 235, ${opacity})`,
                           strokeWidth: 2,
                         },
@@ -557,13 +693,13 @@ const DashboardScreen: React.FC<Props & { start?: () => void }> = ({navigation, 
                 <View style={{ width: '100%', alignItems: 'center', paddingVertical: 8 }}>
                   <LineChart
                     data={{
-                      labels: netWorthData.slice(-6).map(entry => {
+                      labels: last6.map(entry => {
                         const date = new Date(entry.date);
                         return `${date.getMonth() + 1}/${date.getDate()}`;
                       }),
                       datasets: [
                         {
-                          data: netWorthData.slice(-6).map(entry => entry.realEstate || 0),
+                          data: paddedHouseData,
                           color: (opacity = 1) => `rgba(255, 99, 132, ${opacity})`,
                           strokeWidth: 2,
                         },
@@ -654,6 +790,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#23aaff',
     marginBottom: 8,
+    textAlign: 'center',
   },
   growthLabel: {
     fontSize: 14,

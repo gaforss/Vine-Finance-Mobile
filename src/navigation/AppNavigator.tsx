@@ -33,61 +33,65 @@ const MainTabNavigator = () => {
   return (
     <Tab.Navigator
       screenOptions={({route}) => ({
-        tabBarIcon: ({focused, color, size}) => (
+        tabBarIcon: ({focused, color}) => (
           <TabBarIcon
             route={route.name}
             focused={focused}
             color={color}
-            size={size}
+            size={22}
           />
         ),
-        tabBarActiveTintColor: '#23aaff',
-        tabBarInactiveTintColor: '#b0b8c1',
+        tabBarShowLabel: false,
+        tabBarItemStyle: {
+          flex: 1,
+          borderRadius: 16,
+          marginHorizontal: 2,
+          marginVertical: 2,
+        },
+        tabBarActiveBackgroundColor: 'rgba(35,170,255,0.08)',
+        tabBarInactiveBackgroundColor: 'transparent',
         tabBarStyle: {
-          backgroundColor: '#10151f',
+          backgroundColor: '#181f2a',
           borderTopWidth: 0,
-          paddingBottom: 10,
-          paddingTop: 8,
-          height: 68,
-          borderTopLeftRadius: 18,
-          borderTopRightRadius: 18,
+          paddingBottom: 4,
+          paddingTop: 4,
+          height: 54,
+          borderTopLeftRadius: 12,
+          borderTopRightRadius: 12,
           shadowColor: '#000',
           shadowOpacity: 0.12,
           shadowRadius: 12,
           shadowOffset: { width: 0, height: -2 },
           elevation: 10,
+          overflow: 'hidden',
         },
         headerShown: false,
+        tabBarPressColor: 'transparent',
+        tabBarPressOpacity: 1,
       })}>
       <Tab.Screen
         name="Dashboard"
         component={DashboardScreen}
-        options={{tabBarLabel: 'Dashboard'}}
       />
       <Tab.Screen
         name="Accounts"
         component={AccountsScreen}
-        options={{tabBarLabel: 'Accounts'}}
       />
       <Tab.Screen
         name="Budgeting"
         component={BudgetingScreen}
-        options={{tabBarLabel: 'Budget'}}
       />
       <Tab.Screen
         name="RealEstate"
         component={RealEstateScreen}
-        options={{tabBarLabel: 'Real Estate'}}
       />
       <Tab.Screen
         name="Retirement"
         component={RetirementScreen}
-        options={{tabBarLabel: 'Retirement'}}
       />
       <Tab.Screen
         name="Profile"
         component={ProfileScreen}
-        options={{tabBarLabel: 'Profile'}}
       />
     </Tab.Navigator>
   );

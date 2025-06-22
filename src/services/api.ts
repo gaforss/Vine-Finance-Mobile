@@ -570,7 +570,7 @@ class ApiService {
   }
 
   // Add Manual Account
-  async addManualAccount(account: { name: string; type: string; amount: number }): Promise<ApiResponse<any>> {
+  async addManualAccount(account: { name: string; category: string; amount: number }): Promise<ApiResponse<any>> {
     try {
       const response = await this.api.post('/accounts', account);
       if (response.data && (response.data.success || response.data._id)) {
@@ -579,6 +579,16 @@ class ApiService {
       return { success: false, error: 'Failed to add account' };
     } catch (error: any) {
       return { success: false, error: error.response?.data?.error || 'Failed to add account' };
+    }
+  }
+
+  // Update Account
+  async updateAccount(accountId: string, data: Partial<Account>): Promise<ApiResponse<Account>> {
+    try {
+      const response = await this.api.put(`/accounts/${accountId}`, data);
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return { success: false, error: error.response?.data?.message || 'Failed to update account' };
     }
   }
 

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, SectionList, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, SafeAreaView, Modal, TextInput } from 'react-native';
+import { View, Text, SectionList, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, SafeAreaView, Modal, TextInput, ScrollView, ToastAndroid } from 'react-native';
 import { apiService } from '../services/api';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -21,6 +21,62 @@ interface AccountSection {
   data: Account[];
 }
 
+// Mapping from backend category keys to friendly names and icons
+const CATEGORY_META: Record<string, { title: string; icon: string }> = {
+  bank: { title: 'Bank Accounts', icon: 'university' },
+  credit: { title: 'Credit Cards', icon: 'credit-card' },
+  loan: { title: 'Loans', icon: 'money-check-alt' },
+  investment: { title: 'Investment Accounts', icon: 'chart-line' },
+  retirement: { title: 'Retirement Accounts', icon: 'flag' },
+  insurance: { title: 'Insurance Accounts', icon: 'shield-alt' },
+  digital: { title: 'Digital/Crypto Accounts', icon: 'bitcoin' },
+  misc: { title: 'Miscellaneous Accounts', icon: 'asterisk' },
+};
+
+// Add a mapping for category colors
+const CATEGORY_COLORS: Record<string, string> = {
+  bank: '#0070ba',
+  credit: '#ffb300',
+  loan: '#e57373',
+  investment: '#4caf50',
+  retirement: '#9575cd',
+  insurance: '#00bcd4',
+  digital: '#ff9800',
+  misc: '#bdbdbd',
+};
+
+// Map backend keys to UI-friendly keys
+const CATEGORY_KEY_MAP: Record<string, string> = {
+  bankAccounts: 'bank',
+  creditCards: 'credit',
+  loans: 'loan',
+  investments: 'investment',
+  retirement: 'retirement',
+  insurance: 'insurance',
+  digital: 'digital',
+  miscellaneous: 'misc',
+};
+
+// Temporary error boundary for debugging
+class DebugErrorBoundary extends React.Component<any, { hasError: boolean; error: any }> {
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error: any) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error: any, info: any) {
+    console.error('AccountsScreen: ErrorBoundary caught error:', error, info);
+  }
+  render() {
+    if (this.state.hasError) {
+      return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#181f2a' }}><Text style={{ color: 'red' }}>Render error: {String(this.state.error)}</Text></View>;
+    }
+    return this.props.children;
+  }
+}
+
 const AccountsScreen: React.FC = () => {
   const [sections, setSections] = useState<AccountSection[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,6 +86,7 @@ const AccountsScreen: React.FC = () => {
   const [manualType, setManualType] = useState('');
   const [manualBalance, setManualBalance] = useState('');
   const [manualLoading, setManualLoading] = useState(false);
+  const [editAccountId, setEditAccountId] = useState<string | null>(null);
 
   console.log('🏦 AccountsScreen: rendering');
 
@@ -43,24 +100,44 @@ const AccountsScreen: React.FC = () => {
         console.log('🏦 AccountsScreen: raw data:', response.data);
         // Transform categorized object into sections array, mapping Plaid fields
         const newSections: AccountSection[] = Object.entries(response.data)
-          .map(([category, accounts]) => ({
-            title: category.charAt(0).toUpperCase() + category.slice(1),
-            data: (accounts as any[]).map((acct: any) => ({
-              _id: acct.account_id || acct._id || acct.id || '',
-              name: acct.name || acct.official_name || 'Unnamed',
-              category: acct.type || category || '',
-              amount: (acct.balances && typeof acct.balances.current === 'number') ? acct.balances.current : (typeof acct.amount === 'number' ? acct.amount : 0),
-              institutionName: acct.institutionName || '',
-              mask: acct.mask || '',
-            }))
-          }))
-          .map(section => ({
-            ...section,
-            data: section.data.filter(item => item._id && typeof item.amount === 'number')
-          }))
+          .map(([category, accounts]) => {
+            const mappedKey = CATEGORY_KEY_MAP[category] || category;
+            if (!Array.isArray(accounts)) {
+              console.warn(`AccountsScreen: accounts for category '${category}' is not an array`, accounts);
+              return null;
+            }
+            // Only include valid accounts (never null)
+            const validAccounts = accounts.map((acct: any) => {
+              if (!acct || typeof acct !== 'object') {
+                console.warn('AccountsScreen: Skipping invalid account:', acct);
+                return null;
+              }
+              const mapped: Account = {
+                _id: acct.account_id || acct._id || acct.id || '',
+                name: acct.name || acct.official_name || 'Unnamed',
+                category: acct.type || mappedKey || '',
+                amount: (acct.balances && typeof acct.balances.current === 'number') ? acct.balances.current : (typeof acct.amount === 'number' ? acct.amount : 0),
+                institutionName: acct.institutionName || '',
+                mask: acct.mask || '',
+              };
+              return mapped;
+            }).filter((a): a is Account => !!a && typeof a._id === 'string');
+            return {
+              title: String(mappedKey),
+              data: validAccounts
+            };
+          })
+          .filter((section): section is AccountSection => !!section && typeof section.title === 'string' && Array.isArray(section.data))
+          .map(section => {
+            const filtered = {
+              ...section,
+              data: Array.isArray(section.data) ? section.data.filter(item => item && typeof item === 'object' && typeof item._id === 'string' && typeof item.amount === 'number') : []
+            };
+            return filtered;
+          })
           .filter(section => section.data.length > 0);
         setSections(newSections);
-        console.log('🏦 AccountsScreen: setSections with', newSections.length, 'sections');
+        console.log('🏦 AccountsScreen: setSections with', newSections.length, 'sections', newSections);
       } else {
         setSections([]);
       }
@@ -117,29 +194,55 @@ const AccountsScreen: React.FC = () => {
     }
   };
 
-  const handleManualAdd = async () => {
+  const openManualModal = (account?: Account) => {
+    if (account) {
+      setEditAccountId(account._id);
+      setManualName(account.name);
+      setManualType(account.category);
+      setManualBalance(account.amount.toString());
+    } else {
+      setEditAccountId(null);
+      setManualName('');
+      setManualType('');
+      setManualBalance('');
+    }
+    setShowManualModal(true);
+  };
+
+  const handleManualAddOrEdit = async () => {
     if (!manualName || !manualType || !manualBalance) {
       Alert.alert('Error', 'Please fill all fields');
       return;
     }
     setManualLoading(true);
     try {
-      const response = await apiService.addManualAccount({
-        name: manualName,
-        type: manualType,
-        amount: parseFloat(manualBalance),
-      });
+      let response;
+      if (editAccountId) {
+        response = await apiService.updateAccount(editAccountId, {
+          name: manualName,
+          category: manualType,
+          amount: parseFloat(manualBalance),
+        });
+      } else {
+        response = await apiService.addManualAccount({
+          name: manualName,
+          category: manualType,
+          amount: parseFloat(manualBalance),
+        });
+      }
       if (response.success) {
         setShowManualModal(false);
         setManualName('');
         setManualType('');
         setManualBalance('');
+        setEditAccountId(null);
         fetchAccounts();
+        ToastAndroid.show(editAccountId ? 'Account updated!' : 'Account added!', ToastAndroid.SHORT);
       } else {
-        Alert.alert('Error', response.error || 'Failed to add account');
+        Alert.alert('Error', response.error || 'Failed to save account');
       }
     } catch (err) {
-      Alert.alert('Error', 'Failed to add account');
+      Alert.alert('Error', 'Failed to save account');
     }
     setManualLoading(false);
   };
@@ -149,110 +252,90 @@ const AccountsScreen: React.FC = () => {
     .reduce((sum, acct) => sum + (typeof acct.amount === 'number' ? acct.amount : 0), 0);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#181f2a' }}>
-      <View style={styles.container}>
-        {/* Plaid Link Card */}
-        <View style={{
-          backgroundColor: '#1a2233',
-          borderRadius: 18,
-          padding: 24,
-          marginBottom: 18,
-          alignItems: 'center',
-          shadowColor: '#000',
-          shadowOpacity: 0.10,
-          shadowRadius: 8,
-          elevation: 3,
-        }}>
-          <FontAwesome5 name="lock" size={24} color="#b0b8c1" style={{ marginBottom: 12 }} />
-          <Text style={{ color: '#e6eaf0', fontSize: 18, fontWeight: '500', textAlign: 'center', marginBottom: 12 }}>
-            Securely link your <Text style={{ fontWeight: 'bold', color: '#fff' }}>Accounts</Text> for Better Visibility
-          </Text>
-          <TouchableOpacity
-            style={{
-              backgroundColor: '#23d160',
-              borderRadius: 8,
-              paddingVertical: 14,
-              paddingHorizontal: 32,
-              marginBottom: 18,
-              marginTop: 4,
-            }}
-            onPress={handlePlaidLink}
-          >
-            <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 17 }}>
-              <FontAwesome5 name="lock" size={16} color="#fff" /> Securely Link An Account
-            </Text>
-          </TouchableOpacity>
-          {/* Illustration placeholder */}
-          <View style={{ width: 160, height: 120, backgroundColor: '#23395d', borderRadius: 16, marginTop: 8, marginBottom: 4, alignItems: 'center', justifyContent: 'center' }}>
-            <FontAwesome5 name="user" size={48} color="#23aaff" />
-          </View>
-        </View>
-        {/* Balances summary card */}
-        <View style={{
-          backgroundColor: '#222b3a',
-          borderRadius: 18,
-          padding: 18,
-          marginBottom: 18,
-          alignItems: 'center',
-          shadowColor: '#000',
-          shadowOpacity: 0.12,
-          shadowRadius: 8,
-          elevation: 3,
-        }}>
-          <Text style={{ color: '#b0b8c1', fontSize: 15, marginBottom: 6 }}>Total Balance</Text>
-          <Text style={{ color: '#23aaff', fontSize: 28, fontWeight: 'bold' }}>
-            ${totalBalance.toLocaleString()}
-          </Text>
-        </View>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 }}>
-          <TouchableOpacity style={styles.addManualButton} onPress={() => setShowManualModal(true)}>
-            <Text style={styles.addManualText}>Add Account Manually</Text>
-          </TouchableOpacity>
-        </View>
-        <Text style={styles.title}>Accounts</Text>
-        {loading ? (
-          <ActivityIndicator color="#23aaff" />
-        ) : (
-          <SectionList
-            sections={sections}
-            keyExtractor={(item, index) => (item && typeof item._id === 'string' ? item._id : `account-${index}`)}
-            ListEmptyComponent={<Text style={styles.emptyText}>No accounts found.</Text>}
-            renderSectionHeader={({ section: { title } }) => (
-              <Text style={styles.sectionHeader}>{title}</Text>
-            )}
-            renderItem={({ item }) => {
-              if (!item || typeof item._id !== 'string' || typeof item.amount !== 'number') {
-                return null;
-              }
-              return (
-                <View style={styles.card}>
-                  <View style={styles.cardHeader}>
-                    <Text style={styles.accountName}>{item.name || 'Unnamed'}</Text>
-                    <View style={styles.typePill}>
-                      <Text style={styles.typePillText}>{item.category || ''}</Text>
-                    </View>
-                  </View>
-                  <Text style={styles.accountBalance}>
-                    {typeof item.amount === 'number' ? `$${item.amount.toLocaleString()}` : '$0'}
-                  </Text>
-                  {item.institutionName ? (
-                    <Text style={styles.institutionText}>{item.institutionName}{item.mask ? ` •••${item.mask}` : ''}</Text>
-                  ) : null}
-                  <TouchableOpacity style={styles.deleteButton} onPress={() => handleDelete(item._id)}>
-                    <Text style={styles.deleteText}>Delete</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.transactionsButton} onPress={() => navigation.navigate('Transactions', { accountId: item._id, accountName: item.name })}>
-                    <Text style={styles.transactionsText}>View Transactions</Text>
-                  </TouchableOpacity>
+    <DebugErrorBoundary>
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#181f2a' }}>
+        {/* Balances summary as horizontal scrollable cards */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 12, marginBottom: 8 }} contentContainerStyle={{ paddingHorizontal: 16 }}>
+          {/* Example balances, replace with dynamic data as needed */}
+          <View style={styles.balanceCard}><FontAwesome5 name="money-bill-wave" size={20} color="#0070ba" /><Text style={styles.balanceCardLabel}>Cash</Text><Text style={styles.balanceCardAmount}>$100,085.00</Text></View>
+          <View style={styles.balanceCard}><FontAwesome5 name="chart-line" size={20} color="#4caf50" /><Text style={styles.balanceCardLabel}>Investments</Text><Text style={styles.balanceCardAmount}>$1,000.00</Text></View>
+          <View style={styles.balanceCard}><FontAwesome5 name="home" size={20} color="#ffb300" /><Text style={styles.balanceCardLabel}>Real Estate</Text><Text style={styles.balanceCardAmount}>$75,000.00</Text></View>
+          <View style={styles.balanceCard}><FontAwesome5 name="flag" size={20} color="#9575cd" /><Text style={styles.balanceCardLabel}>Retirement</Text><Text style={styles.balanceCardAmount}>$320.76</Text></View>
+          <View style={styles.balanceCard}><FontAwesome5 name="university" size={20} color="#e57373" /><Text style={styles.balanceCardLabel}>Liabilities</Text><Text style={styles.balanceCardAmount}>$410.00</Text></View>
+          <View style={styles.balanceCard}><FontAwesome5 name="shield-alt" size={20} color="#00bcd4" /><Text style={styles.balanceCardLabel}>Insurance</Text><Text style={styles.balanceCardAmount}>$0.00</Text></View>
+          <View style={styles.balanceCard}><FontAwesome5 name="asterisk" size={20} color="#bdbdbd" /><Text style={styles.balanceCardLabel}>Misc</Text><Text style={styles.balanceCardAmount}>$0.00</Text></View>
+        </ScrollView>
+        {/* Account Sections - modern headers and cards */}
+        <ScrollView contentContainerStyle={{ paddingBottom: 120 }}>
+          {sections.map((section, sIdx) => {
+            const meta = CATEGORY_META[section.title?.toLowerCase?.()] || { title: section.title || '', icon: 'university' };
+            const color = CATEGORY_COLORS[section.title?.toLowerCase?.()] || '#0070ba';
+            return (
+              <View key={section.title || String(sIdx)} style={[styles.sectionCard, sIdx > 0 ? { marginTop: 16 } : null]}>
+                <View style={styles.sectionHeaderRow}>
+                  <FontAwesome5 name={meta.icon} size={18} color={color} style={{ marginRight: 8 }} />
+                  <Text style={styles.sectionHeader}>{(meta.title || '').toUpperCase()}</Text>
+                  <View style={styles.sectionDivider} />
                 </View>
-              );
-            }}
-          />
-        )}
+                {Array.isArray(section.data) && section.data.map((account, idx) => {
+                  if (!account || typeof account !== 'object') return null;
+                  const meta = CATEGORY_META[section.title?.toLowerCase?.()] || { icon: 'university' };
+                  const color = CATEGORY_COLORS[section.title?.toLowerCase?.()] || '#0070ba';
+                  const fadedColor = typeof color === 'string' && color.length === 7 ? color + '22' : '#0070ba22';
+                  return (
+                    <TouchableOpacity
+                      key={account._id || idx}
+                      style={styles.proCard}
+                      activeOpacity={0.85}
+                      onPress={() => openManualModal(account)}
+                    >
+                      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <View style={[styles.proIconCircle, { backgroundColor: fadedColor }]}>
+                          <FontAwesome5 name={meta.icon} size={22} color={color} />
+                        </View>
+                        <View style={{ marginLeft: 18, flex: 1 }}>
+                          <Text style={styles.proAccountName}>{String(account.name || '')}</Text>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }}>
+                            <Text style={styles.proInstitution}>{String(account.institutionName || 'Bank')}</Text>
+                            <View style={styles.proTypePill}><Text style={styles.proTypePillText}>{String(account.category || '')}</Text></View>
+                          </View>
+                        </View>
+                        <View style={{ alignItems: 'flex-end', minWidth: 100 }}>
+                          <Text style={styles.proBalance}>{typeof account.amount === 'number' ? `$${account.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '0.00'}</Text>
+                          <View style={{ flexDirection: 'row', marginTop: 8, gap: 8 }}>
+                            <TouchableOpacity style={styles.proIconBtn} onPress={() => openManualModal(account)}>
+                              <FontAwesome5 name="pencil-alt" size={13} color={color} />
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.proIconBtn} onPress={() => handleDelete(account._id)}>
+                              <FontAwesome5 name="trash" size={13} color="#e57373" />
+                            </TouchableOpacity>
+                          </View>
+                        </View>
+                        <FontAwesome5 name="chevron-right" size={16} color="#b0b8c1" style={{ marginLeft: 12 }} />
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            );
+          })}
+        </ScrollView>
+        {/* Sticky floating action bar */}
+        <View style={styles.fabBar}>
+          <TouchableOpacity style={styles.fabPrimary} onPress={handlePlaidLink}>
+            <FontAwesome5 name="lock" size={18} color="#fff" style={{ marginRight: 8 }} />
+            <Text style={styles.fabPrimaryText}>Link Account</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.fabSecondary} onPress={() => openManualModal()}>
+            <FontAwesome5 name="plus" size={18} color="#0070ba" style={{ marginRight: 8 }} />
+            <Text style={styles.fabSecondaryText}>Add Manual</Text>
+          </TouchableOpacity>
+        </View>
+        {/* Bottom sheet for manual add/edit */}
         <Modal visible={showManualModal} animationType="slide" transparent>
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Add Account Manually</Text>
+          <View style={styles.bottomSheetOverlay}>
+            <View style={styles.bottomSheet}>
+              <Text style={styles.modalTitle}>{editAccountId ? 'Edit Account' : 'Add Account Manually'}</Text>
               <TextInput style={styles.modalInput} placeholder="Account Name" value={manualName} onChangeText={setManualName} />
               <TextInput style={styles.modalInput} placeholder="Account Type" value={manualType} onChangeText={setManualType} />
               <TextInput style={styles.modalInput} placeholder="Balance" value={manualBalance} onChangeText={setManualBalance} keyboardType="numeric" />
@@ -260,15 +343,15 @@ const AccountsScreen: React.FC = () => {
                 <TouchableOpacity style={styles.modalCancelButton} onPress={() => setShowManualModal(false)}>
                   <Text style={styles.modalCancelText}>Cancel</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.modalAddButton} onPress={handleManualAdd} disabled={manualLoading}>
-                  <Text style={styles.modalAddText}>{manualLoading ? 'Adding...' : 'Add'}</Text>
+                <TouchableOpacity style={styles.modalAddButton} onPress={handleManualAddOrEdit} disabled={manualLoading}>
+                  <Text style={styles.modalAddText}>{manualLoading ? (editAccountId ? 'Saving...' : 'Adding...') : (editAccountId ? 'Save' : 'Add')}</Text>
                 </TouchableOpacity>
               </View>
             </View>
           </View>
         </Modal>
-      </View>
-    </SafeAreaView>
+      </SafeAreaView>
+    </DebugErrorBoundary>
   );
 };
 
@@ -278,162 +361,401 @@ const styles = StyleSheet.create({
     backgroundColor: '#181f2a',
     padding: 16,
   },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#23aaff',
-    marginBottom: 16,
-    textAlign: 'center',
-    letterSpacing: 0.5,
+  plaidCard: {
+    backgroundColor: '#1a2233',
+    borderRadius: 18,
+    padding: 24,
+    marginBottom: 18,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.10,
+    shadowRadius: 8,
+    elevation: 3,
   },
-  sectionHeader: {
+  plaidTitle: {
+    color: '#e6eaf0',
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#b0b8c1',
-    backgroundColor: 'transparent',
-    paddingVertical: 10,
-    paddingHorizontal: 10,
-    marginTop: 18,
-    marginBottom: 4,
+    fontWeight: '500',
+    textAlign: 'center',
+    marginBottom: 12,
   },
-  card: {
+  plaidButton: {
+    backgroundColor: '#23d160',
+    borderRadius: 8,
+    paddingVertical: 14,
+    paddingHorizontal: 32,
+    marginBottom: 18,
+    marginTop: 4,
+  },
+  plaidButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 17,
+    textAlign: 'center',
+  },
+  plaidIllustration: {
+    width: 160,
+    height: 120,
+    backgroundColor: '#23395d',
+    borderRadius: 16,
+    marginTop: 8,
+    marginBottom: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sectionCard: {
     backgroundColor: '#222b3a',
     borderRadius: 18,
     padding: 18,
-    marginBottom: 16,
+    marginBottom: 18,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.18,
+    shadowOpacity: 0.12,
     shadowRadius: 8,
-    elevation: 4,
+    elevation: 3,
   },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  accountName: {
+  sectionTitle: {
     color: '#e6eaf0',
-    fontSize: 18,
-    fontWeight: '700',
-    flex: 1,
-    flexWrap: 'wrap',
-  },
-  typePill: {
-    backgroundColor: '#23395d',
-    borderRadius: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    alignSelf: 'flex-start',
-    marginLeft: 8,
-  },
-  typePillText: {
-    color: '#23aaff',
-    fontSize: 13,
-    fontWeight: '600',
-    textTransform: 'capitalize',
-  },
-  accountBalance: {
-    color: '#23aaff',
-    fontSize: 22,
-    fontWeight: 'bold',
-    marginBottom: 6,
-    marginTop: 2,
-  },
-  institutionText: {
-    color: '#b0b8c1',
-    fontSize: 13,
-    marginBottom: 8,
-  },
-  deleteButton: {
-    alignSelf: 'flex-end',
-    marginTop: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-  },
-  deleteText: {
-    color: '#ff5555',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  transactionsButton: {
-    alignSelf: 'flex-end',
-    marginTop: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    backgroundColor: '#23aaff',
-    borderRadius: 8,
-    marginLeft: 8,
-  },
-  transactionsText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  emptyText: {
-    color: '#b0b8c1',
-    textAlign: 'center',
-    marginTop: 40,
-    fontSize: 16,
-  },
-  addManualButton: {
-    backgroundColor: '#23395d',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  addManualText: {
-    color: '#23aaff',
-    fontWeight: 'bold',
-    fontSize: 15,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    backgroundColor: '#222b3a',
-    borderRadius: 16,
-    padding: 24,
-    width: '85%',
-  },
-  modalTitle: {
-    color: '#23aaff',
     fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 16,
     textAlign: 'center',
   },
-  modalInput: {
-    backgroundColor: '#181f2a',
+  accountCard: {
+    backgroundColor: '#29344a',
+    borderRadius: 16,
+    padding: 18,
+    marginBottom: 14,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  accountIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  accountInstitution: {
+    color: '#b0b8c1',
+    fontSize: 13,
+    fontWeight: '500',
+    marginBottom: 2,
+  },
+  accountName: {
+    color: '#fff',
+    fontSize: 17,
+    fontWeight: 'bold',
+    marginBottom: 2,
+  },
+  accountLabel: {
+    color: '#b0b8c1',
+    fontSize: 13,
+    marginTop: 2,
+  },
+  accountBalance: {
+    color: '#fff',
+    fontSize: 22,
+    fontWeight: 'bold',
+    marginTop: 2,
+  },
+  balanceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#29344a',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginBottom: 10,
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  balanceLabel: {
     color: '#e6eaf0',
-    borderRadius: 8,
-    padding: 10,
-    marginBottom: 12,
     fontSize: 16,
+    fontWeight: 'bold',
+    flex: 1,
+  },
+  balanceAmount: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+    textAlign: 'right',
+  },
+  linkButton: {
+    backgroundColor: '#23d160',
+    borderRadius: 8,
+    paddingVertical: 14,
+    paddingHorizontal: 32,
+    marginRight: 8,
+  },
+  linkButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 17,
+    textAlign: 'center',
+  },
+  manualButton: {
+    backgroundColor: '#23d160',
+    borderRadius: 8,
+    paddingVertical: 14,
+    paddingHorizontal: 32,
+  },
+  manualButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 17,
+    textAlign: 'center',
+  },
+  helperText: {
+    color: '#b0b8c1',
+    fontSize: 16,
+    fontWeight: '500',
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    backgroundColor: '#222b3a',
+    padding: 24,
+    borderRadius: 18,
+    width: '80%',
+    maxWidth: 400,
+  },
+  modalTitle: {
+    color: '#e6eaf0',
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 16,
+  },
+  modalInput: {
+    backgroundColor: '#333f55',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+    color: '#fff',
   },
   modalCancelButton: {
-    marginRight: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    backgroundColor: '#ff5555',
+    borderRadius: 8,
+    padding: 12,
+    marginRight: 8,
   },
   modalCancelText: {
-    color: '#b0b8c1',
-    fontSize: 15,
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 17,
   },
   modalAddButton: {
-    backgroundColor: '#23aaff',
+    backgroundColor: '#23d160',
     borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    padding: 12,
   },
   modalAddText: {
     color: '#fff',
     fontWeight: 'bold',
-    fontSize: 15,
+    fontSize: 17,
+  },
+  emptyText: {
+    color: '#b0b8c1',
+    fontSize: 16,
+    fontWeight: '500',
+    textAlign: 'center',
+    marginVertical: 16,
+  },
+  balanceCard: {
+    backgroundColor: '#222b3a',
+    borderRadius: 12,
+    padding: 16,
+    marginRight: 12,
+  },
+  balanceCardLabel: {
+    color: '#e6eaf0',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  balanceCardAmount: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  sectionHeader: {
+    color: '#e6eaf0',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  sectionDivider: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#333f55',
+  },
+  accountTypePill: {
+    backgroundColor: '#333f55',
+    borderRadius: 12,
+    padding: 4,
+  },
+  accountTypePillText: {
+    color: '#e6eaf0',
+    fontSize: 13,
+    fontWeight: 'bold',
+  },
+  iconCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 8,
+  },
+  fabBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#181f2a',
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  fabPrimary: {
+    backgroundColor: '#23d160',
+    borderRadius: 8,
+    padding: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  fabPrimaryText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 17,
+  },
+  fabSecondary: {
+    backgroundColor: 'transparent',
+    borderRadius: 8,
+    padding: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  fabSecondaryText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 17,
+  },
+  bottomSheetOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  bottomSheet: {
+    backgroundColor: '#222b3a',
+    padding: 24,
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
+    width: '100%',
+  },
+  emptyState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
+  },
+  emptyHeadline: {
+    color: '#e6eaf0',
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 16,
+  },
+  emptySubtext: {
+    color: '#b0b8c1',
+    fontSize: 16,
+    fontWeight: '500',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  emptyCtaButton: {
+    backgroundColor: '#23d160',
+    borderRadius: 8,
+    padding: 12,
+  },
+  emptyCtaText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 17,
+  },
+  proCard: {
+    backgroundColor: '#232c3b',
+    borderRadius: 18,
+    paddingVertical: 22,
+    paddingHorizontal: 20,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOpacity: 0.10,
+    shadowRadius: 10,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: '#232c3b',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  proIconCircle: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#222b3a',
+  },
+  proAccountName: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  proInstitution: {
+    color: '#b0b8c1',
+    fontSize: 13,
+    fontWeight: '500',
+    marginRight: 10,
+  },
+  proTypePill: {
+    backgroundColor: '#29344a',
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 2,
+    marginLeft: 2,
+  },
+  proTypePillText: {
+    color: '#e6eaf0',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  proBalance: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginTop: 2,
+  },
+  proIconBtn: {
+    backgroundColor: '#232c3b',
+    borderRadius: 8,
+    padding: 6,
+    marginLeft: 0,
   },
 });
 
