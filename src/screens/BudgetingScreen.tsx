@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, ActivityIndicator, TouchableOpacity, StyleSheet, SafeAreaView, FlatList, Modal, TextInput, Alert } from 'react-native';
+import { View, Text, ScrollView, ActivityIndicator, TouchableOpacity, StyleSheet, SafeAreaView, FlatList, Modal, TextInput, Alert, Pressable } from 'react-native';
 import { apiService } from '../services/api';
 import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 import { useNavigation } from '@react-navigation/native';
@@ -7,7 +7,7 @@ import { LineChart, PieChart } from 'react-native-chart-kit';
 import { Dimensions } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import dayjs from 'dayjs';
-import { VictoryChart, VictoryAxis, VictoryArea, VictoryLegend } from 'victory-native';
+import { VictoryChart, VictoryAxis, VictoryArea, VictoryLegend, VictoryLabel, VictoryVoronoiContainer } from 'victory-native';
 import Svg, { Defs, LinearGradient, Stop } from 'react-native-svg';
 
 console.log('Victory:', VictoryChart);
@@ -61,6 +61,7 @@ const BudgetingScreen: React.FC = () => {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [cashFlowSeries, setCashFlowSeries] = useState<any[]>([]);
   const [cashFlowSeriesLoading, setCashFlowSeriesLoading] = useState(true);
+  const [showHelp, setShowHelp] = useState(false);
   const navigation = useNavigation();
 
   useEffect(() => {
@@ -371,75 +372,110 @@ const BudgetingScreen: React.FC = () => {
         </ScrollView>
 
         {/* Income vs. Expenses Section */}
-        <Text style={{ color: '#fff', fontSize: 20, fontWeight: 'bold', marginLeft: 8, marginBottom: 4 }}>Income vs. Expenses</Text>
         <View style={{
-          backgroundColor: '#192235',
-          borderRadius: 18,
-          padding: 18,
-          marginHorizontal: 12,
-          marginTop: 8,
-          marginBottom: 18,
-          shadowColor: '#fff',
-          shadowOpacity: 0.08,
-          shadowRadius: 16,
-          shadowOffset: { width: 0, height: 4 },
-          elevation: 8,
+          backgroundColor: '#101a28',
+          borderRadius: 20,
+          marginHorizontal: 8,
+          marginTop: 24,
+          marginBottom: 0,
+          paddingBottom: 0,
+          borderWidth: 1,
+          borderColor: '#1a2536',
+          shadowColor: '#000',
+          shadowOpacity: 0.18,
+          shadowRadius: 24,
+          shadowOffset: { width: 0, height: 8 },
+          elevation: 12,
         }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 28, paddingTop: 24, marginBottom: 2 }}>
+            <View>
+              <Text style={{ color: '#fff', fontSize: 26, fontWeight: 'bold', letterSpacing: 0.2 }}>Your Income vs. Expenses</Text>
+              <Text style={{ color: '#b0b8c1', fontSize: 15, marginTop: 2 }}>Track your cash flow over time</Text>
+            </View>
+            <Pressable onPress={() => setShowHelp(true)} hitSlop={12} style={{ padding: 6 }}>
+              <FontAwesome5 name="info-circle" size={22} color="#b0b8c1" />
+            </Pressable>
+          </View>
+          <Modal visible={showHelp} transparent animationType="fade">
+            <Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' }} onPress={() => setShowHelp(false)}>
+              <View style={{ backgroundColor: '#232c3d', borderRadius: 16, padding: 24, margin: 32, alignItems: 'center', justifyContent: 'center' }}>
+                <Text style={{ color: '#fff', fontSize: 18, fontWeight: 'bold', marginBottom: 8 }}>Income vs. Expenses</Text>
+                <Text style={{ color: '#b0b8c1', fontSize: 16, textAlign: 'center' }}>
+                  This chart shows your total income, expenses, and net cash flow for each day. Tap on the chart to see exact values.
+                </Text>
+              </View>
+            </Pressable>
+          </Modal>
           {isValidChartData ? (
-            <Svg width={Dimensions.get('window').width - 16} height={260}>
-              <Defs>
-                <LinearGradient id="incomeGradient" x1="0" y1="0" x2="0" y2="1">
-                  <Stop offset="0%" stopColor="#23aaff" stopOpacity={0.4} />
-                  <Stop offset="100%" stopColor="#23aaff" stopOpacity={0.05} />
-                </LinearGradient>
-                <LinearGradient id="expensesGradient" x1="0" y1="0" x2="0" y2="1">
-                  <Stop offset="0%" stopColor="#0070ba" stopOpacity={0.4} />
-                  <Stop offset="100%" stopColor="#0070ba" stopOpacity={0.05} />
-                </LinearGradient>
-              </Defs>
-              <VictoryChart
-                width={Dimensions.get('window').width - 40}
-                height={220}
-                padding={{ top: 48, left: 60, right: 30, bottom: 40 }}
-                domainPadding={{ x: 20, y: 20 }}
-                standalone={false}
-                style={{ background: { fill: '#192235', borderRadius: 18 } }}
-              >
-                <VictoryLegend x={60} y={8}
-                  orientation="horizontal"
-                  gutter={18}
-                  style={{
-                    labels: { fill: "#b0b8c1", fontWeight: "bold", fontSize: 15 },
-                    border: { stroke: "none" },
-                    data: { stroke: "none" }
-                  }}
-                  data={[
-                    { name: "Income", symbol: { fill: "#23aaff", type: "square" } },
-                    { name: "Expenses", symbol: { fill: "#0070ba", type: "square" } },
-                    { name: "Net", symbol: { fill: "#28a745", type: "square" } }
-                  ]}
-                />
-                <VictoryAxis
-                  dependentAxis
-                  style={{
-                    axis: { stroke: "#22304a" },
-                    tickLabels: { fill: "#b0b8c1", fontSize: 15, fontWeight: "bold" },
-                    grid: { stroke: "#22304a", strokeDasharray: "6 6", opacity: 0.3 }
-                  }}
-                  tickFormat={(y: number) => y >= 1000 ? `$${(y/1000).toFixed(0)}k` : `$${y}`}
-                />
-                <VictoryAxis
-                  style={{
-                    axis: { stroke: "#22304a" },
-                    tickLabels: { fill: "#b0b8c1", fontSize: 15, fontWeight: "bold" }
-                  }}
-                  tickFormat={(t: string, i: number) => (i % 3 === 0 ? t : "")}
-                />
-                <VictoryArea data={incomeAreaData} interpolation="monotoneX" style={{ data: { fill: "url(#incomeGradient)", stroke: "#23aaff", strokeWidth: 2 } }} />
-                <VictoryArea data={expensesAreaData} interpolation="monotoneX" style={{ data: { fill: "url(#expensesGradient)", stroke: "#0070ba", strokeWidth: 2 } }} />
-                <VictoryArea data={netAreaData} interpolation="monotoneX" style={{ data: { fill: "transparent", stroke: "#28a745", strokeWidth: 2 } }} />
-              </VictoryChart>
-            </Svg>
+            <>
+              {/* Legend above chart, outside SVG */}
+              <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 0, marginBottom: 8 }} pointerEvents="none">
+                <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'transparent', borderRadius: 16, paddingVertical: 2, paddingHorizontal: 8 }}>
+                  <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: '#23aaff', marginRight: 4, borderWidth: 1, borderColor: '#fff' }} />
+                  <Text style={{ color: '#b0b8c1', fontWeight: '500', fontSize: 14, marginRight: 12 }}>Income</Text>
+                  <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: '#0070ba', marginRight: 4, borderWidth: 1, borderColor: '#fff' }} />
+                  <Text style={{ color: '#b0b8c1', fontWeight: '500', fontSize: 14, marginRight: 12 }}>Expenses</Text>
+                  <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: '#28a745', marginRight: 4, borderWidth: 1, borderColor: '#fff' }} />
+                  <Text style={{ color: '#b0b8c1', fontWeight: '500', fontSize: 14 }}>Net Cash Flow</Text>
+                </View>
+              </View>
+              <Svg width={Dimensions.get('window').width - 8} height={320} style={{ marginTop: 8 }}>
+                <Defs>
+                  <LinearGradient id="incomeGradient" x1="0" y1="0" x2="0" y2="1">
+                    <Stop offset="0%" stopColor="#23aaff" stopOpacity={0.55} />
+                    <Stop offset="100%" stopColor="#23aaff" stopOpacity={0.10} />
+                  </LinearGradient>
+                </Defs>
+                <VictoryChart
+                  width={Dimensions.get('window').width - 40}
+                  height={220}
+                  padding={{ top: 40, left: 60, right: 30, bottom: 50 }}
+                  domainPadding={{ x: 20, y: 20 }}
+                  standalone={false}
+                  style={{ background: { fill: '#101a28' } }}
+                  containerComponent={
+                    <VictoryVoronoiContainer
+                      labels={({ datum }) => `${datum.x}\n$${Number(datum.y).toLocaleString()}`}
+                      labelComponent={<VictoryLabel renderInPortal dy={-18} style={{ fill: '#fff', fontSize: 13, fontWeight: '500', background: '#232c3d' }} />}
+                      voronoiDimension="x"
+                    />
+                  }
+                >
+                  <VictoryAxis
+                    dependentAxis
+                    style={{
+                      axis: { stroke: "#22304a" },
+                      tickLabels: { fill: "#b0b8c1", fontSize: 13, fontWeight: "500" },
+                      grid: { stroke: "#22304a", strokeDasharray: "6 6", opacity: 0.18 },
+                    }}
+                    tickFormat={(y: number) => `$${Number(y).toLocaleString()}`}
+                  />
+                  <VictoryAxis
+                    style={{
+                      axis: { stroke: "#22304a" },
+                      tickLabels: { fill: "#b0b8c1", fontSize: 13, fontWeight: "500" }
+                    }}
+                    tickCount={7}
+                    tickFormat={(t: string, i: number) => t}
+                  />
+                  <VictoryArea
+                    data={incomeAreaData}
+                    interpolation="monotoneX"
+                    style={{ data: { fill: "url(#incomeGradient)", stroke: "#23aaff", strokeWidth: 2 } }}
+                  />
+                  <VictoryArea
+                    data={expensesAreaData}
+                    interpolation="monotoneX"
+                    style={{ data: { fill: "transparent", stroke: "#0070ba", strokeWidth: 2 } }}
+                  />
+                  <VictoryArea
+                    data={netAreaData}
+                    interpolation="monotoneX"
+                    style={{ data: { fill: "transparent", stroke: "#28a745", strokeWidth: 2 } }}
+                  />
+                </VictoryChart>
+              </Svg>
+            </>
           ) : (
             <Text style={{ color: 'red', textAlign: 'center', marginVertical: 20 }}>
               Chart data is invalid or empty.
