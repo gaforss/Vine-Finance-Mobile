@@ -308,6 +308,21 @@ const AccountsScreen: React.FC = () => {
             <Text style={{ color: '#fff', fontSize: 28, fontWeight: 'bold', marginBottom: 2 }}>
               {typeof account.amount === 'number' ? `$${account.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '0.00'}
             </Text>
+            {isPlaid && (
+              <TouchableOpacity
+                style={{
+                  marginTop: 16,
+                  backgroundColor: '#0070ba',
+                  borderRadius: 10,
+                  paddingVertical: 10,
+                  paddingHorizontal: 20,
+                  alignSelf: 'flex-start',
+                }}
+                onPress={() => navigation.navigate('Transactions', { accountId: account._id, accountName: account.name })}
+              >
+                <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>View Transactions</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
       </View>

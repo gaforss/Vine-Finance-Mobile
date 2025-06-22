@@ -862,6 +862,16 @@ class ApiService {
       return { success: false, error: error.response?.data?.message || 'Failed to fetch spending data' };
     }
   }
+
+  // Fetch time series for cash flow chart
+  async getCashFlowSeries(): Promise<ApiResponse<any[]>> {
+    try {
+      const response = await this.api.get('/plaid/transactions/cashflow');
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return { success: false, error: error.response?.data?.message || 'Failed to fetch cash flow series' };
+    }
+  }
 }
 
 export const apiService = new ApiService();
