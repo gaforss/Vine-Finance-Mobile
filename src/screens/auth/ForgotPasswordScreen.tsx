@@ -5,10 +5,13 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  Alert,
+  Image,
+  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  Alert,
 } from 'react-native';
+import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 import {StackNavigationProp} from '@react-navigation/stack';
 import {RootStackParamList} from '../../types';
 import { apiService } from '../../services/api';
@@ -31,11 +34,9 @@ const ForgotPasswordScreen: React.FC<Props> = ({navigation}) => {
       Alert.alert('Error', 'Please enter your email address');
       return;
     }
-
     setLoading(true);
     try {
       const response = await apiService.forgotPassword(email);
-
       if (response.success) {
         Alert.alert(
           'Reset Email Sent',
@@ -56,17 +57,17 @@ const ForgotPasswordScreen: React.FC<Props> = ({navigation}) => {
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <View style={styles.content}>
-        <View style={styles.header}>
-          <Text style={styles.logo}>🍇</Text>
-          <Text style={styles.title}>Reset Password</Text>
-          <Text style={styles.subtitle}>
-            Enter your email address and we'll send you a link to reset your
-            password.
-          </Text>
-        </View>
-
-        <View style={styles.form}>
+      <View style={styles.logoContainer}>
+        <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+          <Image source={require('../../../images/logo.png')} style={styles.logoImg} resizeMode="contain" />
+        </TouchableOpacity>
+      </View>
+      <View style={styles.formContainer}>
+        <Text style={styles.subtitle}>
+          Enter your email address and we'll send you a link to reset your password.
+        </Text>
+        <View style={styles.inputWrapper}>
+          <FontAwesome5 name="envelope" size={18} color="#888" style={styles.inputIcon} />
           <TextInput
             style={styles.input}
             placeholder="Email Address"
@@ -75,23 +76,20 @@ const ForgotPasswordScreen: React.FC<Props> = ({navigation}) => {
             keyboardType="email-address"
             autoCapitalize="none"
             autoCorrect={false}
+            placeholderTextColor="#888"
           />
-
-          <TouchableOpacity
-            style={[styles.button, loading && styles.buttonDisabled]}
-            onPress={handleResetPassword}
-            disabled={loading}>
-            <Text style={styles.buttonText}>
-              {loading ? 'Sending...' : 'Send Reset Link'}
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.linkButton}
-            onPress={() => navigation.goBack()}>
-            <Text style={styles.linkText}>Back to Sign In</Text>
-          </TouchableOpacity>
         </View>
+        <TouchableOpacity
+          style={styles.button}
+          onPress={handleResetPassword}
+          disabled={loading}>
+          {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Send Reset Link</Text>}
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.linkButton}
+          onPress={() => navigation.goBack()}>
+          <Text style={styles.linkText}>Back to Sign In</Text>
+        </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
   );
@@ -100,66 +98,76 @@ const ForgotPasswordScreen: React.FC<Props> = ({navigation}) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
-  content: {
-    flex: 1,
-    justifyContent: 'center',
-    padding: 20,
-  },
-  header: {
+    backgroundColor: '#181F2A',
     alignItems: 'center',
-    marginBottom: 40,
+    paddingTop: 30,
+    paddingHorizontal: 20,
   },
-  logo: {
-    fontSize: 50,
-    marginBottom: 15,
+  logoContainer: {
+    alignItems: 'center',
+    marginBottom: 0,
   },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#2E7D32',
+  logoImg: {
+    width: 320,
+    height: 320,
+  },
+  formContainer: {
+    width: '100%',
+    maxWidth: 400,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderRadius: 16,
+    padding: 20,
     marginBottom: 10,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 2 },
   },
   subtitle: {
     fontSize: 16,
-    color: '#666',
+    color: '#fff',
     textAlign: 'center',
+    marginBottom: 16,
     lineHeight: 22,
   },
-  form: {
-    width: '100%',
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E3EAF2',
+    borderRadius: 10,
+    marginBottom: 15,
+    paddingHorizontal: 10,
+  },
+  inputIcon: {
+    marginRight: 8,
   },
   input: {
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    padding: 15,
-    marginBottom: 20,
+    flex: 1,
+    paddingVertical: 12,
     fontSize: 16,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
+    color: '#222',
   },
   button: {
-    backgroundColor: '#2E7D32',
+    backgroundColor: '#8EE4AF',
     borderRadius: 10,
     padding: 15,
     alignItems: 'center',
-    marginBottom: 20,
-  },
-  buttonDisabled: {
-    backgroundColor: '#ccc',
+    marginBottom: 10,
   },
   buttonText: {
-    color: '#fff',
-    fontSize: 16,
+    color: '#181F2A',
     fontWeight: 'bold',
+    fontSize: 18,
   },
   linkButton: {
     alignItems: 'center',
+    marginTop: 8,
   },
   linkText: {
-    color: '#2E7D32',
+    color: '#8EE4AF',
     fontSize: 16,
+    textDecorationLine: 'underline',
+    fontWeight: 'bold',
   },
 });
 

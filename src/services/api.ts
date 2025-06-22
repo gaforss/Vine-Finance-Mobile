@@ -16,7 +16,7 @@ import {
 
 // Configure base URL - update this to match your backend URL
 // For local development (if backend is running on your machine):
-const API_BASE_URL = 'http://192.168.4.27:3000';
+const API_BASE_URL = 'http://127.0.0.1:3000';
 
 // For production (if you have a deployed backend):
 // const API_BASE_URL = 'https://your-domain.com';

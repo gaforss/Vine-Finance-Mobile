@@ -9,11 +9,14 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Image,
+  ActivityIndicator,
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {StackNavigationProp} from '@react-navigation/stack';
 import {RootStackParamList} from '../../types';
 import { apiService } from '../../services/api';
+import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 
 console.log('🔐 LoginScreen.tsx: Starting LoginScreen setup');
 
@@ -29,6 +32,8 @@ const LoginScreen: React.FC<Props> = ({navigation}) => {
   const [email, setEmail] = useState('alexander_forss@hotmail.com');
   const [password, setPassword] = useState('Golf123!');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   console.log('🔐 LoginScreen.tsx: State initialized');
 
@@ -37,25 +42,37 @@ const LoginScreen: React.FC<Props> = ({navigation}) => {
   }, []);
 
   const handleLogin = async () => {
-    console.log('🔐 LoginScreen.tsx: handleLogin called');
+    console.log('🔐 [handleLogin] Called');
+    setError('');
+    if (!email || !password) {
+      console.log('🔐 [handleLogin] Missing email or password');
+      setError('Please enter both email and password.');
+      return;
+    }
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+      console.log('🔐 [handleLogin] Invalid email format:', email);
+      setError('Please enter a valid email address.');
+      return;
+    }
     setLoading(true);
-    
+    console.log('🔐 [handleLogin] Loading set to true');
     try {
-      console.log('🔐 LoginScreen.tsx: Attempting login with email:', email);
+      console.log('🔐 [handleLogin] About to call apiService.login');
       const response = await apiService.login(email, password);
-      
+      console.log('🔐 [handleLogin] apiService.login returned:', response);
       if (response.success) {
-        console.log('🔐 LoginScreen.tsx: Login successful, navigating to Main');
+        console.log('🔐 [handleLogin] Login successful, navigating to Main');
         navigation.replace('Main');
       } else {
-        console.log('🔐 LoginScreen.tsx: Login failed:', response.message);
-        Alert.alert('Login Failed', response.message || 'Invalid credentials');
+        console.log('🔐 [handleLogin] Login failed:', response.message || response.error);
+        setError(response.message || response.error || 'Invalid credentials');
       }
     } catch (error) {
-      console.error('🔐 LoginScreen.tsx: Login error:', error);
-      Alert.alert('Error', 'An error occurred during login');
+      console.error('🔐 [handleLogin] Error during login:', error);
+      setError('An error occurred during login');
     } finally {
       setLoading(false);
+      console.log('🔐 [handleLogin] Loading set to false');
     }
   };
 
@@ -82,17 +99,17 @@ const LoginScreen: React.FC<Props> = ({navigation}) => {
   
   try {
     return (
-      <KeyboardAvoidingView
-        style={styles.container}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-        <ScrollView contentContainerStyle={styles.scrollContainer}>
-          <View style={styles.logoContainer}>
-            <Text style={styles.logo}>🍇</Text>
-            <Text style={styles.title}>Vine Finance</Text>
-            <Text style={styles.subtitle}>Your Financial Journey</Text>
-          </View>
-
-          <View style={styles.formContainer}>
+      <View style={styles.container}>
+        <View style={styles.logoContainer}>
+          <Image source={require('../../../images/logo.png')} style={styles.logoImg} resizeMode="contain" />
+        </View>
+        <Text style={styles.signupText}>
+          Don't have an account yet?{' '}
+          <Text style={styles.signupLink} onPress={() => navigation.navigate('Register')}>Sign Up Here!</Text>
+        </Text>
+        <View style={styles.formContainer}>
+          <View style={styles.inputWrapper}>
+            <FontAwesome5 name="envelope" size={18} color="#888" style={styles.inputIcon} />
             <TextInput
               style={styles.input}
               placeholder="Email"
@@ -101,46 +118,46 @@ const LoginScreen: React.FC<Props> = ({navigation}) => {
               keyboardType="email-address"
               autoCapitalize="none"
               autoCorrect={false}
+              placeholderTextColor="#888"
             />
+          </View>
+          <View style={styles.inputWrapper}>
+            <FontAwesome5 name="lock" size={18} color="#888" style={styles.inputIcon} />
             <TextInput
               style={styles.input}
               placeholder="Password"
               value={password}
               onChangeText={setPassword}
-              secureTextEntry
+              secureTextEntry={!showPassword}
               autoCapitalize="none"
               autoCorrect={false}
+              placeholderTextColor="#888"
             />
-
             <TouchableOpacity
-              style={[styles.button, loading && styles.buttonDisabled]}
-              onPress={handleLogin}
-              disabled={loading}>
-              <Text style={styles.buttonText}>
-                {loading ? 'Signing In...' : 'Sign In'}
-              </Text>
+              style={styles.eyeIcon}
+              onPress={() => setShowPassword(!showPassword)}
+            >
+              <FontAwesome5 name={showPassword ? 'eye-slash' : 'eye'} size={18} color="#888" />
             </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.testButton, loading && styles.buttonDisabled]}
-              onPress={testBackendConnection}
-              disabled={loading}>
-              <Text style={styles.testButtonText}>Test Backend Connection</Text>
-            </TouchableOpacity>
-
-            <View style={styles.linksContainer}>
-              <TouchableOpacity
-                onPress={() => navigation.navigate('Register')}>
-                <Text style={styles.link}>Create Account</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => navigation.navigate('ForgotPassword')}>
-                <Text style={styles.link}>Forgot Password?</Text>
-              </TouchableOpacity>
-            </View>
           </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+          <TouchableOpacity style={styles.button} onPress={handleLogin}>
+            {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Sign in</Text>}
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.forgotPassword} onPress={() => navigation.navigate('ForgotPassword')}>
+            <Text style={styles.forgotPasswordText}>Forgot password?</Text>
+          </TouchableOpacity>
+          <View style={styles.dividerContainer}>
+            <View style={styles.divider} />
+            <Text style={styles.orText}>or</Text>
+            <View style={styles.divider} />
+          </View>
+          <TouchableOpacity style={styles.googleButton}>
+            <FontAwesome5 name="google" size={20} color="#EA4335" style={{ marginRight: 10 }} />
+            <Text style={styles.googleButtonText}>Sign in with Google</Text>
+          </TouchableOpacity>
+        </View>
+        <Text style={styles.footer}>© May the Forss Be With You ;)</Text>
+      </View>
     );
   } catch (error) {
     console.error('❌ LoginScreen.tsx: Error rendering component:', error);
@@ -153,78 +170,116 @@ console.log('✅ LoginScreen.tsx: LoginScreen component defined successfully');
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
-  scrollContainer: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    padding: 20,
+    backgroundColor: '#181F2A',
+    alignItems: 'center',
+    paddingTop: 30,
+    paddingHorizontal: 20,
   },
   logoContainer: {
     alignItems: 'center',
-    marginBottom: 40,
+    marginBottom: -60,
   },
-  logo: {
-    fontSize: 60,
-    marginBottom: 10,
+  logoImg: {
+    width: 320,
+    height: 320,
   },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#2E7D32',
-    marginBottom: 5,
-  },
-  subtitle: {
+  signupText: {
+    color: '#fff',
+    marginBottom: 6,
     fontSize: 16,
-    color: '#666',
     textAlign: 'center',
+  },
+  signupLink: {
+    color: '#8EE4AF',
+    textDecorationLine: 'underline',
+    fontWeight: 'bold',
   },
   formContainer: {
     width: '100%',
+    maxWidth: 400,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderRadius: 16,
+    padding: 12,
+    marginBottom: 10,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E3EAF2',
+    borderRadius: 10,
+    marginBottom: 15,
+    paddingHorizontal: 10,
+  },
+  inputIcon: {
+    marginRight: 8,
   },
   input: {
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    padding: 15,
-    marginBottom: 15,
+    flex: 1,
+    paddingVertical: 12,
     fontSize: 16,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
+    color: '#222',
+  },
+  eyeIcon: {
+    padding: 6,
   },
   button: {
-    backgroundColor: '#2E7D32',
+    backgroundColor: '#8EE4AF',
     borderRadius: 10,
     padding: 15,
     alignItems: 'center',
-    marginBottom: 15,
-  },
-  buttonDisabled: {
-    backgroundColor: '#ccc',
+    marginBottom: 10,
   },
   buttonText: {
-    color: '#fff',
-    fontSize: 16,
+    color: '#181F2A',
     fontWeight: 'bold',
+    fontSize: 18,
   },
-  testButton: {
-    backgroundColor: '#0070ba',
-    borderRadius: 10,
-    padding: 15,
-    alignItems: 'center',
-    marginBottom: 15,
+  forgotPassword: {
+    alignSelf: 'flex-end',
+    marginBottom: 10,
   },
-  testButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
+  forgotPasswordText: {
+    color: '#8EE4AF',
+    fontSize: 14,
+    textDecorationLine: 'underline',
   },
-  linksContainer: {
+  dividerContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 20,
+    alignItems: 'center',
+    marginVertical: 15,
   },
-  link: {
-    color: '#2E7D32',
+  divider: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#444',
+  },
+  orText: {
+    color: '#888',
+    marginHorizontal: 10,
+    fontSize: 16,
+  },
+  googleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    padding: 12,
+    justifyContent: 'center',
+    marginBottom: 10,
+  },
+  googleButtonText: {
+    color: '#222',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  footer: {
+    color: '#888',
+    marginTop: 16,
+    textAlign: 'center',
     fontSize: 14,
   },
 });
