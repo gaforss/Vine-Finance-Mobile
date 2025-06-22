@@ -210,6 +210,48 @@ const DashboardScreen: React.FC<Props & { start?: () => void }> = ({navigation, 
 
   console.log('Chart data:', { months, netWorth, assets, liabilities });
 
+  const isValidChartData = (arr: number[]) =>
+    Array.isArray(arr) && arr.length > 0 && arr.every(v => typeof v === 'number' && isFinite(v) && !isNaN(v));
+
+  const safeValue = (v: any) => (typeof v === 'number' && isFinite(v) && !isNaN(v) ? v : 0);
+
+  console.log('Chart data validity:', {
+    netWorthValid: isValidChartData(netWorth),
+    assetsValid: isValidChartData(assets),
+    liabilitiesValid: isValidChartData(liabilities),
+    netWorth,
+    assets,
+    liabilities,
+  });
+
+  const pieData = [
+    {
+      name: 'Cash',
+      population: netWorthData.length > 0 ? safeValue(netWorthData[0].cash) : 0,
+      color: '#FF6384',
+      legendFontColor: '#7F7F7F',
+    },
+    {
+      name: 'Investments',
+      population: netWorthData.length > 0 ? safeValue(netWorthData[0].investments) : 0,
+      color: '#36A2EB',
+      legendFontColor: '#7F7F7F',
+    },
+    {
+      name: 'Real Estate',
+      population: netWorthData.length > 0 ? safeValue(netWorthData[0].realEstate) : 0,
+      color: '#FFCE56',
+      legendFontColor: '#7F7F7F',
+    },
+    {
+      name: 'Retirement',
+      population: netWorthData.length > 0 ? safeValue(netWorthData[0].retirementAccounts) : 0,
+      color: '#4BC0C0',
+      legendFontColor: '#7F7F7F',
+    },
+  ];
+  console.log('Pie data validity:', pieData.map(item => ({ name: item.name, valid: typeof item.population === 'number' && isFinite(item.population) && !isNaN(item.population), value: item.population })));
+
   const multiChartData = {
     labels: months,
     datasets: [
@@ -230,45 +272,6 @@ const DashboardScreen: React.FC<Props & { start?: () => void }> = ({navigation, 
       },
     ],
   };
-
-  const pieData = [
-    {
-      name: 'Cash',
-      population:
-        netWorthData.length > 0
-          ? netWorthData[0].cash
-          : 0,
-      color: '#FF6384',
-      legendFontColor: '#7F7F7F',
-    },
-    {
-      name: 'Investments',
-      population:
-        netWorthData.length > 0
-          ? netWorthData[0].investments
-          : 0,
-      color: '#36A2EB',
-      legendFontColor: '#7F7F7F',
-    },
-    {
-      name: 'Real Estate',
-      population:
-        netWorthData.length > 0
-          ? netWorthData[0].realEstate
-          : 0,
-      color: '#FFCE56',
-      legendFontColor: '#7F7F7F',
-    },
-    {
-      name: 'Retirement',
-      population:
-        netWorthData.length > 0
-          ? netWorthData[0].retirementAccounts
-          : 0,
-      color: '#4BC0C0',
-      legendFontColor: '#7F7F7F',
-    },
-  ];
 
   const chartConfig = {
     backgroundColor: '#222b3a',
@@ -336,60 +339,66 @@ const DashboardScreen: React.FC<Props & { start?: () => void }> = ({navigation, 
           </TouchableOpacity>
           <View style={{ marginTop: 16 }}>
             {/* Overlay BarChart and LineChart for multi-series effect */}
-            <BarChart
-              data={{
-                labels: months,
-                datasets: [
-                  { data: assets, color: () => '#1e3a8a' },
-                  { data: liabilities, color: () => '#38bdf8' },
-                ],
-              }}
-              width={screenWidth - 64}
-              height={180}
-              yAxisLabel=""
-              yAxisSuffix=""
-              chartConfig={{
-                backgroundGradientFrom: '#222b3a',
-                backgroundGradientTo: '#222b3a',
-                decimalPlaces: 0,
-                color: () => '#1e3a8a',
-                labelColor: () => '#b0b8c1',
-                propsForBackgroundLines: { stroke: 'transparent' },
-              }}
-              withInnerLines={false}
-              withCustomBarColorFromData={true}
-              flatColor={true}
-              showBarTops={false}
-              style={{ borderRadius: 16, position: 'absolute', backgroundColor: '#222b3a' }}
-              fromZero
-            />
-            <LineChart
-              data={{
-                labels: months,
-                datasets: [
-                  { data: netWorth, color: () => '#ffd600', strokeWidth: 3 },
-                ],
-              }}
-              width={screenWidth - 64}
-              height={180}
-              yAxisLabel=""
-              chartConfig={{
-                backgroundGradientFrom: '#222b3a',
-                backgroundGradientTo: '#222b3a',
-                decimalPlaces: 0,
-                color: () => '#ffd600',
-                labelColor: () => '#b0b8c1',
-                propsForBackgroundLines: { stroke: 'transparent' },
-                propsForDots: { r: '0' },
-              }}
-              withInnerLines={false}
-              withOuterLines={false}
-              withDots={false}
-              bezier
-              style={{ borderRadius: 16, backgroundColor: '#222b3a' }}
-              formatYLabel={formatCompactCurrency}
-              fromZero
-            />
+            {isValidChartData(netWorth) && isValidChartData(assets) && isValidChartData(liabilities) ? (
+              <>
+                <BarChart
+                  data={{
+                    labels: months,
+                    datasets: [
+                      { data: assets, color: () => '#1e3a8a' },
+                      { data: liabilities, color: () => '#38bdf8' },
+                    ],
+                  }}
+                  width={screenWidth - 64}
+                  height={180}
+                  yAxisLabel=""
+                  yAxisSuffix=""
+                  chartConfig={{
+                    backgroundGradientFrom: '#222b3a',
+                    backgroundGradientTo: '#222b3a',
+                    decimalPlaces: 0,
+                    color: () => '#1e3a8a',
+                    labelColor: () => '#b0b8c1',
+                    propsForBackgroundLines: { stroke: 'transparent' },
+                  }}
+                  withInnerLines={false}
+                  withCustomBarColorFromData={true}
+                  flatColor={true}
+                  showBarTops={false}
+                  style={{ borderRadius: 16, position: 'absolute', backgroundColor: '#222b3a' }}
+                  fromZero
+                />
+                <LineChart
+                  data={{
+                    labels: months,
+                    datasets: [
+                      { data: netWorth, color: () => '#ffd600', strokeWidth: 3 },
+                    ],
+                  }}
+                  width={screenWidth - 64}
+                  height={180}
+                  yAxisLabel=""
+                  chartConfig={{
+                    backgroundGradientFrom: '#222b3a',
+                    backgroundGradientTo: '#222b3a',
+                    decimalPlaces: 0,
+                    color: () => '#ffd600',
+                    labelColor: () => '#b0b8c1',
+                    propsForBackgroundLines: { stroke: 'transparent' },
+                    propsForDots: { r: '0' },
+                  }}
+                  withInnerLines={false}
+                  withOuterLines={false}
+                  withDots={false}
+                  bezier
+                  style={{ borderRadius: 16, backgroundColor: '#222b3a' }}
+                  formatYLabel={formatCompactCurrency}
+                  fromZero
+                />
+              </>
+            ) : (
+              <Text style={{ color: 'red', textAlign: 'center', marginVertical: 20 }}>Chart data is invalid or empty.</Text>
+            )}
           </View>
           {/* Legend */}
           <View style={styles.legend}>
