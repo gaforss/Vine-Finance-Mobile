@@ -259,9 +259,11 @@ const AccountsScreen: React.FC = () => {
         fetchAccounts();
         ToastAndroid.show(editAccountId ? 'Account updated!' : 'Account added!', ToastAndroid.SHORT);
       } else {
+        console.log('Add/Edit Manual Account failed:', response);
         Alert.alert('Error', response.error || 'Failed to save account');
       }
     } catch (err) {
+      console.log('Add/Edit Manual Account exception:', err);
       Alert.alert('Error', 'Failed to save account');
     }
     setManualLoading(false);

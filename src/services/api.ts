@@ -852,6 +852,16 @@ class ApiService {
       return { success: false, error: error.response?.data?.message || 'Failed to fetch portfolio summary' };
     }
   }
+
+  // Fetch categorized spending for a given period (e.g., 'monthly', 'yearly', 'weekly')
+  async getSpending(period: string = 'monthly'): Promise<ApiResponse<any[]>> {
+    try {
+      const response = await this.api.get(`/plaid/spending?period=${period}`);
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return { success: false, error: error.response?.data?.message || 'Failed to fetch spending data' };
+    }
+  }
 }
 
 export const apiService = new ApiService();
