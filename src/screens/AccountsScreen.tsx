@@ -273,6 +273,21 @@ const AccountsScreen: React.FC = () => {
     .flatMap(section => section.data)
     .reduce((sum, acct) => sum + (typeof acct.amount === 'number' ? acct.amount : 0), 0);
 
+  // Add dynamic balance calculations
+  const getBalance = (categoryKey: string) =>
+    sections
+      .filter(section => section.title === categoryKey)
+      .flatMap(section => section.data)
+      .reduce((sum, acct) => sum + (typeof acct.amount === 'number' ? acct.amount : 0), 0);
+
+  const cashBalance = getBalance('bank');
+  const investmentBalance = getBalance('investment');
+  const realEstateBalance = getBalance('real estate');
+  const retirementBalance = getBalance('retirement');
+  const liabilitiesBalance = getBalance('loan') + getBalance('credit');
+  const insuranceBalance = getBalance('insurance');
+  const miscBalance = getBalance('misc');
+
   // Helper to render each account card in grid
   const renderAccountCard = ({ item: account }: { item: Account }) => {
     const isPlaid = !!account.institutionName && account.institutionName !== 'Manual';
@@ -336,14 +351,13 @@ const AccountsScreen: React.FC = () => {
           <Text style={{ fontSize: 28, fontWeight: 'bold', color: '#fff', marginTop: 18, marginLeft: 18, marginBottom: 8 }}>Balances</Text>
           {/* Balances summary as horizontal scrollable cards */}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 18 }} contentContainerStyle={{ paddingHorizontal: 16 }}>
-            {/* Example balances, replace with dynamic data as needed */}
-            <View style={styles.balanceCard}><FontAwesome5 name="money-bill-wave" size={20} color="#0070ba" /><Text style={styles.balanceCardLabel}>Cash</Text><Text style={styles.balanceCardAmount}>$100,085.00</Text></View>
-            <View style={styles.balanceCard}><FontAwesome5 name="chart-line" size={20} color="#4caf50" /><Text style={styles.balanceCardLabel}>Investments</Text><Text style={styles.balanceCardAmount}>$1,000.00</Text></View>
-            <View style={styles.balanceCard}><FontAwesome5 name="home" size={20} color="#ffb300" /><Text style={styles.balanceCardLabel}>Real Estate</Text><Text style={styles.balanceCardAmount}>$75,000.00</Text></View>
-            <View style={styles.balanceCard}><FontAwesome5 name="flag" size={20} color="#9575cd" /><Text style={styles.balanceCardLabel}>Retirement</Text><Text style={styles.balanceCardAmount}>$320.76</Text></View>
-            <View style={styles.balanceCard}><FontAwesome5 name="university" size={20} color="#e57373" /><Text style={styles.balanceCardLabel}>Liabilities</Text><Text style={styles.balanceCardAmount}>$410.00</Text></View>
-            <View style={styles.balanceCard}><FontAwesome5 name="shield-alt" size={20} color="#00bcd4" /><Text style={styles.balanceCardLabel}>Insurance</Text><Text style={styles.balanceCardAmount}>$0.00</Text></View>
-            <View style={styles.balanceCard}><FontAwesome5 name="asterisk" size={20} color="#bdbdbd" /><Text style={styles.balanceCardLabel}>Misc</Text><Text style={styles.balanceCardAmount}>$0.00</Text></View>
+            <View style={styles.balanceCard}><FontAwesome5 name="money-bill-wave" size={20} color="#0070ba" /><Text style={styles.balanceCardLabel}>Cash</Text><Text style={styles.balanceCardAmount}>{`$${cashBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}</Text></View>
+            <View style={styles.balanceCard}><FontAwesome5 name="chart-line" size={20} color="#4caf50" /><Text style={styles.balanceCardLabel}>Investments</Text><Text style={styles.balanceCardAmount}>{`$${investmentBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}</Text></View>
+            <View style={styles.balanceCard}><FontAwesome5 name="home" size={20} color="#ffb300" /><Text style={styles.balanceCardLabel}>Real Estate</Text><Text style={styles.balanceCardAmount}>{`$${realEstateBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}</Text></View>
+            <View style={styles.balanceCard}><FontAwesome5 name="flag" size={20} color="#9575cd" /><Text style={styles.balanceCardLabel}>Retirement</Text><Text style={styles.balanceCardAmount}>{`$${retirementBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}</Text></View>
+            <View style={styles.balanceCard}><FontAwesome5 name="university" size={20} color="#e57373" /><Text style={styles.balanceCardLabel}>Liabilities</Text><Text style={styles.balanceCardAmount}>{`$${liabilitiesBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}</Text></View>
+            <View style={styles.balanceCard}><FontAwesome5 name="shield-alt" size={20} color="#00bcd4" /><Text style={styles.balanceCardLabel}>Insurance</Text><Text style={styles.balanceCardAmount}>{`$${insuranceBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}</Text></View>
+            <View style={styles.balanceCard}><FontAwesome5 name="asterisk" size={20} color="#bdbdbd" /><Text style={styles.balanceCardLabel}>Misc</Text><Text style={styles.balanceCardAmount}>{`$${miscBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}</Text></View>
           </ScrollView>
           <Text style={{ fontSize: 28, fontWeight: 'bold', color: '#fff', marginTop: 18, marginLeft: 18, marginBottom: 8 }}>Accounts</Text>
           {sections.map((section, sIdx) => (
