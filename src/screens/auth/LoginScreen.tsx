@@ -17,6 +17,8 @@ import {StackNavigationProp} from '@react-navigation/stack';
 import {RootStackParamList} from '../../types';
 import { apiService } from '../../services/api';
 import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
+import { storageService } from '../../services/storage';
+import { jwtDecode } from 'jwt-decode';
 
 console.log('🔐 LoginScreen.tsx: Starting LoginScreen setup');
 
@@ -60,9 +62,29 @@ const LoginScreen: React.FC<Props> = ({navigation}) => {
       console.log('🔐 [handleLogin] About to call apiService.login');
       const response = await apiService.login(email, password);
       console.log('🔐 [handleLogin] apiService.login returned:', response);
-      if (response.success) {
+      if (response.data) {
+        console.log('🔐 [handleLogin] Full login response.data:', JSON.stringify(response.data, null, 2));
+      }
+      if (response.success && response.data?.token) {
+        const token = response.data.token;
+        let userId;
+        try {
+          const decoded: any = jwtDecode(token);
+          console.log('🔐 [handleLogin] Decoded JWT:', decoded);
+          userId = decoded.id; // or decoded._id, check your token payload
+          if (userId) {
+            await storageService.setItem('userId', userId);
+            console.log('🔐 [handleLogin] Decoded and stored userId:', userId);
+          } else {
+            console.warn('🔐 [handleLogin] No userId found in decoded token');
+          }
+        } catch (err) {
+          console.error('🔐 [handleLogin] Failed to decode JWT:', err);
+        }
         console.log('🔐 [handleLogin] Login successful, navigating to Main');
         navigation.replace('Main');
+        setLoading(false);
+        return;
       } else {
         console.log('🔐 [handleLogin] Login failed:', response.message || response.error);
         setError(response.message || response.error || 'Invalid credentials');

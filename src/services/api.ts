@@ -117,18 +117,8 @@ class ApiService {
       const {token} = response.data;
       if (token) {
         await storageService.setItem('authToken', token);
-        // Optionally fetch user profile after login
-        let user: User | undefined;
-        try {
-          const profileResp = await this.getUserProfile();
-          if (profileResp.success && profileResp.data) {
-            user = profileResp.data;
-            await storageService.setItem('user', JSON.stringify(user));
-          }
-        } catch (e) {
-          console.warn('User profile fetch failed after login:', e);
-        }
-        return {success: true, data: {token, user}};
+        // User profile fetch removed; userId is now obtained from decoded JWT token on client
+        return {success: true, data: {token}};
       }
       return {success: false, error: 'No token returned'};
     } catch (error: any) {
@@ -341,9 +331,9 @@ class ApiService {
   }
 
   // Retirement Methods
-  async getRetirementGoals(): Promise<ApiResponse<RetirementGoals>> {
+  async getRetirementGoals(userId: string): Promise<ApiResponse<RetirementGoals>> {
     try {
-      const response: AxiosResponse<RetirementGoals> = await this.api.get('/retirement/goals');
+      const response: AxiosResponse<RetirementGoals> = await this.api.get(`/retirement/goals?userId=${userId}`);
       return { success: true, data: response.data };
     } catch (error: any) {
       return { success: false, error: error.response?.data?.message || 'Failed to fetch retirement goals' };
@@ -352,10 +342,13 @@ class ApiService {
 
   async updateRetirementGoals(
     goals: Partial<RetirementGoals>,
+    userId: string,
   ): Promise<ApiResponse<RetirementGoals>> {
     try {
+      // Remove userId from goals if present, then add it explicitly
+      const { userId: _, ...goalsWithoutUserId } = goals;
       const response: AxiosResponse<ApiResponse<RetirementGoals>> =
-        await this.api.put('/retirement', goals);
+        await this.api.post('/retirement/goals', { ...goalsWithoutUserId, userId });
       return response.data;
     } catch (error: any) {
       return {
@@ -367,9 +360,9 @@ class ApiService {
   }
 
   // Fetch retirement projections (GET /retirement/projections)
-  async getRetirementProjections(): Promise<ApiResponse<RetirementProjectionsResult>> {
+  async getRetirementProjections(userId: string): Promise<ApiResponse<RetirementProjectionsResult>> {
     try {
-      const response: AxiosResponse<RetirementProjectionsResult> = await this.api.get('/retirement/projections');
+      const response: AxiosResponse<RetirementProjectionsResult> = await this.api.get(`/retirement/projections?userId=${userId}`);
       return { success: true, data: response.data };
     } catch (error: any) {
       return { success: false, error: error.response?.data?.message || 'Failed to fetch retirement projections' };
@@ -377,9 +370,9 @@ class ApiService {
   }
 
   // Fetch net worth comparison (GET /retirement/networth/comparison)
-  async getNetWorthComparison(): Promise<ApiResponse<NetWorthComparisonResult>> {
+  async getNetWorthComparison(userId: string): Promise<ApiResponse<NetWorthComparisonResult>> {
     try {
-      const response: AxiosResponse<NetWorthComparisonResult> = await this.api.get('/retirement/networth/comparison');
+      const response: AxiosResponse<NetWorthComparisonResult> = await this.api.get(`/retirement/networth/comparison?userId=${userId}`);
       return { success: true, data: response.data };
     } catch (error: any) {
       return { success: false, error: error.response?.data?.message || 'Failed to fetch net worth comparison' };
@@ -481,20 +474,6 @@ class ApiService {
   }
 
   // User Profile Methods
-  async getUserProfile(): Promise<ApiResponse<User>> {
-    try {
-      const response: AxiosResponse<ApiResponse<User>> = await this.api.get(
-        '/auth/profile',
-      );
-      return response.data;
-    } catch (error: any) {
-      return {
-        success: false,
-        error: error.response?.data?.message || 'Failed to fetch user profile',
-      };
-    }
-  }
-
   async updateUserProfile(
     profileData: Partial<User>,
   ): Promise<ApiResponse<User>> {
