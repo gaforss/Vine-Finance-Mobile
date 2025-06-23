@@ -12,6 +12,8 @@ import {
   ShortTermIncome,
   Document,
   Vacancy,
+  RetirementProjectionsResult,
+  NetWorthComparisonResult,
 } from '../types';
 
 // Configure base URL - update this to match your backend URL
@@ -341,15 +343,10 @@ class ApiService {
   // Retirement Methods
   async getRetirementGoals(): Promise<ApiResponse<RetirementGoals>> {
     try {
-      const response: AxiosResponse<ApiResponse<RetirementGoals>> =
-        await this.api.get('/retirement');
-      return response.data;
+      const response: AxiosResponse<RetirementGoals> = await this.api.get('/retirement/goals');
+      return { success: true, data: response.data };
     } catch (error: any) {
-      return {
-        success: false,
-        error:
-          error.response?.data?.message || 'Failed to fetch retirement goals',
-      };
+      return { success: false, error: error.response?.data?.message || 'Failed to fetch retirement goals' };
     }
   }
 
@@ -366,6 +363,46 @@ class ApiService {
         error:
           error.response?.data?.message || 'Failed to update retirement goals',
       };
+    }
+  }
+
+  // Fetch retirement projections (GET /retirement/projections)
+  async getRetirementProjections(): Promise<ApiResponse<RetirementProjectionsResult>> {
+    try {
+      const response: AxiosResponse<RetirementProjectionsResult> = await this.api.get('/retirement/projections');
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return { success: false, error: error.response?.data?.message || 'Failed to fetch retirement projections' };
+    }
+  }
+
+  // Fetch net worth comparison (GET /retirement/networth/comparison)
+  async getNetWorthComparison(): Promise<ApiResponse<NetWorthComparisonResult>> {
+    try {
+      const response: AxiosResponse<NetWorthComparisonResult> = await this.api.get('/retirement/networth/comparison');
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return { success: false, error: error.response?.data?.message || 'Failed to fetch net worth comparison' };
+    }
+  }
+
+  // Fetch retirement goals draft (GET /retirement/goals/draft)
+  async getRetirementGoalsDraft(): Promise<ApiResponse<RetirementGoals>> {
+    try {
+      const response: AxiosResponse<RetirementGoals> = await this.api.get('/retirement/goals/draft');
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return { success: false, error: error.response?.data?.message || 'Failed to fetch retirement goals draft' };
+    }
+  }
+
+  // Save retirement goals draft (POST /retirement/goals/draft)
+  async saveRetirementGoalsDraft(goals: Partial<RetirementGoals>): Promise<ApiResponse<{ message: string }>> {
+    try {
+      const response: AxiosResponse<{ message: string }> = await this.api.post('/retirement/goals/draft', goals);
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return { success: false, error: error.response?.data?.message || 'Failed to save retirement goals draft' };
     }
   }
 

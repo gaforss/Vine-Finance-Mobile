@@ -154,6 +154,35 @@ export interface RetirementGoals {
   foodAndDrinks: number;
   travelAndEntertainment: number;
   reinvestedFunds: number;
+  annualSavings?: number;
+  currentNetWorth?: number;
+}
+
+export interface RetirementProjectionYear {
+  year: number;
+  value: number;
+}
+
+export interface RetirementProjection {
+  rate: number;
+  data: RetirementProjectionYear[];
+  currentAge: number;
+  retirementAge: number;
+}
+
+export interface RetirementProjectionsResult {
+  projections: RetirementProjection[];
+  currentNetWorth: number;
+  totalAtRetirement: number;
+  intersectionAge: number | string;
+  goalMet: boolean;
+  shortfall: number;
+  requiredSavings: number;
+}
+
+export interface NetWorthComparisonResult {
+  userNetWorth: number;
+  ageGroupAverage: number;
 }
 
 // Budgeting Types
