@@ -11,10 +11,10 @@
 		13B07FBC1A68108700A75B9A /* AppDelegate.mm in Sources */ = {isa = PBXBuildFile; fileRef = 13B07FB01A68108700A75B9A /* AppDelegate.mm */; };
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		13B07FC11A68108700A75B9A /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 13B07FB71A68108700A75B9A /* main.m */; };
-		1C1CDF0EEB7CFBE9C33AA446 /* libPods-VineFinanceMobile.a in Frameworks */ = {isa = PBXBuildFile; fileRef = DEB371B79A76F5650F17208A /* libPods-VineFinanceMobile.a */; };
+		5BD6E55301E9C57B8D8E0BB6 /* libPods-VineFinanceMobile-VineFinanceMobileTests.a in Frameworks */ = {isa = PBXBuildFile; fileRef = DB701FB540952CA82F9D31E8 /* libPods-VineFinanceMobile-VineFinanceMobileTests.a */; };
 		7B7CD2510B216D5073E4C3AB /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = EBE97EB4A56859FDA3505898 /* PrivacyInfo.xcprivacy */; };
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
-		C43044D5D20E780BCD0EA776 /* libPods-VineFinanceMobile-VineFinanceMobileTests.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 6613A9ED10EC46A28B1E6613 /* libPods-VineFinanceMobile-VineFinanceMobileTests.a */; };
+		841E3C47A1D4FEC81A9D98DE /* libPods-VineFinanceMobile.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 26A1CFD9B39CE780702707AB /* libPods-VineFinanceMobile.a */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -31,19 +31,19 @@
 		00E356EE1AD99517003FC87E /* VineFinanceMobileTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = VineFinanceMobileTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		00E356F11AD99517003FC87E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		00E356F21AD99517003FC87E /* VineFinanceMobileTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = VineFinanceMobileTests.m; sourceTree = "<group>"; };
-		098156486FE2B28B49AFF2D2 /* Pods-VineFinanceMobile.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-VineFinanceMobile.debug.xcconfig"; path = "Target Support Files/Pods-VineFinanceMobile/Pods-VineFinanceMobile.debug.xcconfig"; sourceTree = "<group>"; };
 		13B07F961A680F5B00A75B9A /* VineFinanceMobile.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = VineFinanceMobile.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FAF1A68108700A75B9A /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppDelegate.h; path = VineFinanceMobile/AppDelegate.h; sourceTree = "<group>"; };
 		13B07FB01A68108700A75B9A /* AppDelegate.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = AppDelegate.mm; path = VineFinanceMobile/AppDelegate.mm; sourceTree = "<group>"; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = VineFinanceMobile/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = VineFinanceMobile/Info.plist; sourceTree = "<group>"; };
 		13B07FB71A68108700A75B9A /* main.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = main.m; path = VineFinanceMobile/main.m; sourceTree = "<group>"; };
-		2CD9DA29C9004288E84FBB66 /* Pods-VineFinanceMobile.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-VineFinanceMobile.release.xcconfig"; path = "Target Support Files/Pods-VineFinanceMobile/Pods-VineFinanceMobile.release.xcconfig"; sourceTree = "<group>"; };
-		34B3E2BA57DB0F07FCB00CDF /* Pods-VineFinanceMobile-VineFinanceMobileTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-VineFinanceMobile-VineFinanceMobileTests.debug.xcconfig"; path = "Target Support Files/Pods-VineFinanceMobile-VineFinanceMobileTests/Pods-VineFinanceMobile-VineFinanceMobileTests.debug.xcconfig"; sourceTree = "<group>"; };
-		6613A9ED10EC46A28B1E6613 /* libPods-VineFinanceMobile-VineFinanceMobileTests.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-VineFinanceMobile-VineFinanceMobileTests.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		26A1CFD9B39CE780702707AB /* libPods-VineFinanceMobile.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-VineFinanceMobile.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		347C91F9C60EB5F47863BBE7 /* Pods-VineFinanceMobile-VineFinanceMobileTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-VineFinanceMobile-VineFinanceMobileTests.release.xcconfig"; path = "Target Support Files/Pods-VineFinanceMobile-VineFinanceMobileTests/Pods-VineFinanceMobile-VineFinanceMobileTests.release.xcconfig"; sourceTree = "<group>"; };
+		7E3FA6824BCECDA70F4BCB38 /* Pods-VineFinanceMobile-VineFinanceMobileTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-VineFinanceMobile-VineFinanceMobileTests.debug.xcconfig"; path = "Target Support Files/Pods-VineFinanceMobile-VineFinanceMobileTests/Pods-VineFinanceMobile-VineFinanceMobileTests.debug.xcconfig"; sourceTree = "<group>"; };
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = VineFinanceMobile/LaunchScreen.storyboard; sourceTree = "<group>"; };
-		ADC04C2E6B37A9BFD64F0478 /* Pods-VineFinanceMobile-VineFinanceMobileTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-VineFinanceMobile-VineFinanceMobileTests.release.xcconfig"; path = "Target Support Files/Pods-VineFinanceMobile-VineFinanceMobileTests/Pods-VineFinanceMobile-VineFinanceMobileTests.release.xcconfig"; sourceTree = "<group>"; };
-		DEB371B79A76F5650F17208A /* libPods-VineFinanceMobile.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-VineFinanceMobile.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		C73F31110D23C5E4570217F1 /* Pods-VineFinanceMobile.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-VineFinanceMobile.debug.xcconfig"; path = "Target Support Files/Pods-VineFinanceMobile/Pods-VineFinanceMobile.debug.xcconfig"; sourceTree = "<group>"; };
+		DB701FB540952CA82F9D31E8 /* libPods-VineFinanceMobile-VineFinanceMobileTests.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-VineFinanceMobile-VineFinanceMobileTests.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		EAFC894BE1F7C300B8C967FD /* Pods-VineFinanceMobile.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-VineFinanceMobile.release.xcconfig"; path = "Target Support Files/Pods-VineFinanceMobile/Pods-VineFinanceMobile.release.xcconfig"; sourceTree = "<group>"; };
 		EBE97EB4A56859FDA3505898 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xml; name = PrivacyInfo.xcprivacy; path = VineFinanceMobile/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
@@ -53,7 +53,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				C43044D5D20E780BCD0EA776 /* libPods-VineFinanceMobile-VineFinanceMobileTests.a in Frameworks */,
+				5BD6E55301E9C57B8D8E0BB6 /* libPods-VineFinanceMobile-VineFinanceMobileTests.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -61,7 +61,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				1C1CDF0EEB7CFBE9C33AA446 /* libPods-VineFinanceMobile.a in Frameworks */,
+				841E3C47A1D4FEC81A9D98DE /* libPods-VineFinanceMobile.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -103,8 +103,8 @@
 			isa = PBXGroup;
 			children = (
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
-				DEB371B79A76F5650F17208A /* libPods-VineFinanceMobile.a */,
-				6613A9ED10EC46A28B1E6613 /* libPods-VineFinanceMobile-VineFinanceMobileTests.a */,
+				26A1CFD9B39CE780702707AB /* libPods-VineFinanceMobile.a */,
+				DB701FB540952CA82F9D31E8 /* libPods-VineFinanceMobile-VineFinanceMobileTests.a */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -143,10 +143,10 @@
 		BBD78D7AC51CEA395F1C20DB /* Pods */ = {
 			isa = PBXGroup;
 			children = (
-				098156486FE2B28B49AFF2D2 /* Pods-VineFinanceMobile.debug.xcconfig */,
-				2CD9DA29C9004288E84FBB66 /* Pods-VineFinanceMobile.release.xcconfig */,
-				34B3E2BA57DB0F07FCB00CDF /* Pods-VineFinanceMobile-VineFinanceMobileTests.debug.xcconfig */,
-				ADC04C2E6B37A9BFD64F0478 /* Pods-VineFinanceMobile-VineFinanceMobileTests.release.xcconfig */,
+				C73F31110D23C5E4570217F1 /* Pods-VineFinanceMobile.debug.xcconfig */,
+				EAFC894BE1F7C300B8C967FD /* Pods-VineFinanceMobile.release.xcconfig */,
+				7E3FA6824BCECDA70F4BCB38 /* Pods-VineFinanceMobile-VineFinanceMobileTests.debug.xcconfig */,
+				347C91F9C60EB5F47863BBE7 /* Pods-VineFinanceMobile-VineFinanceMobileTests.release.xcconfig */,
 			);
 			path = Pods;
 			sourceTree = "<group>";
@@ -158,12 +158,12 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 00E357021AD99517003FC87E /* Build configuration list for PBXNativeTarget "VineFinanceMobileTests" */;
 			buildPhases = (
-				34E10D6141255F16ACEACBAC /* [CP] Check Pods Manifest.lock */,
+				7255FB85F91490A70B22EA41 /* [CP] Check Pods Manifest.lock */,
 				00E356EA1AD99517003FC87E /* Sources */,
 				00E356EB1AD99517003FC87E /* Frameworks */,
 				00E356EC1AD99517003FC87E /* Resources */,
-				9CED3B88A01F32E37F4C9BDA /* [CP] Embed Pods Frameworks */,
-				0EBD11A9E81BD72DF250CC35 /* [CP] Copy Pods Resources */,
+				2CB6C92D0EA3DFA3BBB91D21 /* [CP] Embed Pods Frameworks */,
+				31D8F4AB9907B56B7A91A16F /* [CP] Copy Pods Resources */,
 			);
 			buildRules = (
 			);
@@ -179,13 +179,13 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "VineFinanceMobile" */;
 			buildPhases = (
-				A9757C7A251F1EDFEED60E74 /* [CP] Check Pods Manifest.lock */,
+				AC42C9C0CC4C106D4CA6F097 /* [CP] Check Pods Manifest.lock */,
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
 				13B07F8E1A680F5B00A75B9A /* Resources */,
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
-				977E92B867C484513C9F629D /* [CP] Embed Pods Frameworks */,
-				FC4185D03232EC202B9D7477 /* [CP] Copy Pods Resources */,
+				F359D77004A87C746AF30F74 /* [CP] Embed Pods Frameworks */,
+				242118025D7302EE6EF1D96D /* [CP] Copy Pods Resources */,
 			);
 			buildRules = (
 			);
@@ -270,7 +270,41 @@
 			shellPath = /bin/sh;
 			shellScript = "set -e\n\nWITH_ENVIRONMENT=\"../node_modules/react-native/scripts/xcode/with-environment.sh\"\nREACT_NATIVE_XCODE=\"../node_modules/react-native/scripts/react-native-xcode.sh\"\n\n/bin/sh -c \"$WITH_ENVIRONMENT $REACT_NATIVE_XCODE\"\n";
 		};
-		0EBD11A9E81BD72DF250CC35 /* [CP] Copy Pods Resources */ = {
+		242118025D7302EE6EF1D96D /* [CP] Copy Pods Resources */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-VineFinanceMobile/Pods-VineFinanceMobile-resources-${CONFIGURATION}-input-files.xcfilelist",
+			);
+			name = "[CP] Copy Pods Resources";
+			outputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-VineFinanceMobile/Pods-VineFinanceMobile-resources-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-VineFinanceMobile/Pods-VineFinanceMobile-resources.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+		2CB6C92D0EA3DFA3BBB91D21 /* [CP] Embed Pods Frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-VineFinanceMobile-VineFinanceMobileTests/Pods-VineFinanceMobile-VineFinanceMobileTests-frameworks-${CONFIGURATION}-input-files.xcfilelist",
+			);
+			name = "[CP] Embed Pods Frameworks";
+			outputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-VineFinanceMobile-VineFinanceMobileTests/Pods-VineFinanceMobile-VineFinanceMobileTests-frameworks-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-VineFinanceMobile-VineFinanceMobileTests/Pods-VineFinanceMobile-VineFinanceMobileTests-frameworks.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+		31D8F4AB9907B56B7A91A16F /* [CP] Copy Pods Resources */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -287,7 +321,7 @@
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-VineFinanceMobile-VineFinanceMobileTests/Pods-VineFinanceMobile-VineFinanceMobileTests-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
-		34E10D6141255F16ACEACBAC /* [CP] Check Pods Manifest.lock */ = {
+		7255FB85F91490A70B22EA41 /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -309,41 +343,7 @@
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
 		};
-		977E92B867C484513C9F629D /* [CP] Embed Pods Frameworks */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-VineFinanceMobile/Pods-VineFinanceMobile-frameworks-${CONFIGURATION}-input-files.xcfilelist",
-			);
-			name = "[CP] Embed Pods Frameworks";
-			outputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-VineFinanceMobile/Pods-VineFinanceMobile-frameworks-${CONFIGURATION}-output-files.xcfilelist",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-VineFinanceMobile/Pods-VineFinanceMobile-frameworks.sh\"\n";
-			showEnvVarsInLog = 0;
-		};
-		9CED3B88A01F32E37F4C9BDA /* [CP] Embed Pods Frameworks */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-VineFinanceMobile-VineFinanceMobileTests/Pods-VineFinanceMobile-VineFinanceMobileTests-frameworks-${CONFIGURATION}-input-files.xcfilelist",
-			);
-			name = "[CP] Embed Pods Frameworks";
-			outputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-VineFinanceMobile-VineFinanceMobileTests/Pods-VineFinanceMobile-VineFinanceMobileTests-frameworks-${CONFIGURATION}-output-files.xcfilelist",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-VineFinanceMobile-VineFinanceMobileTests/Pods-VineFinanceMobile-VineFinanceMobileTests-frameworks.sh\"\n";
-			showEnvVarsInLog = 0;
-		};
-		A9757C7A251F1EDFEED60E74 /* [CP] Check Pods Manifest.lock */ = {
+		AC42C9C0CC4C106D4CA6F097 /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -365,21 +365,21 @@
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
 		};
-		FC4185D03232EC202B9D7477 /* [CP] Copy Pods Resources */ = {
+		F359D77004A87C746AF30F74 /* [CP] Embed Pods Frameworks */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 			);
 			inputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-VineFinanceMobile/Pods-VineFinanceMobile-resources-${CONFIGURATION}-input-files.xcfilelist",
+				"${PODS_ROOT}/Target Support Files/Pods-VineFinanceMobile/Pods-VineFinanceMobile-frameworks-${CONFIGURATION}-input-files.xcfilelist",
 			);
-			name = "[CP] Copy Pods Resources";
+			name = "[CP] Embed Pods Frameworks";
 			outputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-VineFinanceMobile/Pods-VineFinanceMobile-resources-${CONFIGURATION}-output-files.xcfilelist",
+				"${PODS_ROOT}/Target Support Files/Pods-VineFinanceMobile/Pods-VineFinanceMobile-frameworks-${CONFIGURATION}-output-files.xcfilelist",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-VineFinanceMobile/Pods-VineFinanceMobile-resources.sh\"\n";
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-VineFinanceMobile/Pods-VineFinanceMobile-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */
@@ -415,7 +415,7 @@
 /* Begin XCBuildConfiguration section */
 		00E356F61AD99517003FC87E /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 34B3E2BA57DB0F07FCB00CDF /* Pods-VineFinanceMobile-VineFinanceMobileTests.debug.xcconfig */;
+			baseConfigurationReference = 7E3FA6824BCECDA70F4BCB38 /* Pods-VineFinanceMobile-VineFinanceMobileTests.debug.xcconfig */;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				DEVELOPMENT_TEAM = YH89CVVX84;
@@ -443,7 +443,7 @@
 		};
 		00E356F71AD99517003FC87E /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = ADC04C2E6B37A9BFD64F0478 /* Pods-VineFinanceMobile-VineFinanceMobileTests.release.xcconfig */;
+			baseConfigurationReference = 347C91F9C60EB5F47863BBE7 /* Pods-VineFinanceMobile-VineFinanceMobileTests.release.xcconfig */;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				COPY_PHASE_STRIP = NO;
@@ -468,7 +468,7 @@
 		};
 		13B07F941A680F5B00A75B9A /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 098156486FE2B28B49AFF2D2 /* Pods-VineFinanceMobile.debug.xcconfig */;
+			baseConfigurationReference = C73F31110D23C5E4570217F1 /* Pods-VineFinanceMobile.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
@@ -497,7 +497,7 @@
 		};
 		13B07F951A680F5B00A75B9A /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 2CD9DA29C9004288E84FBB66 /* Pods-VineFinanceMobile.release.xcconfig */;
+			baseConfigurationReference = EAFC894BE1F7C300B8C967FD /* Pods-VineFinanceMobile.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
@@ -555,7 +555,7 @@
 				COPY_PHASE_STRIP = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				"EXCLUDED_ARCHS[sdk=iphonesimulator*]" = "";
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_DYNAMIC_NO_PIC = NO;
@@ -635,7 +635,7 @@
 				COPY_PHASE_STRIP = YES;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				"EXCLUDED_ARCHS[sdk=iphonesimulator*]" = "";
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_NO_COMMON_BLOCKS = YES;
