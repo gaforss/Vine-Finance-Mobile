@@ -1,12 +1,11 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, TextInput, ActivityIndicator, Alert, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, ScrollView, TextInput, ActivityIndicator, Alert, TouchableOpacity } from 'react-native';
 import Slider from '@react-native-community/slider';
-import { VictoryChart, VictoryAxis, VictoryArea, VictoryLegend, VictoryLabel, VictoryLine } from 'victory-native';
+import { VictoryChart, VictoryAxis, VictoryArea, VictoryLegend, VictoryLabel } from 'victory-native';
 import { AnimatedCircularProgress } from 'react-native-circular-progress';
 import { apiService } from '../services/api';
 import storageService from '../services/storage';
 import { RetirementGoals, RetirementProjectionsResult, NetWorthComparisonResult } from '../types';
-import RetirementGoalsModal, { RetirementGoalsForm } from '../components/RetirementGoalsModal';
 
 const CATEGORY_FIELDS = [
   { key: 'mortgage', label: 'Mortgages', icon: '🏠' },
@@ -31,61 +30,23 @@ const RetirementScreen: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [modalVisible, setModalVisible] = useState(false);
-
-  const screenWidth = Dimensions.get('window').width;
-  const chartWidth = screenWidth - 80;
 
   // Fetch all data
   const fetchAll = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const userId = await storageService.getItem('userId');
-      console.log('RetirementScreen userId:', userId);
-      if (!userId) {
-        setError('User ID not found. Please log in again.');
-        setLoading(false);
-        return;
-      }
       const [goalsRes, projRes, compRes] = await Promise.all([
-        apiService.getRetirementGoals(userId),
-        apiService.getRetirementProjections(userId),
-        apiService.getNetWorthComparison(userId),
+        apiService.getRetirementGoals(),
+        apiService.getRetirementProjections(),
+        apiService.getNetWorthComparison(),
       ]);
-      console.log('RetirementScreen fetchAll - goalsRes:', goalsRes);
-      console.log('RetirementScreen fetchAll - projRes:', projRes);
-      console.log('RetirementScreen fetchAll - compRes:', compRes);
       if (goalsRes.success && goalsRes.data) {
         setGoals(goalsRes.data);
         setForm(goalsRes.data);
-      } else {
-        // If no goals found, load default values
-        const defaultGoals = {
-          userId: 'default',
-          currentAge: 35,
-          retirementAge: 60,
-          annualSavings: 20000,
-          monthlySpend: 7500,
-          mortgage: 22,
-          cars: 3,
-          healthCare: 12,
-          foodAndDrinks: 10,
-          travelAndEntertainment: 28,
-          reinvestedFunds: 25,
-        };
-        setGoals(defaultGoals);
-        setForm(defaultGoals);
       }
       if (projRes.success && projRes.data) setProjections(projRes.data);
       if (compRes.success && compRes.data) setComparison(compRes.data);
-      // Log projections and outcome card values
-      console.log('RetirementScreen fetchAll - projections:', projRes.data);
-      if (projRes.data) {
-        console.log('RetirementScreen fetchAll - intersectionAge:', projRes.data.intersectionAge);
-        console.log('RetirementScreen fetchAll - goalMet:', projRes.data.goalMet);
-        console.log('RetirementScreen fetchAll - shortfall:', projRes.data.shortfall);
-      }
     } catch (e: any) {
       setError(e.message || 'Failed to load retirement data');
     }
@@ -117,47 +78,8 @@ const RetirementScreen: React.FC = () => {
     setSaving(true);
     setError(null);
     try {
-      const userId = await storageService.getItem('userId');
-      if (!userId) {
-        setError('User ID not found. Please log in again.');
-        setSaving(false);
-        return;
-      }
-      // Ensure all numeric fields are numbers before sending to backend
-      const goalsToSave = {
-        ...form,
-        currentAge: Number(form.currentAge),
-        retirementAge: Number(form.retirementAge),
-        annualSavings: Number(form.annualSavings),
-        monthlySpend: Number(form.monthlySpend),
-      };
-      console.log('RetirementScreen handleSave - form:', form);
-      console.log('RetirementScreen handleSave - goalsToSave:', goalsToSave);
-      const res = await apiService.updateRetirementGoals(goalsToSave, userId);
-      console.log('RetirementScreen handleSave - backend response:', res);
+      const res = await apiService.updateRetirementGoals(form);
       if (res.success) {
-        // Ensure userId is always present and a string
-        const userIdString = userId || (typeof goalsToSave.userId === 'string' ? goalsToSave.userId : '');
-        setGoals({
-          ...goalsToSave,
-          userId: userIdString,
-          mortgage: Number(goalsToSave.mortgage) || 0,
-          cars: Number(goalsToSave.cars) || 0,
-          healthCare: Number(goalsToSave.healthCare) || 0,
-          foodAndDrinks: Number(goalsToSave.foodAndDrinks) || 0,
-          travelAndEntertainment: Number(goalsToSave.travelAndEntertainment) || 0,
-          reinvestedFunds: Number(goalsToSave.reinvestedFunds) || 0,
-        });
-        setForm({
-          ...goalsToSave,
-          userId: userIdString,
-          mortgage: Number(goalsToSave.mortgage) || 0,
-          cars: Number(goalsToSave.cars) || 0,
-          healthCare: Number(goalsToSave.healthCare) || 0,
-          foodAndDrinks: Number(goalsToSave.foodAndDrinks) || 0,
-          travelAndEntertainment: Number(goalsToSave.travelAndEntertainment) || 0,
-          reinvestedFunds: Number(goalsToSave.reinvestedFunds) || 0,
-        });
         Alert.alert('Success', 'Retirement goals saved successfully!');
         fetchAll();
       } else {
@@ -172,114 +94,14 @@ const RetirementScreen: React.FC = () => {
     if (goals) setForm(goals);
   };
 
-  // Prepare all growth lines and required savings line for the chart
-  const startAge = Number(form.currentAge) || 35;
-  const projectionRates = [5, 7, 9, 11];
-  const projectionColors = {
-    5: '#00bcd4', // cyan
-    7: '#ff9800', // orange
-    9: '#4caf50', // green
-    11: '#ffd600', // yellow
-  };
-  const projectionSeries = (projections?.projections || []).reduce((acc, p) => {
-    if (projectionRates.includes(Math.round(p.rate))) {
-      acc[Math.round(p.rate)] = p.data.map((d, i) => ({ x: startAge + i, y: d.value }));
-    }
-    return acc;
-  }, {} as Record<number, { x: number, y: number }[]>);
-
-  // Required savings flat line
-  const requiredSavings = projections?.requiredSavings || 0;
-  const chartLength = projectionSeries[7]?.length || projectionSeries[5]?.length || 0;
-  const requiredLine = chartLength > 0 ? Array.from({ length: chartLength }, (_, i) => ({ x: startAge + i, y: requiredSavings })) : [];
-
-  // For x-axis ticks, use the 7% line if available, else 5%
-  const chartSeries = projectionSeries[7] || projectionSeries[5] || [];
-  // Show at most 6 evenly spaced age ticks for a cleaner x-axis
-  let ageTicks: number[] = [];
-  if (chartSeries.length > 0) {
-    const N = Math.max(1, Math.floor(chartSeries.length / 6));
-    ageTicks = chartSeries.filter((_, i) => i % N === 0).map(d => d.x);
-    if (ageTicks[ageTicks.length - 1] !== chartSeries[chartSeries.length - 1].x) {
-      ageTicks.push(chartSeries[chartSeries.length - 1].x);
-    }
-  }
-
-  // Debug logs for chart rendering
-  console.log('RetirementScreen chartData:', chartSeries);
-  console.log('RetirementScreen ageTicks:', ageTicks);
-  console.log('RetirementScreen form.currentAge:', form.currentAge);
-  console.log('RetirementScreen projections:', projections);
-  console.log('RetirementScreen projections.projections:', projections?.projections);
+  // Chart data
+  const chartData = projections?.projections?.find(p => Math.abs(p.rate - 7) < 0.01) || projections?.projections?.[0];
+  const chartSeries = chartData?.data?.map(d => ({ x: d.year, y: d.value })) || [];
 
   // Outcome card logic
   const outcomeAge = projections?.intersectionAge;
   const goalMet = projections?.goalMet;
   const shortfall = projections?.shortfall;
-
-  // Helper to convert form (Partial<RetirementGoals>) to RetirementGoalsForm (string fields for modal)
-  const toModalForm = (form: Partial<RetirementGoals>): RetirementGoalsForm => ({
-    currentAge: form.currentAge !== undefined ? String(form.currentAge) : '',
-    retirementAge: form.retirementAge !== undefined ? String(form.retirementAge) : '',
-    annualSavings: form.annualSavings !== undefined ? String(form.annualSavings) : '',
-    monthlySpend: form.monthlySpend !== undefined ? String(form.monthlySpend) : '',
-    mortgage: Number(form.mortgage) || 0,
-    cars: Number(form.cars) || 0,
-    healthCare: Number(form.healthCare) || 0,
-    foodAndDrinks: Number(form.foodAndDrinks) || 0,
-    travelAndEntertainment: Number(form.travelAndEntertainment) || 0,
-    reinvestedFunds: Number(form.reinvestedFunds) || 0,
-  });
-
-  // Helper to convert RetirementGoalsForm (modal) to Partial<RetirementGoals> (number fields)
-  const fromModalForm = (modalForm: RetirementGoalsForm): Partial<RetirementGoals> => ({
-    currentAge: modalForm.currentAge ? Number(modalForm.currentAge) : 0,
-    retirementAge: modalForm.retirementAge ? Number(modalForm.retirementAge) : 0,
-    annualSavings: modalForm.annualSavings ? Number(modalForm.annualSavings) : 0,
-    monthlySpend: modalForm.monthlySpend ? Number(modalForm.monthlySpend) : 0,
-    mortgage: Number(modalForm.mortgage) || 0,
-    cars: Number(modalForm.cars) || 0,
-    healthCare: Number(modalForm.healthCare) || 0,
-    foodAndDrinks: Number(modalForm.foodAndDrinks) || 0,
-    travelAndEntertainment: Number(modalForm.travelAndEntertainment) || 0,
-    reinvestedFunds: Number(modalForm.reinvestedFunds) || 0,
-  });
-
-  // Add a handler to update form/goals from modal
-  const handleModalSave = (modalForm: RetirementGoalsForm) => {
-    setForm(fromModalForm(modalForm));
-    setModalVisible(false);
-    // After saving, reload all data to update projections and outcome card
-    fetchAll();
-  };
-  const handleModalReset = () => {
-    setForm({
-      currentAge: 0,
-      retirementAge: 0,
-      annualSavings: 0,
-      monthlySpend: 0,
-      mortgage: 22,
-      cars: 3,
-      healthCare: 12,
-      foodAndDrinks: 10,
-      travelAndEntertainment: 28,
-      reinvestedFunds: 25,
-    });
-  };
-
-  // Use the same DEFAULTS as in the modal
-  const MODAL_DEFAULTS: RetirementGoalsForm = {
-    currentAge: '',
-    retirementAge: '',
-    annualSavings: '',
-    monthlySpend: '',
-    mortgage: 22,
-    cars: 3,
-    healthCare: 12,
-    foodAndDrinks: 10,
-    travelAndEntertainment: 28,
-    reinvestedFunds: 25,
-  };
 
   // UI
   if (loading) {
@@ -298,91 +120,74 @@ const RetirementScreen: React.FC = () => {
     );
   }
 
-  if (!projections) {
-    return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#181f2a', justifyContent: 'center', alignItems: 'center' }}>
-        <Text style={{ color: '#fff', fontSize: 18, marginBottom: 16 }}>No retirement projections available.</Text>
-        <Text style={{ color: '#aaa', fontSize: 15, marginBottom: 24, textAlign: 'center' }}>
-          Please review your retirement goals and try again.
-        </Text>
-        <TouchableOpacity style={{ backgroundColor: '#0070ba', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 8 }} onPress={() => setModalVisible(true)}>
-          <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>Review Goals</Text>
-        </TouchableOpacity>
-      </SafeAreaView>
-    );
-  }
-
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#181f2a' }}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* How Am I Tracking? | Projections Chart - moved to top */}
+        {/* How Do I Compare? Radial Progress */}
         <View style={styles.card}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 4 }}>
-            <Text style={styles.cardTitle}>How Am I Tracking?</Text>
-            <TouchableOpacity onPress={() => setModalVisible(true)}>
-              <Text style={{ color: '#4fc3f7', fontWeight: 'bold', marginLeft: 6 }}>| Review Goals</Text>
+          <Text style={styles.cardTitle}>How Do I Compare?</Text>
+          <View style={{ alignItems: 'center', marginVertical: 16 }}>
+            <AnimatedCircularProgress
+              size={140}
+              width={16}
+              fill={comparison ? Math.round(Math.min(100, (comparison.userNetWorth / (comparison.ageGroupAverage || 1)) * 100)) : 0}
+              tintColor="#0070ba"
+              backgroundColor="#232c3d"
+              duration={1200}
+              rotation={0}
+              lineCap="round"
+            >
+              {() => (
+                <Text style={styles.radialText}>
+                  {comparison ? `${Math.round(Math.min(100, (comparison.userNetWorth / (comparison.ageGroupAverage || 1)) * 100))}%` : '--%'}
+                </Text>
+              )}
+            </AnimatedCircularProgress>
+          </View>
+          <View style={[styles.outcomeBox, { backgroundColor: '#153e2e' }]}> 
+            <Text style={styles.outcomeTitle}>🎉 Outstanding Performance!</Text>
+            <Text style={styles.outcomeText}>
+              Excellent! You're exceeding the top 10% of your peers and are on track to meet your retirement goals. Your financial planning is outstanding.
+            </Text>
+            <TouchableOpacity style={styles.outcomeBtn} onPress={() => {}}>
+              <Text style={styles.outcomeBtnText}>👁️ Review Goals</Text>
             </TouchableOpacity>
           </View>
-          <View style={{ width: '100%' }}>
-            <VictoryChart width={chartWidth} height={180} domainPadding={20} padding={{ top: 20, bottom: 40, left: 48, right: 16 }}>
-              <VictoryAxis
-                label="Age"
-                style={{
-                  axis: { stroke: '#fff' },
-                  tickLabels: { fill: '#fff', fontSize: 12 },
-                  axisLabel: { fill: '#fff', fontSize: 14, padding: 24 },
-                  grid: { stroke: 'none' },
-                }}
-                tickValues={ageTicks}
-                tickFormat={v => `${v}`}
+        </View>
+
+        {/* How Am I Tracking? | Projections Chart */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>How Am I Tracking? <Text style={{ color: '#4fc3f7' }}>| Review Goals</Text></Text>
+          <VictoryChart domainPadding={20} height={260} padding={{ top: 20, bottom: 40, left: 60, right: 20 }}>
+            <VictoryAxis
+              label="Age"
+              style={{
+                axis: { stroke: '#fff' },
+                tickLabels: { fill: '#fff', fontSize: 12 },
+                axisLabel: { fill: '#fff', fontSize: 14, padding: 30 },
+                grid: { stroke: '#444', strokeDasharray: '4' },
+              }}
+            />
+            <VictoryAxis
+              dependentAxis
+              label="Net Worth ($)"
+              style={{
+                axis: { stroke: '#fff' },
+                tickLabels: { fill: '#fff', fontSize: 12 },
+                axisLabel: { fill: '#fff', fontSize: 14, padding: 40 },
+                grid: { stroke: '#444', strokeDasharray: '4' },
+              }}
+              tickFormat={v => `$${(v / 1000000).toFixed(1)}M`}
+            />
+            {/* Required line */}
+            {projections && (
+              <VictoryArea
+                data={chartSeries}
+                interpolation="monotoneX"
+                style={{ data: { fill: 'rgba(0,112,186,0.15)', stroke: '#0070ba', strokeWidth: 3, strokeDasharray: '8,4' } }}
               />
-              <VictoryAxis
-                dependentAxis
-                style={{
-                  axis: { stroke: '#fff' },
-                  tickLabels: { fill: '#fff', fontSize: 12 },
-                  grid: { stroke: 'none' },
-                }}
-                tickFormat={v => `$${(v / 1000000).toFixed(1)}M`}
-              />
-              {/* Growth lines */}
-              {projectionSeries[5] && (
-                <VictoryArea
-                  data={projectionSeries[5]}
-                  interpolation="monotoneX"
-                  style={{ data: { fill: 'none', stroke: projectionColors[5], strokeWidth: 2 } }}
-                />
-              )}
-              {projectionSeries[7] && (
-                <VictoryArea
-                  data={projectionSeries[7]}
-                  interpolation="monotoneX"
-                  style={{ data: { fill: 'none', stroke: projectionColors[7], strokeWidth: 3 } }}
-                />
-              )}
-              {projectionSeries[9] && (
-                <VictoryArea
-                  data={projectionSeries[9]}
-                  interpolation="monotoneX"
-                  style={{ data: { fill: 'none', stroke: projectionColors[9], strokeWidth: 2, strokeDasharray: '6,4' } }}
-                />
-              )}
-              {projectionSeries[11] && (
-                <VictoryArea
-                  data={projectionSeries[11]}
-                  interpolation="monotoneX"
-                  style={{ data: { fill: 'none', stroke: projectionColors[11], strokeWidth: 2, strokeDasharray: '2,6' } }}
-                />
-              )}
-              {/* Required savings flat line */}
-              {requiredLine.length > 0 && (
-                <VictoryLine
-                  data={requiredLine}
-                  style={{ data: { stroke: '#F59E0B', strokeWidth: 2, strokeDasharray: '4,4' } }}
-                />
-              )}
-            </VictoryChart>
-          </View>
+            )}
+          </VictoryChart>
           <View style={styles.legendRow}>
             <View style={[styles.legendDot, { backgroundColor: '#00bcd4' }]} />
             <Text style={styles.legendText}>5% Growth</Text>
@@ -393,39 +198,6 @@ const RetirementScreen: React.FC = () => {
             <View style={[styles.legendDot, { backgroundColor: '#ffd600' }]} />
             <Text style={styles.legendText}>11% Growth</Text>
           </View>
-        </View>
-        {/* How Do I Compare? Radial Progress */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>How Do I Compare?</Text>
-          {comparison && typeof comparison.userNetWorth === 'number' && typeof comparison.ageGroupAverage === 'number' ? (
-            <View style={{ alignItems: 'center', marginVertical: 16 }}>
-              <AnimatedCircularProgress
-                size={140}
-                width={16}
-                fill={comparison ? Math.round(Math.min(100, (comparison.userNetWorth / (comparison.ageGroupAverage || 1)) * 100)) : 0}
-                tintColor="#0070ba"
-                backgroundColor="#232c3d"
-                duration={1200}
-                rotation={0}
-                lineCap="round"
-              >
-                {() => (
-                  <Text style={styles.radialText}>
-                    {comparison ? `${Math.round(Math.min(100, (comparison.userNetWorth / (comparison.ageGroupAverage || 1)) * 100))}%` : '--%'}
-                  </Text>
-                )}
-              </AnimatedCircularProgress>
-            </View>
-          ) : (
-            <View style={{ alignItems: 'center', marginVertical: 16 }}>
-              <Text style={{ color: '#aaa', fontSize: 16, textAlign: 'center' }}>
-                Not enough data to compare your net worth to your peers yet.
-              </Text>
-              <TouchableOpacity style={styles.outcomeBtn} onPress={() => setModalVisible(true)}>
-                <Text style={styles.outcomeBtnText}>👁️ Review Goals</Text>
-              </TouchableOpacity>
-            </View>
-          )}
         </View>
 
         {/* Outcome Card */}
@@ -472,14 +244,28 @@ const RetirementScreen: React.FC = () => {
             </View>
           ))}
         </View>
+
+        {/* Goals Form (at bottom) */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Your Retirement Goals</Text>
+          <View style={styles.formRow}><Text style={styles.label}>Current Age</Text><TextInput style={styles.input} keyboardType="numeric" value={form.currentAge?.toString() || ''} onChangeText={v => handleInput('currentAge', Number(v))} placeholder="e.g. 30" /></View>
+          <View style={styles.formRow}><Text style={styles.label}>Retirement Age</Text><TextInput style={styles.input} keyboardType="numeric" value={form.retirementAge?.toString() || ''} onChangeText={v => handleInput('retirementAge', Number(v))} placeholder="e.g. 65" /></View>
+          <View style={styles.formRow}><Text style={styles.label}>Annual Savings</Text><TextInput style={styles.input} keyboardType="numeric" value={form.annualSavings?.toString() || ''} onChangeText={v => handleInput('annualSavings', Number(v))} placeholder="e.g. 20000" /></View>
+          <View style={styles.formRow}><Text style={styles.label}>Monthly Spend</Text><TextInput style={styles.input} keyboardType="numeric" value={form.monthlySpend?.toString() || ''} onChangeText={v => handleInput('monthlySpend', Number(v))} placeholder="e.g. 7500" /></View>
+          <Text style={{ color: totalPercent === 100 ? '#28a745' : '#dc3545', fontWeight: 'bold', marginBottom: 8, textAlign: 'center' }}>Total: {totalPercent}% {totalPercent !== 100 ? '(must equal 100%)' : ''}</Text>
+          {CATEGORY_FIELDS.map(cat => (
+            <View key={cat.key} style={styles.sliderRow}>
+              <Text style={styles.sliderLabel}>{cat.icon} {cat.label}</Text>
+              <Slider style={{ flex: 1, marginHorizontal: 10 }} minimumValue={0} maximumValue={100} step={1} value={Number(form[cat.key as keyof RetirementGoals]) || 0} onValueChange={(v: number) => handleSlider(cat.key as keyof RetirementGoals, v)} minimumTrackTintColor="#0070ba" maximumTrackTintColor="#ccc" />
+              <Text style={styles.sliderValue}>{Number(form[cat.key as keyof RetirementGoals]) || 0}%</Text>
+            </View>
+          ))}
+          <View style={styles.saveRow}>
+            <TouchableOpacity style={styles.saveBtn} onPress={handleSave} disabled={saving}><Text style={styles.saveBtnText}>{saving ? 'Saving...' : 'Save Goals'}</Text></TouchableOpacity>
+            <TouchableOpacity style={styles.resetBtn} onPress={handleReset}><Text style={styles.resetBtnText}>Reset</Text></TouchableOpacity>
+          </View>
+        </View>
       </ScrollView>
-      <RetirementGoalsModal
-        visible={modalVisible}
-        initialValues={MODAL_DEFAULTS}
-        onSave={handleModalSave}
-        onReset={handleModalReset}
-        onClose={() => setModalVisible(false)}
-      />
     </SafeAreaView>
   );
 };
@@ -501,7 +287,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     borderWidth: 1,
     borderColor: '#232c3d',
-    overflow: 'hidden',
   },
   cardTitle: {
     color: '#fff',
