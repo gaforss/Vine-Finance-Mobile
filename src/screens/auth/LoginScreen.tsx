@@ -71,7 +71,8 @@ const LoginScreen: React.FC<Props> = ({navigation}) => {
         try {
           const decoded: any = jwtDecode(token);
           console.log('🔐 [handleLogin] Decoded JWT:', decoded);
-          userId = decoded.id; // or decoded._id, check your token payload
+          userId = decoded.id || decoded._id;
+          console.log('🔐 [handleLogin] Storing userId:', userId);
           if (userId) {
             await storageService.setItem('userId', userId);
             console.log('🔐 [handleLogin] Decoded and stored userId:', userId);

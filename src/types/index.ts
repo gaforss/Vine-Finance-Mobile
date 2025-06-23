@@ -4,26 +4,38 @@ export interface User {
   googleId?: string;
   username: string;
   email: string;
-  firstName?: string;
-  lastName?: string;
+  firstName: string;
+  lastName: string;
   profileImage?: string;
   isNewUser: boolean;
   onboardingSteps: OnboardingStep[];
   hasDeletedDummyData: boolean;
-  sessionActivity: SessionActivity[];
+  sessionActivity: Session[];
+}
+
+export interface Transaction {
+  _id: string;
+  user: string;
+  account: string;
+  name: string;
+  amount: number;
+  date: string | Date;
+  category: string[];
+  pending: boolean;
 }
 
 export interface OnboardingStep {
   title: string;
   description: string;
-  templateLink: boolean;
   completed: boolean;
   icon: string;
-  animate: boolean;
+  animate?: boolean;
+  templateLink?: boolean;
 }
 
-export interface SessionActivity {
-  timestamp: Date;
+export interface Session {
+  _id: string;
+  timestamp: string;
   ipAddress: string;
   userAgent: string;
   location: {

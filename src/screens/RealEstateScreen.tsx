@@ -163,10 +163,9 @@ const UnitsTab = ({ propertyId }: { propertyId: string }) => {
   const loadUnits = async () => {
     setLoading(true);
     // property.units is available from parent, but always fetch latest
-    const resp = await apiService.getRealEstateProperties();
+    const resp = await apiService.getPropertyDetails(propertyId);
     if (resp.success && resp.data) {
-      const prop = resp.data.find((p: RealEstate) => p._id === propertyId);
-      setUnits(prop?.units || []);
+      setUnits(resp.data.units || []);
     }
     setLoading(false);
   };
@@ -292,10 +291,10 @@ const PropertyDetailScreen = ({ route, navigation }: any) => {
 
 // Main RealEstateScreen: Property List
 const RealEstateScreen: React.FC<Props> = ({navigation}) => {
-  const [properties, setProperties] = useState<RealEstate[]>([]);
   const [loading, setLoading] = useState(true);
+  const [properties, setProperties] = useState<RealEstate[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
-  const [editing, setEditing] = useState<RealEstate | null>(null);
+  const [editing, setEditing] = useState<Partial<RealEstate> | null>(null);
   const [totalEquity, setTotalEquity] = useState(0);
   const [totalRentIncome, setTotalRentIncome] = useState(0);
   const [totalNOI, setTotalNOI] = useState(0);
@@ -322,11 +321,13 @@ const RealEstateScreen: React.FC<Props> = ({navigation}) => {
   const [expenseForm, setExpenseForm] = useState({ date: '', category: 'Property Tax', amount: '' });
   const [showExpenseDatePicker, setShowExpenseDatePicker] = useState(false);
   const [addingExpense, setAddingExpense] = useState(false);
+  const [menuVisibleFor, setMenuVisibleFor] = useState<string | null>(null);
+  const [showDeleteExpenseModal, setShowDeleteExpenseModal] = useState(false);
+  const [expenseToDelete, setExpenseToDelete] = useState<any>(null);
 
   const screenWidth = Dimensions.get('window').width;
 
   useEffect(() => {
-    console.log('DEBUG: useEffect triggered in RealEstateScreen');
     loadRealEstateData();
   }, []);
 
@@ -338,11 +339,12 @@ const RealEstateScreen: React.FC<Props> = ({navigation}) => {
   console.log('DEBUG: RealEstateScreen render, properties state:', properties);
 
   const loadRealEstateData = async () => {
+    console.log('RealEstateScreen: loadRealEstateData called');
     try {
       setLoading(true);
-      console.log('DEBUG: Calling apiService.getRealEstateProperties()');
-      const response = await apiService.getRealEstateProperties();
-      console.log('DEBUG: getRealEstateProperties FULL response:', JSON.stringify(response, null, 2));
+      console.log('DEBUG: Calling apiService.getRealEstate()');
+      const response = await apiService.getRealEstate();
+      console.log('DEBUG: getRealEstate FULL response:', JSON.stringify(response, null, 2));
       if (response.success && response.data) {
         console.log('DEBUG: About to setProperties with:', response.data);
         setProperties(response.data);
@@ -385,38 +387,61 @@ const RealEstateScreen: React.FC<Props> = ({navigation}) => {
 
   const handleSave = async (form: Partial<RealEstate>) => {
     try {
-      if (editing) {
-        await apiService.updateRealEstateProperty(editing._id!, form);
+      if (editing && editing._id) {
+        await apiService.updateRealEstate(editing._id, form);
         showToast('Property updated!');
       } else {
-        await apiService.addRealEstateProperty(form as any);
+        await apiService.addRealEstate(form);
         showToast('Property added!');
       }
+      closeModal();
+      loadRealEstateData();
     } catch (e) {
       showToast('Error saving property', false);
     }
-    setModalVisible(false);
-    setEditing(null);
-    loadRealEstateData();
   };
+
   const handleDelete = (id: string) => {
-    Alert.alert('Delete', 'Are you sure?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: async () => { try { await apiService.deleteRealEstateProperty(id); showToast('Property deleted!'); loadRealEstateData(); } catch { showToast('Error deleting property', false); } } }
-    ]);
+    Alert.alert(
+      "Delete Property",
+      "Are you sure you want to delete this property and all its data?",
+      [
+        { text: "Cancel", style: "cancel" },
+        { text: "OK", onPress: async () => {
+          try {
+            const resp = await apiService.deleteRealEstate(id);
+            if (resp.success) {
+              showToast('Property deleted!');
+              loadRealEstateData();
+            } else {
+              showToast(resp.error || 'Error deleting property', false);
+            }
+          } catch (e) {
+            showToast('Error deleting property', false);
+          }
+        }}
+      ]
+    );
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
+    if (typeof amount !== 'number') return '$0.00';
+    return amount.toLocaleString('en-US', {style: 'currency', currency: 'USD'});
   };
 
   const formatPercentage = (value: number) => {
+    if (typeof value !== 'number' || !isFinite(value)) return '0.0%';
     return `${value.toFixed(1)}%`;
+  };
+
+  const openModal = (property: Partial<RealEstate> | null = null) => {
+    setEditing(property ? {...property} : emptyForm);
+    setModalVisible(true);
+  };
+  
+  const closeModal = () => {
+    setEditing(null);
+    setModalVisible(false);
   };
 
   const openDetailModal = (property: RealEstate) => {
@@ -431,12 +456,11 @@ const RealEstateScreen: React.FC<Props> = ({navigation}) => {
   // Add handler to mark rent as collected
   const handleMarkCollected = async (property: RealEstate, month: string) => {
     try {
-      await apiService.updateRentCollection(property._id!, month, { amount: property.rentCollected[month].amount, collected: true });
+      await apiService.updateRentCollection(property._id!, month, { collected: true });
       // Refresh property data in modal
-      const response = await apiService.getRealEstateProperties();
+      const response = await apiService.getPropertyDetails(property._id!);
       if (response.success && response.data) {
-        const updated = response.data.find((p: RealEstate) => p._id === property._id);
-        setSelectedProperty(updated || property);
+        setSelectedProperty(response.data);
       }
     } catch (e) {
       Alert.alert('Error', 'Failed to update rent status');
@@ -457,10 +481,9 @@ const RealEstateScreen: React.FC<Props> = ({navigation}) => {
         amount: parseFloat(rentForm.amount),
       });
       // Refresh property data in modal
-      const response = await apiService.getRealEstateProperties();
+      const response = await apiService.getPropertyDetails(selectedProperty._id!);
       if (response.success && response.data) {
-        const updated = response.data.find((p: RealEstate) => p._id === selectedProperty._id);
-        setSelectedProperty(updated || selectedProperty);
+        setSelectedProperty(response.data);
       }
       setRentForm({ startDate: '', endDate: '', amount: '' });
     } catch (e) {
@@ -502,7 +525,10 @@ const RealEstateScreen: React.FC<Props> = ({navigation}) => {
     }
     setUploadingDoc(true);
     try {
-      await apiService.uploadDocument(docsProperty._id!, { ...docFile, name: docName });
+      const formData = new FormData();
+      formData.append('document', docFile);
+      formData.append('name', docName);
+      await apiService.uploadDocument(docsProperty._id!, formData);
       // Refresh docs
       const resp = await apiService.listDocuments(docsProperty._id!);
       if (resp.success && resp.data) setDocs(resp.data);
@@ -559,7 +585,7 @@ const RealEstateScreen: React.FC<Props> = ({navigation}) => {
     setExpensesModalVisible(true);
     // Fetch expenses
     try {
-      const resp = await apiService.listPropertyExpenses(property._id!);
+      const resp = await apiService.listRealEstateExpenses(property._id!);
       if (resp.success && resp.data) setExpenses(resp.data);
     } catch {}
   };
@@ -576,14 +602,14 @@ const RealEstateScreen: React.FC<Props> = ({navigation}) => {
     }
     setAddingExpense(true);
     try {
-      await apiService.addPropertyExpense(expensesProperty._id!, {
+      await apiService.addRealEstateExpense(expensesProperty._id!, {
         date: expenseForm.date,
         category: expenseForm.category,
         amount: parseFloat(expenseForm.amount),
-        description: '',
+        description: '', // Optional description
       });
       // Refresh expenses
-      const resp = await apiService.listPropertyExpenses(expensesProperty._id!);
+      const resp = await apiService.listRealEstateExpenses(expensesProperty._id!);
       if (resp.success && resp.data) setExpenses(resp.data);
       setExpenseForm({ date: '', category: 'Property Tax', amount: '' });
     } catch (e) {
@@ -592,173 +618,35 @@ const RealEstateScreen: React.FC<Props> = ({navigation}) => {
       setAddingExpense(false);
     }
   };
-  const expenseCategories = [
-    'Property Tax',
-    'Insurance',
-    'Maintenance',
-    'Utilities',
-    'HOA Fees',
-    'Repairs',
-    'Other',
-  ];
 
-  const renderPropertyCard = ({item}: {item: RealEstate}) => {
-    const totalRent = Object.values(item.rentCollected || {}).reduce(
-      (sum, rent) => sum + (rent.collected ? rent.amount : 0), 0);
-    const totalExpenses = item.expenses?.reduce((sum, expense) => sum + expense.amount, 0) || 0;
-    const capRate = item.value > 0 ? ((totalRent - totalExpenses) / item.value) * 100 : 0;
-    const typeColor = propertyTypeColors[item.propertyType || ''] || '#666';
-    const appreciation = item.appreciation ? (item.appreciation * 100).toFixed(1) : '0.0';
-    return (
-      <View style={{
-        backgroundColor: '#1a2233',
-        borderRadius: 20,
-        padding: 20,
-        marginBottom: 22,
-        shadowColor: '#000',
-        shadowOpacity: 0.13,
-        shadowRadius: 10,
-        elevation: 5,
-      }}>
-        {/* Header Row */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
-          {item.url ? (
-            <Text style={{ fontSize: 20, marginRight: 8 }}>🔗</Text>
-          ) : null}
-          <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#fff', flex: 1 }}>{item.propertyAddress}</Text>
-          <View style={{ backgroundColor: typeColor, borderRadius: 16, paddingHorizontal: 12, paddingVertical: 4, marginLeft: 8 }}>
-            <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 13 }}>{item.propertyType}</Text>
-          </View>
-          <Text style={{ fontSize: 22, color: '#b0b8c1', marginLeft: 10 }}>⋮</Text>
-        </View>
-        {/* Center Icon */}
-        <View style={{ alignItems: 'center', marginVertical: 10 }}>
-          <View style={{ backgroundColor: '#22304a', borderRadius: 40, width: 64, height: 64, justifyContent: 'center', alignItems: 'center', marginBottom: 6, shadowColor: '#000', shadowOpacity: 0.10, shadowRadius: 6, elevation: 2 }}>
-            <Text style={{ fontSize: 36 }}>🏠</Text>
-          </View>
-        </View>
-        {/* Metrics Row */}
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 }}>
-          <View style={{ alignItems: 'center', flex: 1 }}>
-            <Text style={{ color: '#b0b8c1', fontSize: 13 }}>💵 Equity</Text>
-            <Text style={{ color: '#2ecc71', fontSize: 18, fontWeight: 'bold', marginTop: 2 }}>{formatCurrency(item.value - item.mortgageBalance)}</Text>
-          </View>
-          <View style={{ alignItems: 'center', flex: 1 }}>
-            <Text style={{ color: '#b0b8c1', fontSize: 13 }}>💲 Zestimate</Text>
-            <Text style={{ color: '#1ea7fd', fontSize: 18, fontWeight: 'bold', marginTop: 2 }}>{formatCurrency(item.value)}</Text>
-            <Text style={{ color: '#2ecc71', fontSize: 13, marginTop: 2 }}>↑ {appreciation}%</Text>
-          </View>
-          <View style={{ alignItems: 'center', flex: 1 }}>
-            <Text style={{ color: '#b0b8c1', fontSize: 13 }}>💳 Mortgage</Text>
-            <Text style={{ color: '#ff7043', fontSize: 18, fontWeight: 'bold', marginTop: 2 }}>{formatCurrency(item.mortgageBalance)}</Text>
-          </View>
-        </View>
-        {/* Divider */}
-        <View style={{ height: 1, backgroundColor: '#22304a', marginVertical: 12 }} />
-        {/* Action Buttons */}
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
-          <TouchableOpacity
-            style={{
-              flex: 1,
-              backgroundColor: '#2196f3',
-              borderRadius: 8,
-              paddingVertical: 10,
-              marginRight: 6,
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'center',
-              shadowColor: '#000',
-              shadowOpacity: 0.08,
-              shadowRadius: 4,
-              elevation: 2,
-              overflow: 'hidden',
-            }}
-            onPress={() => openDetailModal(item)}
-          >
-            <FontAwesome5 name="eye" size={15} color="#fff" style={{ marginRight: 4 }} />
-            <Text
-              style={{
-                color: '#fff',
-                fontWeight: 'bold',
-                fontSize: 13,
-                flexShrink: 1,
-                maxWidth: 90,
-              }}
-              numberOfLines={1}
-              ellipsizeMode="tail"
-            >
-              View Details
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={{
-              flex: 1,
-              backgroundColor: '#b0b8c1',
-              borderRadius: 8,
-              paddingVertical: 10,
-              marginHorizontal: 6,
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'center',
-              shadowColor: '#000',
-              shadowOpacity: 0.08,
-              shadowRadius: 4,
-              elevation: 2,
-              overflow: 'hidden',
-            }}
-            onPress={() => openDocsModal(item)}
-          >
-            <FontAwesome5 name="file-alt" size={15} color="#fff" style={{ marginRight: 4 }} />
-            <Text
-              style={{
-                color: '#fff',
-                fontWeight: 'bold',
-                fontSize: 13,
-                flexShrink: 1,
-                maxWidth: 90,
-              }}
-              numberOfLines={1}
-              ellipsizeMode="tail"
-            >
-              Property Docs
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={{
-              flex: 1,
-              backgroundColor: '#ffc107',
-              borderRadius: 8,
-              paddingVertical: 10,
-              marginLeft: 6,
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'center',
-              shadowColor: '#000',
-              shadowOpacity: 0.08,
-              shadowRadius: 4,
-              elevation: 2,
-              overflow: 'hidden',
-            }}
-            onPress={() => openExpensesModal(item)}
-          >
-            <FontAwesome5 name="money-bill-wave" size={15} color="#fff" style={{ marginRight: 4 }} />
-            <Text
-              style={{
-                color: '#fff',
-                fontWeight: 'bold',
-                fontSize: 13,
-                flexShrink: 1,
-                maxWidth: 90,
-              }}
-              numberOfLines={1}
-              ellipsizeMode="tail"
-            >
-              Manage Expenses
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    );
+  const handleDeleteExpenseClick = (expense: any) => {
+    setExpenseToDelete(expense);
+    setShowDeleteExpenseModal(true);
+  };
+
+  const handleDeleteExpense = async () => {
+    if (!expenseToDelete || !expensesProperty?._id) return;
+    setLoading(true);
+    try {
+      const resp = await apiService.deleteRealEstateExpense(expensesProperty._id, expenseToDelete._id);
+      if (resp.success) {
+        setShowDeleteExpenseModal(false);
+        setExpenseToDelete(null);
+        // Refresh expenses
+        if (expensesProperty?._id) {
+          const refreshResp = await apiService.listRealEstateExpenses(expensesProperty._id);
+          if (refreshResp.success && refreshResp.data) {
+            setExpenses(refreshResp.data);
+          }
+        }
+      } else {
+        Alert.alert('Error', 'Failed to delete expense.');
+      }
+    } catch(e) {
+      Alert.alert('Error', 'An error occurred while deleting the expense.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Calculate cash flow and summary values
@@ -828,8 +716,87 @@ const RealEstateScreen: React.FC<Props> = ({navigation}) => {
     ]
   };
 
+  const renderPropertyCard = ({item}: {item: RealEstate}) => {
+    const equity = item.value - item.mortgageBalance;
+    const valueIncrease = item.value - item.purchasePrice;
+    const valueIncreasePercentage =
+      item.purchasePrice > 0 ? (valueIncrease / item.purchasePrice) * 100 : 0;
+
+    return (
+      <View style={styles.propertyCard}>
+        <View style={styles.cardHeader}>
+          <FontAwesome5 name="link" size={20} color="#4D8AF0" />
+          <View style={{flex: 1, marginLeft: 12}}>
+            <Text style={styles.propertyAddress}>{item.propertyAddress}</Text>
+            <View style={[styles.propertyTypeContainer, {backgroundColor: propertyTypeColors[item.propertyType] || '#2E7D32'}]}>
+              <Text style={styles.propertyType}>{item.propertyType}</Text>
+            </View>
+          </View>
+          <TouchableOpacity onPress={() => item._id && setMenuVisibleFor(menuVisibleFor === item._id ? null : item._id)}>
+            <FontAwesome5 name="ellipsis-v" size={20} color="#fff" />
+          </TouchableOpacity>
+        </View>
+
+        {menuVisibleFor === item._id && (
+          <View style={styles.menu}>
+            <TouchableOpacity style={styles.menuItem} onPress={() => { setMenuVisibleFor(null); openModal(item); }}>
+              <Text style={styles.menuText}>Edit</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.menuItem} onPress={() => { setMenuVisibleFor(null); if (item._id) handleDelete(item._id); }}>
+              <Text style={[styles.menuText, {color: '#F44336'}]}>Delete</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        <View style={styles.cardBody}>
+          <View style={styles.houseIconContainer}>
+            <FontAwesome5 name="home" size={60} color="#fff" />
+          </View>
+          <View style={styles.financialInfo}>
+            <View style={styles.financialItem}>
+              <Text style={styles.financialLabel}>Equity</Text>
+              <Text style={styles.financialValue}>{formatCurrency(equity)}</Text>
+            </View>
+            <View style={styles.financialItem}>
+              <Text style={styles.financialLabel}>Zestimate</Text>
+              <Text style={styles.financialValue}>{formatCurrency(item.value)}</Text>
+              {valueIncreasePercentage !== 0 && (
+                <View style={styles.percentageContainer}>
+                   <FontAwesome5 name={valueIncreasePercentage > 0 ? 'arrow-up' : 'arrow-down'} color={valueIncreasePercentage > 0 ? '#4CAF50' : '#F44336'} />
+                   <Text style={[styles.percentageChange, {color: valueIncreasePercentage > 0 ? '#4CAF50' : '#F44336'}]}>
+                     {formatPercentage(Math.abs(valueIncreasePercentage))}
+                   </Text>
+                </View>
+              )}
+            </View>
+            <View style={styles.financialItem}>
+              <Text style={styles.financialLabel}>Mortgage</Text>
+              <Text style={styles.financialValue}>{formatCurrency(item.mortgageBalance)}</Text>
+            </View>
+          </View>
+        </View>
+
+        <View style={styles.cardActions}>
+           <TouchableOpacity style={[styles.actionButton, {backgroundColor: '#4D8AF0'}]} onPress={() => handlePropertyPress(item)}>
+               <FontAwesome5 name="eye" size={14} color="#fff" />
+               <Text style={styles.actionButtonText}>View Details</Text>
+           </TouchableOpacity>
+           <TouchableOpacity style={[styles.actionButton, {backgroundColor: '#6c757d'}]} onPress={() => openDocsModal(item)}>
+               <FontAwesome5 name="file-alt" size={14} color="#fff" />
+               <Text style={styles.actionButtonText}>Property Docs</Text>
+           </TouchableOpacity>
+           <TouchableOpacity style={[styles.actionButton, {backgroundColor: '#ffc107'}]} onPress={() => openExpensesModal(item)}>
+               <FontAwesome5 name="dollar-sign" size={14} color="#fff" />
+               <Text style={styles.actionButtonText}>Manage Expenses</Text>
+           </TouchableOpacity>
+        </View>
+      </View>
+    );
+  };
+
   const handlePropertyPress = (property: RealEstate) => {
-    navigation.navigate('PropertyDetail', { property });
+    setSelectedProperty(property);
+    setDetailModalVisible(true);
   };
 
   if (loading) {
@@ -1180,28 +1147,6 @@ const RealEstateScreen: React.FC<Props> = ({navigation}) => {
           </View>
         </View>
       </Modal>
-      <Modal visible={renameModalVisible} animationType="fade" transparent onRequestClose={() => setRenameModalVisible(false)}>
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}>
-          <View style={{ backgroundColor: '#34425a', borderRadius: 12, width: 320, padding: 24 }}>
-            <Text style={{ color: '#fff', fontSize: 18, fontWeight: 'bold', marginBottom: 16 }}>Rename Document</Text>
-            <TextInput
-              style={{ borderWidth: 1, borderColor: '#3a4660', borderRadius: 8, padding: 10, marginBottom: 16, backgroundColor: '#233047', color: '#fff' }}
-              value={renameDocValue}
-              onChangeText={setRenameDocValue}
-              placeholder="Document Name"
-              placeholderTextColor="#b0b8c1"
-            />
-            <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
-              <TouchableOpacity onPress={() => setRenameModalVisible(false)} style={{ marginRight: 12 }}>
-                <Text style={{ color: '#b0b8c1', fontSize: 16 }}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={handleRenameDoc}>
-                <Text style={{ color: '#1976D2', fontWeight: 'bold', fontSize: 16 }}>Rename</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
       <Modal visible={expensesModalVisible} animationType="slide" transparent onRequestClose={closeExpensesModal}>
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center' }}>
           <View style={{ backgroundColor: '#34425a', borderRadius: 12, width: '92%', maxWidth: 500, padding: 0, overflow: 'hidden' }}>
@@ -1238,9 +1183,7 @@ const RealEstateScreen: React.FC<Props> = ({navigation}) => {
                   style={{ color: '#fff' }}
                   dropdownIconColor="#b0b8c1"
                 >
-                  {expenseCategories.map(cat => (
-                    <Picker.Item key={cat} label={cat} value={cat} />
-                  ))}
+                  {['Property Tax', 'Insurance', 'Maintenance', 'Utilities', 'HOA Fees', 'Repairs', 'Other'].map(cat => <Picker.Item key={cat} label={cat} value={cat} />)}
                 </Picker>
               </View>
               <Text style={{ color: '#b0b8c1', fontSize: 14, marginBottom: 4 }}>Amount</Text>
@@ -1267,10 +1210,27 @@ const RealEstateScreen: React.FC<Props> = ({navigation}) => {
                 expenses.map(exp => (
                   <View key={exp._id} style={{ backgroundColor: '#1a2233', borderRadius: 8, padding: 12, marginBottom: 10, flexDirection: 'row', alignItems: 'center' }}>
                     <Text style={{ color: '#fff', fontSize: 15, flex: 1 }}>{new Date(exp.date).toLocaleDateString()} - {exp.category} - ${exp.amount}</Text>
+                    <TouchableOpacity onPress={() => handleDeleteExpenseClick(exp)}>
+                      <FontAwesome5 name="trash" size={16} color="#F44336" />
+                    </TouchableOpacity>
                   </View>
                 ))
               )}
             </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Confirm Delete Expense Modal */}
+      <Modal visible={showDeleteExpenseModal} animationType="fade" transparent onRequestClose={() => setShowDeleteExpenseModal(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Delete Expense</Text>
+            <Text style={{color: '#fff', textAlign: 'center', marginBottom: 20}}>Are you sure you want to delete this expense?</Text>
+            <View style={styles.modalActions}>
+              <TouchableOpacity onPress={() => setShowDeleteExpenseModal(false)}><Text style={styles.cancelBtn}>Cancel</Text></TouchableOpacity>
+              <TouchableOpacity onPress={handleDeleteExpense}><Text style={[styles.saveBtn, {color: '#F44336'}]}>Delete</Text></TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
@@ -1371,21 +1331,24 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   propertyCard: {
-    backgroundColor: '#232b3a',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 18,
+    backgroundColor: '#1E2A3B',
+    borderRadius: 15,
+    padding: 16,
+    marginVertical: 8,
+    marginHorizontal: 16,
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 8,
+    position: 'relative',
+    zIndex: 0,
   },
-  propertyHeader: {
+  cardHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 8,
+    marginBottom: 16,
+    zIndex: 1,
   },
   propertyName: {
     fontSize: 18,
@@ -1394,72 +1357,250 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   propertyAddress: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#fff',
+    flexShrink: 1,
+  },
+  propertyTypeContainer: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    alignSelf: 'flex-start',
+    marginTop: 4,
+  },
+  propertyType: {
+    fontSize: 12,
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  menu: {
+    position: 'absolute',
+    top: 50,
+    right: 16,
+    backgroundColor: '#2C3E50',
+    borderRadius: 8,
+    padding: 8,
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOpacity: 0.5,
+    shadowRadius: 5,
+    zIndex: 100,
+  },
+  menuItem: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  menuText: {
+    color: '#fff',
+    fontSize: 16,
+  },
+  cardBody: {
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  houseIconContainer: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  financialInfo: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    width: '100%',
+  },
+  financialItem: {
+    alignItems: 'center',
+  },
+  financialLabel: {
     fontSize: 14,
     color: '#aaa',
-    marginBottom: 2,
   },
-  propertyAddressSub: {
-    fontSize: 12,
-    color: '#6fa1e6',
-    textDecorationLine: 'underline',
-    marginBottom: 2,
+  financialValue: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginTop: 4,
   },
-  propertyMetrics: {
-    marginBottom: 12,
+  percentageContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
   },
-  metricRow: {
+  percentageChange: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginLeft: 4,
+  },
+  cardActions: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#2C3E50',
+    paddingTop: 16,
+    marginTop: 8,
   },
-  metric: {
+  actionButton: {
     flex: 1,
-  },
-  metricLabel: {
-    fontSize: 12,
-    color: '#888888',
-    marginBottom: 2,
-  },
-  metricValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#ffffff',
-  },
-  emptyState: {
+    flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 40,
+    justifyContent: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 6,
+    borderRadius: 8,
+    marginHorizontal: 4,
   },
-  emptyStateText: {
+  actionButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    marginLeft: 8,
+    fontSize: 12,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: '#1E2A3B',
+    borderRadius: 10,
+    padding: 20,
+    width: '90%',
+    maxHeight: '80%',
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    color: '#fff',
+    textAlign: 'center'
+  },
+  inputLabel: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#ffffff',
+    color: '#aaa',
     marginBottom: 8,
+    marginTop: 12,
   },
-  emptyStateSubtext: {
-    fontSize: 14,
-    color: '#888888',
+  input: {
+    backgroundColor: '#2C3E50',
+    borderRadius: 5,
+    padding: 12,
+    color: '#fff',
+    fontSize: 16,
+  },
+  pickerWrapper: {
+    backgroundColor: '#2C3E50',
+    borderRadius: 5,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginTop: 24,
+  },
+  saveBtn: {
+    color: '#4CAF50',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  cancelBtn: {
+    color: '#aaa',
+    fontSize: 18,
+  },
+  errorText: {
+    color: '#F44336',
     textAlign: 'center',
-    lineHeight: 20,
+    marginTop: 10,
   },
-  propertyActions: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 8 },
-  editButton: { backgroundColor: '#0070ba', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6, marginRight: 8 },
-  deleteButton: { backgroundColor: '#F44336', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6 },
-  actionButtonText: { color: '#fff', fontWeight: 'bold', fontSize: 14 },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' },
-  modalContent: { backgroundColor: '#fff', borderRadius: 12, padding: 24, width: 340 },
-  modalTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 16 },
-  input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 8, marginBottom: 12 },
-  modalActions: { flexDirection: 'row', justifyContent: 'flex-end' },
-  cancelBtn: { color: '#888', marginRight: 16, fontSize: 16 },
-  saveBtn: { color: '#0070ba', fontWeight: 'bold', fontSize: 16 },
-  addButton: { backgroundColor: '#0070ba', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6 },
-  addButtonText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
-  inputLabel: { color: '#333', fontWeight: '600', marginBottom: 4, marginTop: 8 },
-  errorText: { color: '#F44336', marginBottom: 8, fontWeight: 'bold' },
-  pickerWrapper: { borderWidth: 1, borderColor: '#ccc', borderRadius: 8, marginBottom: 12 },
-  propertyIcon: {
-    fontSize: 32,
-    marginRight: 14,
+  docsModalContent: {
+    backgroundColor: '#1E2A3B',
+    borderRadius: 10,
+    padding: 20,
+    width: '90%',
+    maxHeight: '80%',
+  },
+  expensePropertyLabel: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  datePickerButton: {
+    backgroundColor: '#2C3E50',
+    borderRadius: 5,
+    padding: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  datePickerText: {
+    color: '#fff',
+    fontSize: 16,
+  },
+  rentModalContent: {
+    backgroundColor: '#1E2A3B',
+    padding: 20,
+    borderRadius: 10,
+    width: '90%',
+  },
+  rentMonthItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#2C3E50',
+  },
+  rentMonthText: {
+    color: '#fff',
+    fontSize: 16,
+  },
+  rentCollectedText: {
+    color: '#4CAF50',
+    fontWeight: 'bold',
+  },
+  rentNotCollectedText: {
+    color: '#aaa',
+  },
+  collectButton: {
+    backgroundColor: '#4CAF50',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 5,
+  },
+  collectButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  detailModalContent: {
+    flex: 1,
+    backgroundColor: '#0F172A',
+  },
+  detailHeader: {
+    padding: 16,
+    backgroundColor: '#1E2A3B',
+    borderBottomWidth: 1,
+    borderBottomColor: '#2C3E50',
+  },
+  detailTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#fff',
+    textAlign: 'center',
+  },
+  closeDetailButton: {
+    position: 'absolute',
+    top: 16,
+    left: 16,
+  },
+  closeDetailButtonText: {
+    color: '#4D8AF0',
+    fontSize: 18,
   },
 });
 

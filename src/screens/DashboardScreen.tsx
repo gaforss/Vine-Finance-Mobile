@@ -69,125 +69,49 @@ const DashboardScreen: React.FC<Props & { start?: () => void }> = ({navigation, 
       const response = await apiService.getNetWorthEntries();
       console.log('DEBUG: getNetWorthEntries response:', response);
 
-      // Handle both array and object response
-      let entries: any[] = [];
-      if (Array.isArray(response) && response.length > 0) {
-        entries = response.slice().sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      if (response && response.success && Array.isArray(response.data)) {
+        const entries = response.data.slice().sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
         setNetWorthData(entries);
-        console.log('DEBUG: Set netWorthData (array, sorted):', entries);
-      } else if (response && response.data && Array.isArray(response.data)) {
-        entries = response.data.slice().sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-        setNetWorthData(entries);
-        console.log('DEBUG: Set netWorthData (object.data, sorted):', entries);
+
+        const sortedEntries = entries.slice().sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+        const chartNetWorthArr = sortedEntries.map(entry => getEntryNetWorth(entry));
+        const chartAssetsArr = sortedEntries.map(entry =>
+            (entry.cash || 0) +
+            (entry.investments || 0) +
+            (entry.realEstate || 0) +
+            (entry.retirementAccounts || 0) +
+            (entry.vehicles || 0) +
+            (entry.personalProperty || 0) +
+            (entry.otherAssets || 0)
+        );
+        const chartLiabilitiesArr = sortedEntries.map(entry => entry.liabilities || 0);
+
+        setChartNetWorth(chartNetWorthArr);
+        setChartAssets(chartAssetsArr);
+        setChartLiabilities(chartLiabilitiesArr);
+
+        const chartMonthsArr = sortedEntries.map(entry => {
+            const date = new Date(entry.date);
+            return `${date.toLocaleString('default', { month: 'short' })}`;
+        });
+        setChartMonths(chartMonthsArr);
+
+        setChartNetWorthSafe(sanitize(chartNetWorthArr));
+        setChartAssetsSafe(sanitize(chartAssetsArr));
+        setChartLiabilitiesSafe(sanitize(chartLiabilitiesArr));
+
       } else {
-        console.log('DEBUG: No net worth data found in response.', response);
+        setNetWorthData([]);
+        setChartNetWorth([]);
+        setChartAssets([]);
+        setChartLiabilities([]);
+        setChartMonths([]);
+        setChartNetWorthSafe([]);
+        setChartAssetsSafe([]);
+        setChartLiabilitiesSafe([]);
+        console.log('DEBUG: No net worth entries found in response.', response);
       }
-
-      if (entries.length > 0) {
-        const latest = entries[0];
-        const previous = entries.length > 1 ? entries[1] : null;
-
-        // Log the latest entry for debugging
-        console.log('DEBUG: Latest entry:', latest);
-        if (latest) {
-          console.log('DEBUG: Latest entry fields:', JSON.stringify({
-            cash: latest.cash,
-            investments: latest.investments,
-            realEstate: latest.realEstate,
-            retirementAccounts: latest.retirementAccounts,
-            vehicles: latest.vehicles,
-            personalProperty: latest.personalProperty,
-            otherAssets: latest.otherAssets,
-            liabilities: latest.liabilities,
-            customFields: latest.customFields,
-            accounts: latest.accounts,
-            netWorth: latest.netWorth,
-          }, null, 2));
-        }
-
-        // Calculate net worth from entry fields
-        const calcNetWorth = (entry: any) => {
-          if (!entry) return 0;
-          const assets = (entry.cash || 0) + (entry.investments || 0) + (entry.realEstate || 0) +
-            (entry.retirementAccounts || 0) + (entry.vehicles || 0) + (entry.personalProperty || 0) +
-            (entry.otherAssets || 0);
-          const liabilities = entry.liabilities || 0;
-          return assets - liabilities;
-        };
-
-        const latestNetWorth = calcNetWorth(latest);
-        const previousNetWorth = calcNetWorth(previous);
-
-        console.log('DEBUG: Calculated currentNetWorth:', latestNetWorth, 'previousNetWorth:', previousNetWorth);
-      }
-
-      // Use all entries sorted oldest to newest for chart
-      const sortedEntries = entries.slice().sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-
-      const chartNetWorthArr = sortedEntries.map((entry, idx) => {
-        const value = getEntryNetWorth(entry);
-        console.log(`🟡 [DashboardScreen] Chart Entry[${idx}] date=${entry.date}, calculatedNetWorth=${value}, entry=`, entry);
-        return value;
-      });
-      setChartNetWorth(chartNetWorthArr);
-
-      const chartAssetsArr = sortedEntries.map((entry, idx) => {
-        const value =
-          (entry.cash || 0) +
-          (entry.investments || 0) +
-          (entry.realEstate || 0) +
-          (entry.retirementAccounts || 0) +
-          (entry.vehicles || 0) +
-          (entry.personalProperty || 0) +
-          (entry.otherAssets || 0);
-        console.log(`🟡 [DashboardScreen] Chart Entry[${idx}] date=${entry.date}, calculatedAssets=${value}, entry=`, entry);
-        return value;
-      });
-      setChartAssets(chartAssetsArr);
-
-      const chartLiabilitiesArr = sortedEntries.map((entry, idx) => {
-        const value = entry.liabilities || 0;
-        console.log(`🟡 [DashboardScreen] Chart Entry[${idx}] date=${entry.date}, calculatedLiabilities=${value}, entry=`, entry);
-        return value;
-      });
-      setChartLiabilities(chartLiabilitiesArr);
-
-      const chartNetWorthSafeArr = sanitize(chartNetWorthArr);
-      const chartAssetsSafeArr = sanitize(chartAssetsArr);
-      const chartLiabilitiesSafeArr = sanitize(chartLiabilitiesArr);
-      setChartNetWorthSafe(chartNetWorthSafeArr);
-      setChartAssetsSafe(chartAssetsSafeArr);
-      setChartLiabilitiesSafe(chartLiabilitiesSafeArr);
-
-      // Clean x-axis: show at most 8 labels, spaced evenly
-      const N = Math.ceil(sortedEntries.length / 8); // Show ~8 labels max
-      const chartMonthsArr = sortedEntries.map((entry, idx) => {
-        const date = new Date(entry.date);
-        if (idx % N === 0) {
-          // Show 'Jan 2024' for January, 'Feb' for others
-          return date.getMonth() === 0
-            ? `${date.toLocaleString('default', { month: 'short' })} ${date.getFullYear()}`
-            : date.toLocaleString('default', { month: 'short' });
-        }
-        return '';
-      });
-      setChartMonths(chartMonthsArr);
-
-      // Log to confirm last chart value matches overview
-      if (chartNetWorthArr.length > 0) {
-        console.log('🟢 [DashboardScreen] Last chart net worth:', chartNetWorthArr[chartNetWorthArr.length - 1]);
-        if (sortedEntries.length > 0) {
-          console.log('🟢 [DashboardScreen] Latest entry net worth (overview):', getEntryNetWorth(sortedEntries[sortedEntries.length - 1]));
-        }
-      }
-
-      console.log('🟡 [DashboardScreen] chartNetWorth:', chartNetWorthArr);
-      console.log('🟡 [DashboardScreen] chartAssets:', chartAssetsArr);
-      console.log('🟡 [DashboardScreen] chartLiabilities:', chartLiabilitiesArr);
-      console.log('🟡 [DashboardScreen] chartNetWorthSafe:', chartNetWorthSafeArr);
-      console.log('🟡 [DashboardScreen] chartAssetsSafe:', chartAssetsSafeArr);
-      console.log('🟡 [DashboardScreen] chartLiabilitiesSafe:', chartLiabilitiesSafeArr);
-      console.log('🟡 [DashboardScreen] chartMonths:', chartMonthsArr);
     } catch (error) {
       console.error('Error loading dashboard data:', error);
       Alert.alert('Error', 'Failed to load dashboard data');

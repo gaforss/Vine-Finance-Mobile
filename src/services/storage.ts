@@ -1,5 +1,32 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+const TOKEN_KEY = 'token';
+
+export const getToken = async (): Promise<string | null> => {
+  try {
+    return await AsyncStorage.getItem(TOKEN_KEY);
+  } catch (error) {
+    console.error('Error getting token from storage:', error);
+    return null;
+  }
+};
+
+export const setToken = async (token: string): Promise<void> => {
+  try {
+    await AsyncStorage.setItem(TOKEN_KEY, token);
+  } catch (error) {
+    console.error('Error setting token in storage:', error);
+  }
+};
+
+export const removeToken = async (): Promise<void> => {
+  try {
+    await AsyncStorage.removeItem(TOKEN_KEY);
+  } catch (error) {
+    console.error('Error removing token from storage:', error);
+  }
+};
+
 class StorageService {
   async getItem(key: string): Promise<string | null> {
     try {
