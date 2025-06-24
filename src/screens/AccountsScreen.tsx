@@ -4,7 +4,7 @@ import { apiService } from '../services/api';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../types';
-import { Linking } from 'react-native';
+import PlaidLink, { LinkSuccess, LinkExit } from 'react-native-plaid-link-sdk';
 import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 
 interface Account {
@@ -101,6 +101,7 @@ const AccountsScreen: React.FC = () => {
   const [manualBalance, setManualBalance] = useState('');
   const [manualLoading, setManualLoading] = useState(false);
   const [editAccountId, setEditAccountId] = useState<string | null>(null);
+  const [linkToken, setLinkToken] = useState<string | null>(null);
 
   console.log('🏦 AccountsScreen: rendering');
 
@@ -164,9 +165,11 @@ const AccountsScreen: React.FC = () => {
       setSections(newSections);
       console.log('🏦 AccountsScreen: setSections with', newSections.length, 'sections', newSections);
     } catch (err) {
+      console.error('AccountsScreen: Failed to fetch accounts', err);
       setSections([]);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   useEffect(() => {
@@ -194,26 +197,32 @@ const AccountsScreen: React.FC = () => {
   };
 
   const handlePlaidLink = async () => {
-    // Get Plaid Link token from backend
     try {
-      console.log('🔗 Requesting Plaid link token...');
       const response = await apiService.createPlaidLinkToken();
-      console.log('🔗 Plaid link token response:', response);
       if (response.success && response.data?.link_token) {
-        const linkToken = response.data.link_token;
-        const url = `https://link.plaid.com/?token=${linkToken}`;
-        console.log('🔗 Plaid link token:', linkToken);
-        console.log('🔗 Plaid Link URL:', url);
-        Alert.alert('Plaid Debug', `Token: ${linkToken}\n\nURL: ${url}`);
-        Linking.openURL(url);
+        setLinkToken(response.data.link_token);
       } else {
         Alert.alert('Error', response.error || 'Failed to get Plaid link token');
-        console.error('Plaid link token error:', response);
       }
     } catch (err) {
       Alert.alert('Error', 'Failed to start Plaid Link');
-      console.error('Plaid link token exception:', err);
     }
+  };
+
+  const handlePlaidSuccess = async (success: LinkSuccess) => {
+    try {
+      const institutionName = success.metadata.institution?.name || 'Unknown Institution';
+      const response = await apiService.exchangePublicToken(success.publicToken, institutionName);
+      if (response.success) {
+        ToastAndroid.show('Account linked successfully!', ToastAndroid.SHORT);
+        fetchAccounts(); // Refresh the accounts list
+      } else {
+        Alert.alert('Error', response.error || 'Failed to exchange public token');
+      }
+    } catch (err) {
+      Alert.alert('Error', 'An error occurred during Plaid verification.');
+    }
+    setLinkToken(null);
   };
 
   const openManualModal = (account?: Account) => {
@@ -391,6 +400,19 @@ const AccountsScreen: React.FC = () => {
             <Text style={styles.fabSecondaryText}>Add Manual</Text>
           </TouchableOpacity>
         </View>
+
+        {linkToken && (
+          <PlaidLink
+            tokenConfig={{ token: linkToken }}
+            onSuccess={handlePlaidSuccess}
+            onExit={(exit: LinkExit) => {
+              console.log('Plaid Link exited:', exit);
+              setLinkToken(null);
+            }}
+          >
+          </PlaidLink>
+        )}
+
         {/* Bottom sheet for manual add/edit */}
         <Modal visible={showManualModal} animationType="slide" transparent>
           <View style={styles.bottomSheetOverlay}>
@@ -856,6 +878,16 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 6,
     marginLeft: 0,
+  },
+  closeButton: {
+    backgroundColor: '#ff5555',
+    padding: 15,
+    alignItems: 'center',
+  },
+  closeButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
 });
 

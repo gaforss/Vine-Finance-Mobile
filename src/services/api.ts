@@ -490,6 +490,18 @@ class ApiService {
     }
   }
 
+  async exchangePublicToken(publicToken: string, institutionName: string): Promise<ApiResponse<any>> {
+    try {
+      const response = await this.api.post('/plaid/exchange_public_token', { 
+        public_token: publicToken,
+        institutionName: institutionName,
+      });
+      return { success: true, data: response.data };
+    } catch (error) {
+      return this.handleError(error, 'Failed to exchange public token');
+    }
+  }
+
   async getAccounts(): Promise<ApiResponse<{[key: string]: Account[]}>> {
     try {
       const response = await this.api.get('/plaid/accounts');
