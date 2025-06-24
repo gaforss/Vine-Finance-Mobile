@@ -1,11 +1,14 @@
 import React from 'react';
 import {View, Text, StyleSheet, TouchableOpacity, Alert} from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import { apiService } from '../services/api';
-import { StackNavigationProp } from '@react-navigation/stack';
-import { RootStackParamList } from '../types';
+import {useNavigation} from '@react-navigation/native';
+import {apiService} from '../services/api';
+import {StackNavigationProp} from '@react-navigation/stack';
+import {RootStackParamList} from '../types';
 
-type SettingsScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Settings'>;
+type SettingsScreenNavigationProp = StackNavigationProp<
+  RootStackParamList,
+  'Settings'
+>;
 const SettingsScreen: React.FC = () => {
   const navigation = useNavigation<SettingsScreenNavigationProp>();
 

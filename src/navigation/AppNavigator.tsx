@@ -1,6 +1,7 @@
 import React from 'react';
 import {createStackNavigator} from '@react-navigation/stack';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
+import {LinkingOptions} from '@react-navigation/native';
 import {RootStackParamList, MainTabParamList} from '../types';
 
 // Import screens
@@ -10,7 +11,9 @@ import ForgotPasswordScreen from '../screens/auth/ForgotPasswordScreen';
 import DashboardScreen from '../screens/DashboardScreen';
 import AccountsScreen from '../screens/AccountsScreen';
 import BudgetingScreen from '../screens/BudgetingScreen';
-import RealEstateScreen, { PropertyDetailScreen } from '../screens/RealEstateScreen';
+import RealEstateScreen, {
+  PropertyDetailScreen,
+} from '../screens/RealEstateScreen';
 import RetirementScreen from '../screens/RetirementScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import AddEntryScreen from '../screens/AddEntryScreen';
@@ -27,6 +30,19 @@ const Stack = createStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
 console.log('🧭 AppNavigator.tsx: Starting navigation setup');
+
+export const linking: LinkingOptions<RootStackParamList> = {
+  prefixes: ['vinefinance://'],
+  config: {
+    screens: {
+      Main: {
+        screens: {
+          Accounts: 'oauth',
+        },
+      },
+    },
+  },
+};
 
 const MainTabNavigator = () => {
   console.log('🧭 AppNavigator.tsx: MainTabNavigator rendering');
@@ -61,7 +77,7 @@ const MainTabNavigator = () => {
           shadowColor: '#000',
           shadowOpacity: 0.12,
           shadowRadius: 12,
-          shadowOffset: { width: 0, height: -2 },
+          shadowOffset: {width: 0, height: -2},
           elevation: 10,
           overflow: 'hidden',
         },
@@ -69,37 +85,19 @@ const MainTabNavigator = () => {
         tabBarPressColor: 'transparent',
         tabBarPressOpacity: 1,
       })}>
-      <Tab.Screen
-        name="Dashboard"
-        component={DashboardScreen}
-      />
-      <Tab.Screen
-        name="Accounts"
-        component={AccountsScreen}
-      />
-      <Tab.Screen
-        name="Budgeting"
-        component={BudgetingScreen}
-      />
-      <Tab.Screen
-        name="RealEstate"
-        component={RealEstateScreen}
-      />
-      <Tab.Screen
-        name="Retirement"
-        component={RetirementScreen}
-      />
-      <Tab.Screen
-        name="Profile"
-        component={ProfileScreen}
-      />
+      <Tab.Screen name="Dashboard" component={DashboardScreen} />
+      <Tab.Screen name="Accounts" component={AccountsScreen} />
+      <Tab.Screen name="Budgeting" component={BudgetingScreen} />
+      <Tab.Screen name="RealEstate" component={RealEstateScreen} />
+      <Tab.Screen name="Retirement" component={RetirementScreen} />
+      <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
   );
 };
 
 const AppNavigator: React.FC = () => {
   console.log('🧭 AppNavigator.tsx: AppNavigator component rendering');
-  
+
   try {
     console.log('🧭 AppNavigator.tsx: About to render Stack.Navigator');
     return (
@@ -200,7 +198,10 @@ const AppNavigator: React.FC = () => {
       </Stack.Navigator>
     );
   } catch (error) {
-    console.error('❌ AppNavigator.tsx: Error in AppNavigator component:', error);
+    console.error(
+      '❌ AppNavigator.tsx: Error in AppNavigator component:',
+      error,
+    );
     throw error;
   }
 };

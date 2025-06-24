@@ -1,6 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
-import { OnboardingStep } from '../../types';
+import {View, Text, StyleSheet, Pressable} from 'react-native';
+import {OnboardingStep} from '../../types';
 import Icon from 'react-native-vector-icons/FontAwesome';
 
 interface OnboardingChecklistProps {
@@ -8,7 +8,10 @@ interface OnboardingChecklistProps {
   onToggleStep: (title: string, completed: boolean) => void;
 }
 
-const OnboardingChecklist: React.FC<OnboardingChecklistProps> = ({ steps, onToggleStep }) => {
+const OnboardingChecklist: React.FC<OnboardingChecklistProps> = ({
+  steps,
+  onToggleStep,
+}) => {
   if (!steps || steps.length === 0) {
     return null;
   }
@@ -19,17 +22,38 @@ const OnboardingChecklist: React.FC<OnboardingChecklistProps> = ({ steps, onTogg
     <View style={styles.card}>
       <Text style={styles.cardTitle}>Onboarding Checklist</Text>
       {steps.map(step => (
-        <Pressable key={step.title} onPress={() => onToggleStep(step.title, !step.completed)}>
-          <View style={[styles.checklistItem, step.completed && styles.completedItem]}>
+        <Pressable
+          key={step.title}
+          onPress={() => onToggleStep(step.title, !step.completed)}>
+          <View
+            style={[
+              styles.checklistItem,
+              step.completed && styles.completedItem,
+            ]}>
             <View style={styles.checklistItemContent}>
-              <Icon 
-                name={step.completed ? 'check-square-o' : 'square-o'} 
-                size={24} 
-                style={[styles.checklistIcon, step.completed && styles.completedIcon]} 
+              <Icon
+                name={step.completed ? 'check-square-o' : 'square-o'}
+                size={24}
+                style={[
+                  styles.checklistIcon,
+                  step.completed && styles.completedIcon,
+                ]}
               />
               <View style={styles.checklistTextContainer}>
-                <Text style={[styles.checklistTitle, step.completed && styles.completedText]}>{step.title}</Text>
-                <Text style={[styles.checklistDescription, step.completed && styles.completedText]}>{step.description.replace(/<a.*?>|<\/a>/g, '')}</Text>
+                <Text
+                  style={[
+                    styles.checklistTitle,
+                    step.completed && styles.completedText,
+                  ]}>
+                  {step.title}
+                </Text>
+                <Text
+                  style={[
+                    styles.checklistDescription,
+                    step.completed && styles.completedText,
+                  ]}>
+                  {step.description.replace(/<a.*?>|<\/a>/g, '')}
+                </Text>
               </View>
             </View>
           </View>
@@ -37,7 +61,9 @@ const OnboardingChecklist: React.FC<OnboardingChecklistProps> = ({ steps, onTogg
       ))}
       {allCompleted && (
         <View style={styles.completionMessage}>
-          <Text style={styles.completionText}>🎉 Great job! You've completed all onboarding steps.</Text>
+          <Text style={styles.completionText}>
+            🎉 Great job! You've completed all onboarding steps.
+          </Text>
         </View>
       )}
     </View>
@@ -111,4 +137,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default OnboardingChecklist; 
+export default OnboardingChecklist;

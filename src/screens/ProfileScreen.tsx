@@ -1,22 +1,46 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, TextInput, Pressable, ActivityIndicator, Alert, FlatList } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
-import { User, OnboardingStep, Session } from '../types';
-import { apiService } from '../services/api';
-import { storageService } from '../services/storage';
+import React, {useState, useCallback} from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TextInput,
+  TouchableOpacity,
+  Alert,
+  ActivityIndicator,
+  Image,
+} from 'react-native';
+import {useFocusEffect, useNavigation} from '@react-navigation/native';
+import {StackNavigationProp} from '@react-navigation/stack';
+import {User, OnboardingStep, Session, RootStackParamList} from '../types';
+import {apiService} from '../services/api';
+import {storageService} from '../services/storage';
 import OnboardingChecklist from '../components/profile/OnboardingChecklist';
+import SessionActivity from '../components/profile/SessionActivity';
 import DeleteModal from '../components/profile/DeleteModal';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import moment from 'moment';
 
-const ProfileScreen = ({ navigation }: any) => {
+type ProfileScreenNavigationProp = StackNavigationProp<
+  RootStackParamList,
+  'Profile'
+>;
+
+const ProfileScreen: React.FC = () => {
+  const navigation = useNavigation<ProfileScreenNavigationProp>();
   const [user, setUser] = useState<User | null>(null);
-  const [formState, setFormState] = useState({ firstName: '', lastName: '', username: '' });
+  const [formState, setFormState] = useState({
+    firstName: '',
+    lastName: '',
+    username: '',
+  });
   const [onboardingSteps, setOnboardingSteps] = useState<OnboardingStep[]>([]);
-  const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
-  const [modalVisible, setModalVisible] = useState(false);
+  const [updateStatus, setUpdateStatus] = useState<
+    'idle' | 'loading' | 'success' | 'error'
+  >('idle');
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchData = async () => {
     try {
@@ -33,7 +57,6 @@ const ProfileScreen = ({ navigation }: any) => {
           lastName: userResponse.data.lastName || '',
           username: userResponse.data.username || '',
         });
-        setSessions(userResponse.data.sessionActivity || []);
       } else {
         throw new Error(userResponse.message || 'Failed to fetch user data');
       }
@@ -41,9 +64,10 @@ const ProfileScreen = ({ navigation }: any) => {
       if (stepsResponse.success && stepsResponse.data) {
         setOnboardingSteps(stepsResponse.data);
       } else {
-        throw new Error(stepsResponse.message || 'Failed to fetch onboarding steps');
+        throw new Error(
+          stepsResponse.message || 'Failed to fetch onboarding steps',
+        );
       }
-
     } catch (error: any) {
       console.error('Failed to fetch profile data:', error.message);
       Alert.alert('Error', 'Failed to load profile data.');
@@ -55,37 +79,30 @@ const ProfileScreen = ({ navigation }: any) => {
   useFocusEffect(
     useCallback(() => {
       fetchData();
-    }, [])
+    }, []),
   );
 
   const handleInputChange = (name: string, value: string) => {
-    setFormState(prevState => ({ ...prevState, [name]: value }));
-    if (saveStatus !== 'idle') {
-      setSaveStatus('idle');
-    }
+    setFormState(prevState => ({...prevState, [name]: value}));
   };
 
-  const handleSaveProfile = async () => {
+  const handleUpdateProfile = async () => {
     if (!user) return;
-    setSaveStatus('saving');
+    setUpdateStatus('loading');
     try {
-      const response = await apiService.updateUser({
-        firstName: formState.firstName,
-        lastName: formState.lastName,
-        username: formState.username,
-      });
-
-      if (response.success && response.data) {
-        setUser(response.data);
-        setSaveStatus('saved');
-        setTimeout(() => setSaveStatus('idle'), 2000);
+      const response = await apiService.updateUser(formState);
+      if (response.success) {
+        setUpdateStatus('success');
+        setUser({...user, ...formState});
+        setTimeout(() => setUpdateStatus('idle'), 3000);
       } else {
         throw new Error(response.message || 'Failed to update profile');
       }
     } catch (error: any) {
-      console.error('Failed to save profile:', error.message);
-      setSaveStatus('error');
-      setTimeout(() => setSaveStatus('idle'), 3000);
+      setUpdateStatus('error');
+      console.error('Failed to update profile:', error.message);
+      Alert.alert('Error', 'Failed to update your profile.');
+      setTimeout(() => setUpdateStatus('idle'), 3000);
     }
   };
 
@@ -93,8 +110,8 @@ const ProfileScreen = ({ navigation }: any) => {
     try {
       setOnboardingSteps(prevSteps =>
         prevSteps.map(step =>
-          step.title === title ? { ...step, completed } : step
-        )
+          step.title === title ? {...step, completed} : step,
+        ),
       );
       await apiService.updateOnboardingStep(title, completed);
     } catch (error: any) {
@@ -103,20 +120,28 @@ const ProfileScreen = ({ navigation }: any) => {
       // Revert UI change on error
       setOnboardingSteps(prevSteps =>
         prevSteps.map(step =>
-          step.title === title ? { ...step, completed: !completed } : step
-        )
+          step.title === title ? {...step, completed: !completed} : step,
+        ),
       );
     }
   };
 
+  const handleLogout = async () => {
+    await storageService.removeItem('userToken');
+    await storageService.removeItem('userId');
+    navigation.reset({
+      index: 0,
+      routes: [{name: 'Login'}],
+    });
+  };
+
   const handleDeleteAccount = async () => {
-    setModalVisible(false);
     try {
       const response = await apiService.deleteAccount();
       if (response.success) {
         await storageService.removeItem('token');
         Alert.alert('Success', 'Your account has been deleted.');
-        navigation.navigate('Login');
+        handleLogout();
       } else {
         throw new Error(response.message || 'Failed to delete account');
       }
@@ -126,210 +151,194 @@ const ProfileScreen = ({ navigation }: any) => {
     }
   };
 
-  const getSaveButtonText = () => {
-    switch (saveStatus) {
-      case 'saving': return 'Saving...';
-      case 'saved': return 'Saved!';
-      case 'error': return 'Error!';
-      default: return 'Save Changes';
-    }
-  };
-
-  const renderSessionItem = ({ item }: { item: Session }) => (
-    <View style={styles.sessionItem}>
-      <Icon name="globe" size={20} style={styles.sessionIcon} />
-      <View style={styles.sessionDetails}>
-        <Text style={styles.sessionLocation}>
-          {item.location.city || 'Unknown City'}, {item.location.country || 'Unknown Country'}
-        </Text>
-        <Text style={styles.sessionInfo}>IP: {item.ipAddress}</Text>
-        <Text style={styles.sessionInfo}>{moment(item.timestamp).format('MMMM Do YYYY, h:mm:ss a')}</Text>
-        <Text style={styles.sessionInfo} numberOfLines={1} ellipsizeMode="tail">
-          {item.userAgent}
-        </Text>
-      </View>
-    </View>
-  );
-
   if (loading) {
-    return <View style={styles.container}><ActivityIndicator size="large" color="#556ee6" /></View>;
+    return (
+      <View style={styles.container}>
+        <ActivityIndicator size="large" color="#007bff" />
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.errorText}>{error}</Text>
+      </View>
+    );
   }
 
   return (
-    <FlatList
-      style={styles.container}
-      data={sessions}
-      renderItem={renderSessionItem}
-      keyExtractor={(item) => item._id}
-      ListHeaderComponent={
-        <>
-          <OnboardingChecklist steps={onboardingSteps} onToggleStep={handleToggleStep} />
+    <ScrollView style={styles.container}>
+      <View style={styles.header}>
+        <Image
+          style={styles.profileImage}
+          source={{uri: user?.profilePicture || 'https://via.placeholder.com/150'}}
+        />
+        <Text style={styles.name}>
+          {user?.firstName} {user?.lastName}
+        </Text>
+        <Text style={styles.username}>@{user?.username}</Text>
+      </View>
 
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Profile Details</Text>
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>First Name</Text>
-              <TextInput
-                style={styles.input}
-                value={formState.firstName}
-                onChangeText={(value) => handleInputChange('firstName', value)}
-                placeholder="First Name"
-                placeholderTextColor="#a6b0cf"
-              />
-            </View>
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Last Name</Text>
-              <TextInput
-                style={styles.input}
-                value={formState.lastName}
-                onChangeText={(value) => handleInputChange('lastName', value)}
-                placeholder="Last Name"
-                placeholderTextColor="#a6b0cf"
-              />
-            </View>
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Username</Text>
-              <TextInput
-                style={styles.input}
-                value={formState.username}
-                onChangeText={(value) => handleInputChange('username', value)}
-                placeholder="Username"
-                placeholderTextColor="#a6b0cf"
-              />
-            </View>
-             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Email</Text>
-              <TextInput
-                style={[styles.input, styles.readOnlyInput]}
-                value={user?.email || ''}
-                editable={false}
-              />
-            </View>
-            <Pressable
-              style={[styles.button, saveStatus === 'saved' ? styles.savedButton : saveStatus === 'error' ? styles.errorButton : styles.saveButton]}
-              onPress={handleSaveProfile}
-              disabled={saveStatus === 'saving'}
-            >
-              <Text style={styles.buttonText}>{getSaveButtonText()}</Text>
-            </Pressable>
-          </View>
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Session Activity</Text>
-          </View>
-        </>
-      }
-      ListFooterComponent={
-        <>
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Delete Your Profile</Text>
-            <Pressable style={[styles.button, styles.deleteButton]} onPress={() => setModalVisible(true)}>
-              <Text style={styles.buttonText}>Delete Profile</Text>
-            </Pressable>
-          </View>
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Edit Profile</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="First Name"
+          value={formState.firstName}
+          onChangeText={text => handleInputChange('firstName', text)}
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="Last Name"
+          value={formState.lastName}
+          onChangeText={text => handleInputChange('lastName', text)}
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="Username"
+          value={formState.username}
+          onChangeText={text => handleInputChange('username', text)}
+        />
+        <TouchableOpacity
+          style={styles.button}
+          onPress={handleUpdateProfile}
+          disabled={updateStatus === 'loading'}>
+          {updateStatus === 'loading' ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.buttonText}>Update Profile</Text>
+          )}
+        </TouchableOpacity>
+        {updateStatus === 'success' && (
+          <Text style={styles.successMessage}>Profile updated!</Text>
+        )}
+        {updateStatus === 'error' && (
+          <Text style={styles.errorMessage}>Update failed.</Text>
+        )}
+      </View>
 
-          <DeleteModal
-            visible={modalVisible}
-            onClose={() => setModalVisible(false)}
-            onConfirm={handleDeleteAccount}
-          />
-        </>
-      }
-      showsVerticalScrollIndicator={false}
-    />
+      <OnboardingChecklist steps={onboardingSteps} onToggleStep={handleToggleStep} />
+
+      <SessionActivity sessions={user?.sessions || []} />
+
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Account Actions</Text>
+        <TouchableOpacity style={styles.buttonSecondary} onPress={handleLogout}>
+          <Text style={styles.buttonSecondaryText}>Logout</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.buttonDanger}
+          onPress={() => setShowDeleteModal(true)}>
+          <Text style={styles.buttonDangerText}>Delete Account</Text>
+        </TouchableOpacity>
+      </View>
+
+      <DeleteModal
+        visible={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleDeleteAccount}
+        title="Delete Account"
+        message="Are you sure you want to delete your account? This action is irreversible."
+      />
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1c2130',
-    paddingHorizontal: 10,
-    paddingBottom: 10,
-    paddingTop: 60,
+    backgroundColor: '#f4f6f8',
+  },
+  header: {
+    backgroundColor: '#fff',
+    padding: 20,
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  profileImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    marginBottom: 10,
+  },
+  name: {
+    fontSize: 22,
+    fontWeight: 'bold',
+  },
+  username: {
+    fontSize: 16,
+    color: '#666',
   },
   card: {
-    backgroundColor: '#2a3042',
-    borderRadius: 8,
+    backgroundColor: '#fff',
     padding: 20,
-    marginBottom: 20,
+    margin: 15,
+    borderRadius: 10,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 1},
+    shadowOpacity: 0.2,
+    shadowRadius: 1.41,
+    elevation: 2,
   },
   cardTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#e0e0e0',
     marginBottom: 15,
-  },
-  inputGroup: {
-    marginBottom: 15,
-  },
-  label: {
-    color: '#a6b0cf',
-    marginBottom: 5,
-    fontSize: 14,
   },
   input: {
-    backgroundColor: '#32394e',
-    color: '#e0e0e0',
-    borderRadius: 8,
-    paddingHorizontal: 15,
-    paddingVertical: 12,
-    fontSize: 16,
     borderWidth: 1,
-    borderColor: '#32394e',
-  },
-  readOnlyInput: {
-    backgroundColor: '#2E3951',
-    color: '#a6b0cf',
+    borderColor: '#ddd',
+    padding: 10,
+    borderRadius: 5,
+    marginBottom: 10,
   },
   button: {
-    borderRadius: 8,
-    paddingVertical: 12,
+    backgroundColor: '#007bff',
+    padding: 15,
+    borderRadius: 5,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
-  saveButton: {
-    backgroundColor: '#556ee6',
-  },
-  savedButton: {
-    backgroundColor: '#34c38f',
-  },
-  errorButton: {
-    backgroundColor: '#f46a6a',
-  },
-  deleteButton: {
-    backgroundColor: '#dc3545',
   },
   buttonText: {
-    color: '#ffffff',
+    color: '#fff',
     fontWeight: 'bold',
   },
-  sessionItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    paddingVertical: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
-    backgroundColor: '#2a3042',
-    paddingHorizontal: 20,
+  buttonSecondary: {
+    backgroundColor: '#6c757d',
+    padding: 15,
+    borderRadius: 5,
+    alignItems: 'center',
+    marginBottom: 10,
   },
-  sessionIcon: {
-    color: '#a6b0cf',
-    marginRight: 15,
-    marginTop: 2,
-  },
-  sessionDetails: {
-    flex: 1,
-  },
-  sessionLocation: {
-    fontSize: 15,
+  buttonSecondaryText: {
+    color: '#fff',
     fontWeight: 'bold',
-    color: '#e0e0e0',
-    marginBottom: 5,
   },
-  sessionInfo: {
-    fontSize: 13,
-    color: '#a6b0cf',
-    marginBottom: 3,
+  buttonDanger: {
+    backgroundColor: '#dc3545',
+    padding: 15,
+    borderRadius: 5,
+    alignItems: 'center',
+  },
+  buttonDangerText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  successMessage: {
+    color: 'green',
+    textAlign: 'center',
+    marginTop: 10,
+  },
+  errorMessage: {
+    color: 'red',
+    textAlign: 'center',
+    marginTop: 10,
+  },
+  errorText: {
+    color: 'red',
+    textAlign: 'center',
+    margin: 20,
   },
 });
 

@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useCallback} from 'react';
 import {
   View,
   Text,
@@ -12,17 +12,16 @@ import {
   TextInput,
   Alert,
   Linking,
-  ActivityIndicator,
   Button,
 } from 'react-native';
-import {LineChart, BarChart} from 'react-native-chart-kit';
+import {LineChart} from 'react-native-chart-kit';
 import {StackNavigationProp} from '@react-navigation/stack';
 import {RootStackParamList, RealEstate, Unit} from '../types';
-import { apiService } from '../services/api';
-import { Picker } from '@react-native-picker/picker';
+import {apiService} from '../services/api';
+import {Picker} from '@react-native-picker/picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import Toast from 'react-native-root-toast';
-import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
+import {createMaterialTopTabNavigator} from '@react-navigation/material-top-tabs';
 import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 import DocumentPicker from 'react-native-document-picker';
 import DeleteModal from '../components/profile/DeleteModal';
@@ -69,25 +68,45 @@ const propertyTypeColors: Record<string, string> = {
   'Vacation Home': '#F9A825',
 };
 
-const PropertyForm = ({ visible, onClose, onSave, initialData }: any) => {
-  const [form, setForm] = useState<Partial<RealEstate>>(initialData || emptyForm);
+const PropertyForm = ({visible, onClose, onSave, initialData}: any) => {
+  const [form, setForm] = useState<Partial<RealEstate>>(
+    initialData || emptyForm,
+  );
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  useEffect(() => { setForm(initialData || emptyForm); setError(null); }, [initialData]);
+  useEffect(() => {
+    setForm(initialData || emptyForm);
+    setError(null);
+  }, [initialData]);
 
   const validate = () => {
-    if (!form.propertyType) return 'Property type is required.';
-    if (!form.propertyAddress) return 'Address is required.';
-    if (!form.purchaseDate) return 'Purchase date is required.';
-    if (!form.purchasePrice || form.purchasePrice <= 0) return 'Purchase price must be positive.';
-    if (!form.value || form.value <= 0) return 'Current value must be positive.';
-    if (form.mortgageBalance === undefined || form.mortgageBalance < 0) return 'Mortgage balance must be zero or positive.';
+    if (!form.propertyType) {
+      return 'Property type is required.';
+    }
+    if (!form.propertyAddress) {
+      return 'Address is required.';
+    }
+    if (!form.purchaseDate) {
+      return 'Purchase date is required.';
+    }
+    if (!form.purchasePrice || form.purchasePrice <= 0) {
+      return 'Purchase price must be positive.';
+    }
+    if (!form.value || form.value <= 0) {
+      return 'Current value must be positive.';
+    }
+    if (form.mortgageBalance === undefined || form.mortgageBalance < 0) {
+      return 'Mortgage balance must be zero or positive.';
+    }
     return null;
   };
 
   const handleSave = () => {
     const err = validate();
-    if (err) { setError(err); return; }
+    if (err) {
+      setError(err);
+      return;
+    }
     onSave(form);
   };
 
@@ -96,12 +115,19 @@ const PropertyForm = ({ visible, onClose, onSave, initialData }: any) => {
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
           <ScrollView>
-            <Text style={styles.modalTitle}>{form._id ? 'Edit' : 'Add'} Property</Text>
+            <Text style={styles.modalTitle}>
+              {form._id ? 'Edit' : 'Add'} Property
+            </Text>
             <Text style={styles.inputLabel}>Property Type</Text>
             <View style={styles.pickerWrapper}>
               <Picker
                 selectedValue={form.propertyType}
-                onValueChange={(v: string | undefined) => setForm(f => ({ ...f, propertyType: v as RealEstate['propertyType'] }))}>
+                onValueChange={(v: string | undefined) =>
+                  setForm(f => ({
+                    ...f,
+                    propertyType: v as RealEstate['propertyType'],
+                  }))
+                }>
                 <Picker.Item label="Select type..." value={undefined} />
                 {propertyTypeOptions.map(opt => (
                   <Picker.Item key={opt} label={opt} value={opt} />
@@ -109,29 +135,79 @@ const PropertyForm = ({ visible, onClose, onSave, initialData }: any) => {
               </Picker>
             </View>
             <Text style={styles.inputLabel}>Address</Text>
-            <TextInput style={styles.input} placeholder="Address" value={form.propertyAddress || ''} onChangeText={v => setForm(f => ({ ...f, propertyAddress: v }))} />
+            <TextInput
+              style={styles.input}
+              placeholder="Address"
+              value={form.propertyAddress || ''}
+              onChangeText={v => setForm(f => ({...f, propertyAddress: v}))}
+            />
             <Text style={styles.inputLabel}>Purchase Date</Text>
-            <TouchableOpacity style={styles.input} onPress={() => setShowDatePicker(true)}>
-              <Text>{form.purchaseDate ? (typeof form.purchaseDate === 'string' ? form.purchaseDate : form.purchaseDate.toISOString().slice(0,10)) : 'Select date...'}</Text>
+            <TouchableOpacity
+              style={styles.input}
+              onPress={() => setShowDatePicker(true)}>
+              <Text>
+                {form.purchaseDate
+                  ? typeof form.purchaseDate === 'string'
+                    ? form.purchaseDate
+                    : form.purchaseDate.toISOString().slice(0, 10)
+                  : 'Select date...'}
+              </Text>
             </TouchableOpacity>
             {showDatePicker && (
               <DateTimePicker
-                value={form.purchaseDate ? (typeof form.purchaseDate === 'string' ? new Date(form.purchaseDate) : form.purchaseDate) : new Date()}
+                value={
+                  form.purchaseDate
+                    ? typeof form.purchaseDate === 'string'
+                      ? new Date(form.purchaseDate)
+                      : form.purchaseDate
+                    : new Date()
+                }
                 mode="date"
                 display="default"
-                onChange={(_: any, date?: Date) => { setShowDatePicker(false); if (date) setForm(f => ({ ...f, purchaseDate: date })); }}
+                onChange={(_: any, date?: Date) => {
+                  setShowDatePicker(false);
+                  if (date) {
+                    setForm(f => ({...f, purchaseDate: date}));
+                  }
+                }}
               />
             )}
             <Text style={styles.inputLabel}>Purchase Price</Text>
-            <TextInput style={styles.input} placeholder="Purchase Price" keyboardType="numeric" value={form.purchasePrice?.toString() || ''} onChangeText={v => setForm(f => ({ ...f, purchasePrice: parseFloat(v) }))} />
+            <TextInput
+              style={styles.input}
+              placeholder="Purchase Price"
+              keyboardType="numeric"
+              value={form.purchasePrice?.toString() || ''}
+              onChangeText={v =>
+                setForm(f => ({...f, purchasePrice: parseFloat(v)}))
+              }
+            />
             <Text style={styles.inputLabel}>Current Value</Text>
-            <TextInput style={styles.input} placeholder="Current Value" keyboardType="numeric" value={form.value?.toString() || ''} onChangeText={v => setForm(f => ({ ...f, value: parseFloat(v) }))} />
+            <TextInput
+              style={styles.input}
+              placeholder="Current Value"
+              keyboardType="numeric"
+              value={form.value?.toString() || ''}
+              onChangeText={v => setForm(f => ({...f, value: parseFloat(v)}))}
+            />
             <Text style={styles.inputLabel}>Mortgage Balance</Text>
-            <TextInput style={styles.input} placeholder="Mortgage Balance" keyboardType="numeric" value={form.mortgageBalance?.toString() || ''} onChangeText={v => setForm(f => ({ ...f, mortgageBalance: parseFloat(v) }))} />
+            <TextInput
+              style={styles.input}
+              placeholder="Mortgage Balance"
+              keyboardType="numeric"
+              value={form.mortgageBalance?.toString() || ''}
+              onChangeText={v =>
+                setForm(f => ({...f, mortgageBalance: parseFloat(v)}))
+              }
+            />
             {error && <Text style={styles.errorText}>{error}</Text>}
             <View style={styles.modalActions}>
-              <TouchableOpacity onPress={onClose}><Text style={styles.cancelBtn}>Cancel</Text></TouchableOpacity>
-              <TouchableOpacity onPress={handleSave}><Text style={styles.saveBtn}>Save</Text></TouchableOpacity>
+              <TouchableOpacity onPress={onClose}>
+                <Text style={styles.cancelBtn}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={handleSave}>
+                <Text style={styles.saveBtn}>Save</Text>
+              </TouchableOpacity>
             </View>
           </ScrollView>
         </View>
@@ -143,59 +219,93 @@ const PropertyForm = ({ visible, onClose, onSave, initialData }: any) => {
 // Tabbed Property Detail Screen
 const Tab = createMaterialTopTabNavigator();
 
-const PropertyDetailsTab = ({ property }: { property: RealEstate }) => (
-  <ScrollView style={{ padding: 16 }}>
-    <Text style={{ fontWeight: 'bold', fontSize: 18 }}>Property Details</Text>
+const PropertyDetailsTab = ({property}: {property: RealEstate}) => (
+  <ScrollView style={{padding: 16}}>
+    <Text style={{fontWeight: 'bold', fontSize: 18}}>Property Details</Text>
     <Text>Type: {property.propertyType}</Text>
     <Text>Address: {property.propertyAddress}</Text>
-    <Text>Purchase Date: {property.purchaseDate ? (typeof property.purchaseDate === 'string' ? property.purchaseDate : property.purchaseDate.toISOString().slice(0,10)) : ''}</Text>
+    <Text>
+      Purchase Date:{' '}
+      {property.purchaseDate
+        ? typeof property.purchaseDate === 'string'
+          ? property.purchaseDate
+          : property.purchaseDate.toISOString().slice(0, 10)
+        : ''}
+    </Text>
     <Text>Purchase Price: ${property.purchasePrice}</Text>
     <Text>Current Value: ${property.value}</Text>
     <Text>Mortgage Balance: ${property.mortgageBalance}</Text>
   </ScrollView>
 );
 
-const UnitsTab = ({ propertyId }: { propertyId: string }) => {
+const UnitsTab = ({propertyId}: {propertyId: string}) => {
   const [units, setUnits] = useState<Unit[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
   const [editing, setEditing] = useState<Unit | null>(null);
-  const [form, setForm] = useState<Partial<Unit>>({ name: '', rentAmount: 0, tenant: '' });
+  const [form, setForm] = useState<Partial<Unit>>({
+    name: '',
+    rentAmount: 0,
+    tenant: '',
+  });
   const [error, setError] = useState<string | null>(null);
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [unitToDelete, setUnitToDelete] = useState<Unit | null>(null);
 
-  const loadUnits = async () => {
+  const loadUnits = useCallback(async () => {
     setLoading(true);
-    // property.units is available from parent, but always fetch latest
-    const resp = await apiService.getPropertyDetails(propertyId);
-    if (resp.success && resp.data) {
-      setUnits(resp.data.units || []);
+    const res = await apiService.getUnits(propertyId);
+    if (res.success) {
+      setUnits(res.data || []);
+    } else {
+      showToast(res.message || 'Failed to load units', false);
     }
     setLoading(false);
-  };
-  useEffect(() => { loadUnits(); }, []);
+  }, [propertyId]);
+
+  useEffect(() => {
+    loadUnits();
+  }, [loadUnits]);
 
   const showToast = (msg: string, success = true) => {
-    Toast.show(msg, { backgroundColor: success ? '#28a745' : '#F44336', duration: 2000, position: Toast.positions.BOTTOM });
+    Toast.show(msg, {
+      duration: Toast.durations.LONG,
+      backgroundColor: success ? '#28a745' : '#F44336',
+    });
   };
 
   const openModal = (unit?: Unit) => {
     setEditing(unit || null);
-    setForm(unit ? { ...unit } : { name: '', rentAmount: 0, tenant: '' });
+    setForm(unit ? {...unit} : {name: '', rentAmount: 0, tenant: ''});
     setError(null);
     setModalVisible(true);
   };
-  const closeModal = () => { setModalVisible(false); setEditing(null); setForm({ name: '', rentAmount: 0, tenant: '' }); setError(null); };
+  const closeModal = () => {
+    setModalVisible(false);
+    setEditing(null);
+    setForm({name: '', rentAmount: 0, tenant: ''});
+    setError(null);
+  };
 
   const validate = () => {
-    if (!form.name) return 'Unit name required.';
-    if (form.rentAmount === undefined || form.rentAmount < 0) return 'Rent amount required.';
-    if (!form.tenant) return 'Tenant required.';
+    if (!form.name) {
+      return 'Unit name required.';
+    }
+    if (form.rentAmount === undefined || form.rentAmount < 0) {
+      return 'Rent amount required.';
+    }
+    if (!form.tenant) {
+      return 'Tenant required.';
+    }
     return null;
   };
 
   const handleSave = async () => {
     const err = validate();
-    if (err) { setError(err); return; }
+    if (err) {
+      setError(err);
+      return;
+    }
     try {
       if (editing && editing._id) {
         await apiService.updateUnit(propertyId, editing._id, form);
@@ -210,242 +320,269 @@ const UnitsTab = ({ propertyId }: { propertyId: string }) => {
       showToast('Error saving unit', false);
     }
   };
-  const handleDelete = async (unitId: string) => {
+  const handleDelete = async () => {
+    if (!unitToDelete) {
+      return;
+    }
     try {
-      await apiService.deleteUnit(propertyId, unitId);
+      await apiService.deleteUnit(propertyId, unitToDelete._id!);
       showToast('Unit deleted!');
+      setDeleteModalVisible(false);
+      setUnitToDelete(null);
       loadUnits();
     } catch (e) {
       showToast('Error deleting unit', false);
     }
   };
 
+  const openDeleteConfirm = (unit: Unit) => {
+    setUnitToDelete(unit);
+    setDeleteModalVisible(true);
+  };
+
   return (
-    <SafeAreaView style={{ flex: 1 }}>
+    <SafeAreaView style={{flex: 1}}>
       <FlatList
         data={units}
         keyExtractor={item => item._id || item.name}
-        renderItem={({ item }) => (
-          <View style={{ flexDirection: 'row', alignItems: 'center', padding: 12, borderBottomWidth: 1, borderColor: '#eee' }}>
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontWeight: 'bold' }}>{item.name}</Text>
+        renderItem={({item}) => (
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              padding: 12,
+              borderBottomWidth: 1,
+              borderColor: '#eee',
+            }}>
+            <View style={{flex: 1}}>
+              <Text style={{fontWeight: 'bold'}}>{item.name}</Text>
               <Text>Tenant: {item.tenant}</Text>
               <Text>Rent: ${item.rentAmount}</Text>
             </View>
-            <TouchableOpacity onPress={() => openModal(item)} style={{ marginRight: 12 }}><Text style={{ color: '#1976D2' }}>Edit</Text></TouchableOpacity>
-            <TouchableOpacity onPress={() => handleDelete(item._id!)}><Text style={{ color: '#F44336' }}>Delete</Text></TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => openModal(item)}
+              style={{marginRight: 12}}>
+              <Text style={{color: '#1976D2'}}>Edit</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => openDeleteConfirm(item)}>
+              <Text style={{color: '#F44336'}}>Delete</Text>
+            </TouchableOpacity>
           </View>
         )}
-        ListEmptyComponent={<Text style={{ textAlign: 'center', marginTop: 32 }}>No units found.</Text>}
+        ListEmptyComponent={
+          <Text style={{textAlign: 'center', marginTop: 32}}>
+            No units found.
+          </Text>
+        }
         refreshing={loading}
         onRefresh={loadUnits}
       />
-      <TouchableOpacity onPress={() => openModal()} style={{ backgroundColor: '#2E7D32', padding: 16, margin: 16, borderRadius: 8 }}>
-        <Text style={{ color: '#fff', textAlign: 'center', fontWeight: 'bold' }}>Add Unit</Text>
+      <TouchableOpacity
+        onPress={() => openModal()}
+        style={{
+          backgroundColor: '#2E7D32',
+          padding: 16,
+          margin: 16,
+          borderRadius: 8,
+        }}>
+        <Text style={{color: '#fff', textAlign: 'center', fontWeight: 'bold'}}>
+          Add Unit
+        </Text>
       </TouchableOpacity>
       <Modal visible={modalVisible} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>{editing ? 'Edit' : 'Add'} Unit</Text>
+            <Text style={styles.modalTitle}>
+              {editing ? 'Edit' : 'Add'} Unit
+            </Text>
             <Text style={styles.inputLabel}>Name</Text>
-            <TextInput style={styles.input} placeholder="Unit Name" value={form.name || ''} onChangeText={v => setForm(f => ({ ...f, name: v }))} />
+            <TextInput
+              style={styles.input}
+              placeholder="Unit Name"
+              value={form.name || ''}
+              onChangeText={v => setForm(f => ({...f, name: v}))}
+            />
             <Text style={styles.inputLabel}>Tenant</Text>
-            <TextInput style={styles.input} placeholder="Tenant Name" value={form.tenant || ''} onChangeText={v => setForm(f => ({ ...f, tenant: v }))} />
+            <TextInput
+              style={styles.input}
+              placeholder="Tenant Name"
+              value={form.tenant || ''}
+              onChangeText={v => setForm(f => ({...f, tenant: v}))}
+            />
             <Text style={styles.inputLabel}>Rent Amount</Text>
-            <TextInput style={styles.input} placeholder="Rent Amount" keyboardType="numeric" value={form.rentAmount?.toString() || ''} onChangeText={v => setForm(f => ({ ...f, rentAmount: parseFloat(v) }))} />
+            <TextInput
+              style={styles.input}
+              placeholder="Rent Amount"
+              keyboardType="numeric"
+              value={form.rentAmount?.toString() || ''}
+              onChangeText={v =>
+                setForm(f => ({...f, rentAmount: parseFloat(v)}))
+              }
+            />
             {error && <Text style={styles.errorText}>{error}</Text>}
             <View style={styles.modalActions}>
-              <TouchableOpacity onPress={closeModal}><Text style={styles.cancelBtn}>Cancel</Text></TouchableOpacity>
-              <TouchableOpacity onPress={handleSave}><Text style={styles.saveBtn}>Save</Text></TouchableOpacity>
+              <TouchableOpacity onPress={closeModal}>
+                <Text style={styles.cancelBtn}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={handleSave}>
+                <Text style={styles.saveBtn}>Save</Text>
+              </TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
+      <DeleteModal
+        visible={deleteModalVisible}
+        onClose={() => setDeleteModalVisible(false)}
+        onConfirm={handleDelete}
+        title="Delete Unit"
+        message="Are you sure you want to delete this unit?"
+        confirmText="Delete"
+      />
     </SafeAreaView>
   );
 };
 
-const RentTab = () => <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}><Text>Rent (Coming soon)</Text></View>;
+const RentTab = () => (
+  <View />
+);
 
-const ExpensesTab = ({ propertyId }: { propertyId: string }) => {
-  const [expenses, setExpenses] = useState<any[]>([]);
+const ExpensesTab = ({
+  expenses,
+  onRefresh,
+  onDelete,
+  onEdit,
+}: {
+  expenses: any[];
+  onRefresh: () => void;
+  onDelete: (expense: any) => void;
+  onEdit: (expense: any) => void;
+}) => {
   const [loading, setLoading] = useState(false);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [editingExpense, setEditingExpense] = useState<any>(null);
-  const [form, setForm] = useState({ date: new Date().toISOString().slice(0, 10), description: '', category: '', amount: '' });
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
-  const [expenseToDelete, setExpenseToDelete] = useState<any>(null);
 
-  const fetchExpenses = async () => {
+  const handleRefresh = async () => {
     setLoading(true);
-    try {
-      const resp = await apiService.listRealEstateExpenses(propertyId);
-      if (resp.success) setExpenses(resp.data);
-    } catch (e) {
-      Alert.alert('Error', 'Could not load expenses');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchExpenses();
-  }, []);
-
-  const openForm = (expense: any = null) => {
-    if (expense) {
-      setEditingExpense(expense);
-      setForm({
-        date: new Date(expense.date).toISOString().slice(0, 10),
-        description: expense.description,
-        category: expense.category,
-        amount: expense.amount.toString(),
-      });
-    } else {
-      setEditingExpense(null);
-      setForm({ date: new Date().toISOString().slice(0, 10), description: '', category: '', amount: '' });
-    }
-    setModalVisible(true);
-  };
-
-  const handleSave = async () => {
-    const payload = { ...form, amount: parseFloat(form.amount) };
-    try {
-      if (editingExpense) {
-        await apiService.updateRealEstateExpense(propertyId, editingExpense._id, payload);
-      } else {
-        await apiService.addRealEstateExpense(propertyId, payload);
-      }
-      setModalVisible(false);
-      fetchExpenses();
-    } catch (e) {
-      Alert.alert('Error', 'Failed to save expense');
-    }
-  };
-
-  const openDeleteConfirm = (expense: any) => {
-    setExpenseToDelete(expense);
-    setDeleteModalVisible(true);
-  };
-
-  const handleDelete = async () => {
-    if (!expenseToDelete) return;
-    try {
-      await apiService.deleteRealEstateExpense(propertyId, expenseToDelete._id);
-      setDeleteModalVisible(false);
-      setExpenseToDelete(null);
-      fetchExpenses();
-    } catch (e) {
-      Alert.alert('Error', 'Failed to delete expense');
-    }
+    await onRefresh();
+    setLoading(false);
   };
 
   return (
-    <View style={{flex: 1}}>
+    <SafeAreaView style={{flex: 1}}>
       <FlatList
         data={expenses}
         keyExtractor={item => item._id}
         refreshing={loading}
-        onRefresh={fetchExpenses}
+        onRefresh={handleRefresh}
         renderItem={({item}) => (
-          <View style={{flexDirection: 'row', padding: 10, alignItems: 'center'}}>
+          <View style={styles.expenseRow}>
             <View style={{flex: 1}}>
-              <Text style={{fontWeight: 'bold'}}>{item.category}: ${item.amount.toFixed(2)}</Text>
+              <Text style={{fontWeight: 'bold'}}>
+                {item.category}: ${item.amount.toFixed(2)}
+              </Text>
               <Text>{item.description}</Text>
               <Text>{new Date(item.date).toLocaleDateString()}</Text>
             </View>
-            <TouchableOpacity onPress={() => openForm(item)} style={{padding: 5}}><FontAwesome5 name="edit" /></TouchableOpacity>
-            <TouchableOpacity onPress={() => openDeleteConfirm(item)} style={{padding: 5}}><FontAwesome5 name="trash" color="red" /></TouchableOpacity>
+            <TouchableOpacity onPress={() => onEdit(item)} style={{padding: 5}}>
+              <FontAwesome5 name="edit" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => onDelete(item)}
+              style={{padding: 5}}>
+              <FontAwesome5 name="trash" color="red" />
+            </TouchableOpacity>
           </View>
         )}
       />
-      <Button title="Add Expense" onPress={() => openForm()} />
-      <Modal visible={modalVisible} transparent>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>{editingExpense ? 'Edit' : 'Add'} Expense</Text>
-            <TouchableOpacity onPress={() => setShowDatePicker(true)}><TextInput style={styles.input} value={form.date} editable={false} /></TouchableOpacity>
-            {showDatePicker && <DateTimePicker value={new Date(form.date)} mode="date" display="default" onChange={(_, d) => { setShowDatePicker(false); if(d) setForm(f => ({...f, date: d.toISOString().slice(0,10)}))}} />}
-            <TextInput style={styles.input} placeholder="Description" value={form.description} onChangeText={v => setForm(f => ({...f, description: v}))} />
-            <TextInput style={styles.input} placeholder="Category" value={form.category} onChangeText={v => setForm(f => ({...f, category: v}))} />
-            <TextInput style={styles.input} placeholder="Amount" keyboardType="numeric" value={form.amount} onChangeText={v => setForm(f => ({...f, amount: v}))} />
-            <View style={{flexDirection: 'row', justifyContent: 'space-around'}}>
-              <Button title="Cancel" onPress={() => setModalVisible(false)} />
-              <Button title="Save" onPress={handleSave} />
-            </View>
-          </View>
-        </View>
-      </Modal>
-      <DeleteModal visible={deleteModalVisible} onClose={() => setDeleteModalVisible(false)} onConfirm={handleDelete} />
-    </View>
+      <Button title="Add Expense" onPress={() => onEdit(null)} />
+    </SafeAreaView>
   );
 };
 
-const DocumentsTab = () => <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}><Text>Documents (Coming soon)</Text></View>;
-const VacanciesTab = () => <View style={{ flex:1, alignItems: 'center', justifyContent: 'center' }}><Text>Vacancies (Coming soon)</Text></View>;
-const AnalyticsTab = () => <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}><Text>Analytics (Coming soon)</Text></View>;
+const DocumentsTab = () => (
+  <View style={{flex: 1, alignItems: 'center', justifyContent: 'center'}}>
+    <Text>Documents (Coming soon)</Text>
+  </View>
+);
+const VacanciesTab = () => (
+  <View style={{flex: 1, alignItems: 'center', justifyContent: 'center'}}>
+    <Text>Vacancies (Coming soon)</Text>
+  </View>
+);
+const AnalyticsTab = () => (
+  <View />
+);
 
-const PropertyDetailScreen = ({ route, navigation }: any) => {
-  const { property } = route.params;
+const PropertyDetailScreen = ({route}: any) => {
+  const property = route.params.property;
   return (
-    <SafeAreaView style={{ flex: 1 }}>
-      <Tab.Navigator>
-        <Tab.Screen name="Details">
-          {() => <PropertyDetailsTab property={property} />}
-        </Tab.Screen>
-        <Tab.Screen name="Units">
-          {() => <UnitsTab propertyId={property._id} />}
-        </Tab.Screen>
-        <Tab.Screen name="Rent" component={RentTab} />
-        <Tab.Screen name="Expenses">
-          {() => <ExpensesTab propertyId={property._id} />}
-        </Tab.Screen>
-        <Tab.Screen name="Documents" component={DocumentsTab} />
-        <Tab.Screen name="Vacancies" component={VacanciesTab} />
-        <Tab.Screen name="Analytics" component={AnalyticsTab} />
-      </Tab.Navigator>
-    </SafeAreaView>
+    <Tab.Navigator>
+      <Tab.Screen name="Details">
+        {() => <PropertyDetailsTab property={property} />}
+      </Tab.Screen>
+      <Tab.Screen name="Units">
+        {() => <UnitsTab propertyId={property._id} />}
+      </Tab.Screen>
+      <Tab.Screen name="Rent" component={RentTab} />
+      <Tab.Screen name="Expenses">
+        {() => (
+          <ExpensesTab
+            expenses={route.params.expenses}
+            onRefresh={route.params.onRefreshExpenses}
+            onDelete={route.params.onDeleteExpense}
+            onEdit={route.params.onEditExpense}
+          />
+        )}
+      </Tab.Screen>
+      <Tab.Screen name="Documents" component={DocumentsTab} />
+      <Tab.Screen name="Vacancies" component={VacanciesTab} />
+      <Tab.Screen name="Analytics" component={AnalyticsTab} />
+    </Tab.Navigator>
   );
 };
 
 // Main RealEstateScreen: Property List
 const RealEstateScreen: React.FC<Props> = ({navigation}) => {
-  const [loading, setLoading] = useState(true);
   const [properties, setProperties] = useState<RealEstate[]>([]);
-  const [modalVisible, setModalVisible] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Partial<RealEstate> | null>(null);
+  const [modalVisible, setModalVisible] = useState(false);
+
   const [totalEquity, setTotalEquity] = useState(0);
-  const [totalRentIncome, setTotalRentIncome] = useState(0);
   const [totalNOI, setTotalNOI] = useState(0);
   const [averageCapRate, setAverageCapRate] = useState(0);
   const [averageCoCReturn, setAverageCoCReturn] = useState(0);
-  const [detailModalVisible, setDetailModalVisible] = useState(false);
-  const [selectedProperty, setSelectedProperty] = useState<RealEstate | null>(null);
-  const [rentForm, setRentForm] = useState({ startDate: '', endDate: '', amount: '' });
-  const [showStartPicker, setShowStartPicker] = useState(false);
-  const [showEndPicker, setShowEndPicker] = useState(false);
-  const [addingRent, setAddingRent] = useState(false);
+
+  const [rentForm, setRentForm] = useState({
+    startDate: '',
+    endDate: '',
+    amount: '',
+  });
+  const [showExpenseDatePicker, setShowExpenseDatePicker] = useState(false);
+
   const [docsModalVisible, setDocsModalVisible] = useState(false);
   const [docsProperty, setDocsProperty] = useState<RealEstate | null>(null);
   const [docs, setDocs] = useState<any[]>([]);
   const [docName, setDocName] = useState('');
   const [docFile, setDocFile] = useState<any>(null);
   const [uploadingDoc, setUploadingDoc] = useState(false);
-  const [renameModalVisible, setRenameModalVisible] = useState(false);
   const [renameDocId, setRenameDocId] = useState<string | null>(null);
   const [renameDocValue, setRenameDocValue] = useState('');
+
   const [expensesModalVisible, setExpensesModalVisible] = useState(false);
-  const [expensesProperty, setExpensesProperty] = useState<RealEstate | null>(null);
+  const [expensesProperty, setExpensesProperty] = useState<RealEstate | null>(
+    null,
+  );
   const [expenses, setExpenses] = useState<any[]>([]);
-  const [expenseForm, setExpenseForm] = useState({ date: '', category: 'Property Tax', amount: '' });
-  const [showExpenseDatePicker, setShowExpenseDatePicker] = useState(false);
+  const [expenseForm, setExpenseForm] = useState({
+    date: '',
+    category: 'Property Tax',
+    amount: '',
+  });
   const [addingExpense, setAddingExpense] = useState(false);
   const [menuVisibleFor, setMenuVisibleFor] = useState<string | null>(null);
   const [showDeleteExpenseModal, setShowDeleteExpenseModal] = useState(false);
   const [expenseToDelete, setExpenseToDelete] = useState<any>(null);
-
-  const screenWidth = Dimensions.get('window').width;
+  const [editingExpense, setEditingExpense] = useState<any>(null);
 
   useEffect(() => {
     loadRealEstateData();
@@ -464,12 +601,18 @@ const RealEstateScreen: React.FC<Props> = ({navigation}) => {
       setLoading(true);
       console.log('DEBUG: Calling apiService.getRealEstate()');
       const response = await apiService.getRealEstate();
-      console.log('DEBUG: getRealEstate FULL response:', JSON.stringify(response, null, 2));
+      console.log(
+        'DEBUG: getRealEstate FULL response:',
+        JSON.stringify(response, null, 2),
+      );
       if (response.success && response.data) {
         console.log('DEBUG: About to setProperties with:', response.data);
         setProperties(response.data);
         setTimeout(() => {
-          console.log('DEBUG: properties state after setProperties (timeout):', properties);
+          console.log(
+            'DEBUG: properties state after setProperties (timeout):',
+            properties,
+          );
         }, 1000);
         // Calculate portfolio metrics
         let equity = 0;
@@ -480,18 +623,27 @@ const RealEstateScreen: React.FC<Props> = ({navigation}) => {
         response.data.forEach(property => {
           equity += property.value - property.mortgageBalance;
           const totalRent = Object.values(property.rentCollected || {}).reduce(
-            (sum, rent) => sum + (rent.collected ? rent.amount : 0), 0);
+            (sum, rent) => sum + (rent.collected ? rent.amount : 0),
+            0,
+          );
           rentIncome += totalRent;
-          const totalExpenses = property.expenses?.reduce((sum, expense) => sum + expense.amount, 0) || 0;
+          const totalExpenses =
+            property.expenses?.reduce(
+              (sum, expense) => sum + expense.amount,
+              0,
+            ) || 0;
           noi += totalRent - totalExpenses;
           totalValue += property.value;
           totalInvestment += property.purchasePrice;
         });
         setTotalEquity(equity);
-        setTotalRentIncome(rentIncome);
         setTotalNOI(noi);
-        if (totalValue > 0) setAverageCapRate((noi / totalValue) * 100);
-        if (totalInvestment > 0) setAverageCoCReturn((noi / totalInvestment) * 100);
+        if (totalValue > 0) {
+          setAverageCapRate((noi / totalValue) * 100);
+        }
+        if (totalInvestment > 0) {
+          setAverageCoCReturn((noi / totalInvestment) * 100);
+        }
       }
     } catch (error) {
       console.error('Error loading real estate data:', error);
@@ -502,7 +654,11 @@ const RealEstateScreen: React.FC<Props> = ({navigation}) => {
   };
 
   const showToast = (msg: string, success = true) => {
-    Toast.show(msg, { backgroundColor: success ? '#28a745' : '#F44336', duration: 2000, position: Toast.positions.BOTTOM });
+    Toast.show(msg, {
+      backgroundColor: success ? '#28a745' : '#F44336',
+      duration: 2000,
+      position: Toast.positions.BOTTOM,
+    });
   };
 
   const handleSave = async (form: Partial<RealEstate>) => {
@@ -523,64 +679,67 @@ const RealEstateScreen: React.FC<Props> = ({navigation}) => {
 
   const handleDelete = (id: string) => {
     Alert.alert(
-      "Delete Property",
-      "Are you sure you want to delete this property and all its data?",
+      'Delete Property',
+      'Are you sure you want to delete this property and all its data?',
       [
-        { text: "Cancel", style: "cancel" },
-        { text: "OK", onPress: async () => {
-          try {
-            const resp = await apiService.deleteRealEstate(id);
-            if (resp.success) {
-              showToast('Property deleted!');
-              loadRealEstateData();
-            } else {
-              showToast(resp.error || 'Error deleting property', false);
+        {text: 'Cancel', style: 'cancel'},
+        {
+          text: 'OK',
+          onPress: async () => {
+            try {
+              const resp = await apiService.deleteRealEstate(id);
+              if (resp.success) {
+                showToast('Property deleted!');
+                loadRealEstateData();
+              } else {
+                showToast(resp.error || 'Error deleting property', false);
+              }
+            } catch (e) {
+              showToast('Error deleting property', false);
             }
-          } catch (e) {
-            showToast('Error deleting property', false);
-          }
-        }}
-      ]
+          },
+        },
+      ],
     );
   };
 
   const formatCurrency = (amount: number) => {
-    if (typeof amount !== 'number') return '$0.00';
+    if (typeof amount !== 'number') {
+      return '$0.00';
+    }
     return amount.toLocaleString('en-US', {style: 'currency', currency: 'USD'});
   };
 
   const formatPercentage = (value: number) => {
-    if (typeof value !== 'number' || !isFinite(value)) return '0.0%';
+    if (typeof value !== 'number' || !isFinite(value)) {
+      return '0.0%';
+    }
     return `${value.toFixed(1)}%`;
   };
 
   const openModal = (property: Partial<RealEstate> | null = null) => {
-    setEditing(property ? {...property} : emptyForm);
+    setEditing(property);
     setModalVisible(true);
   };
-  
+
   const closeModal = () => {
     setEditing(null);
     setModalVisible(false);
   };
 
-  const openDetailModal = (property: RealEstate) => {
-    setSelectedProperty(property);
-    setDetailModalVisible(true);
-  };
-  const closeDetailModal = () => {
-    setDetailModalVisible(false);
-    setSelectedProperty(null);
-  };
-
   // Add handler to mark rent as collected
   const handleMarkCollected = async (property: RealEstate, month: string) => {
     try {
-      await apiService.updateRentCollection(property._id!, month, { collected: true });
+      const isCollected = property.rentCollected[month]?.collected;
+      if (isCollected === undefined) {
+        await apiService.updateRentCollection(property._id!, month, {
+          collected: true,
+        });
+      }
       // Refresh property data in modal
       const response = await apiService.getPropertyDetails(property._id!);
       if (response.success && response.data) {
-        setSelectedProperty(response.data);
+        // setSelectedProperty(response.data);
       }
     } catch (e) {
       Alert.alert('Error', 'Failed to update rent status');
@@ -588,24 +747,32 @@ const RealEstateScreen: React.FC<Props> = ({navigation}) => {
   };
 
   const handleAddRentPayment = async () => {
-    if (!selectedProperty) return;
+    /*
+    if (!selectedProperty) {
+      return;
+    }
+    */
     if (!rentForm.startDate || !rentForm.endDate || !rentForm.amount) {
       Alert.alert('Error', 'Please fill all fields');
       return;
     }
     setAddingRent(true);
     try {
+      /*
       await apiService.addRentPayment(selectedProperty._id!, {
         startDate: rentForm.startDate,
         endDate: rentForm.endDate,
         amount: parseFloat(rentForm.amount),
       });
       // Refresh property data in modal
-      const response = await apiService.getPropertyDetails(selectedProperty._id!);
+      const response = await apiService.getPropertyDetails(
+        selectedProperty._id!,
+      );
       if (response.success && response.data) {
         setSelectedProperty(response.data);
       }
-      setRentForm({ startDate: '', endDate: '', amount: '' });
+      */
+      setRentForm({startDate: '', endDate: '', amount: ''});
     } catch (e) {
       Alert.alert('Error', 'Failed to add rent payment');
     } finally {
@@ -622,7 +789,9 @@ const RealEstateScreen: React.FC<Props> = ({navigation}) => {
     // Fetch docs
     try {
       const resp = await apiService.listDocuments(property._id!);
-      if (resp.success && resp.data) setDocs(resp.data);
+      if (resp.success && resp.data) {
+        setDocs(resp.data);
+      }
     } catch {}
   };
   const closeDocsModal = () => {
@@ -634,7 +803,9 @@ const RealEstateScreen: React.FC<Props> = ({navigation}) => {
   };
   const handlePickDoc = async () => {
     try {
-      const res = await DocumentPicker.pickSingle({ type: [DocumentPicker.types.allFiles] });
+      const res = await DocumentPicker.pickSingle({
+        type: [DocumentPicker.types.allFiles],
+      });
       setDocFile(res);
     } catch (e) {}
   };
@@ -651,7 +822,9 @@ const RealEstateScreen: React.FC<Props> = ({navigation}) => {
       await apiService.uploadDocument(docsProperty._id!, formData);
       // Refresh docs
       const resp = await apiService.listDocuments(docsProperty._id!);
-      if (resp.success && resp.data) setDocs(resp.data);
+      if (resp.success && resp.data) {
+        setDocs(resp.data);
+      }
       setDocName('');
       setDocFile(null);
     } catch (e) {
@@ -662,22 +835,36 @@ const RealEstateScreen: React.FC<Props> = ({navigation}) => {
   };
 
   const handleDownloadDoc = (doc: any) => {
-    if (doc.path) Linking.openURL(doc.path);
+    if (doc.path) {
+      Linking.openURL(doc.path);
+    }
   };
   const handleDeleteDoc = async (doc: any) => {
-    if (!docsProperty) return;
-    Alert.alert('Delete Document', 'Are you sure you want to delete this document?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: async () => {
-        try {
-          await apiService.deleteDocument(docsProperty._id!, doc._id);
-          const resp = await apiService.listDocuments(docsProperty._id!);
-          if (resp.success && resp.data) setDocs(resp.data);
-        } catch {
-          Alert.alert('Error', 'Failed to delete document');
-        }
-      }}
-    ]);
+    if (!docsProperty) {
+      return;
+    }
+    Alert.alert(
+      'Delete Document',
+      'Are you sure you want to delete this document?',
+      [
+        {text: 'Cancel', style: 'cancel'},
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await apiService.deleteDocument(docsProperty._id!, doc._id);
+              const resp = await apiService.listDocuments(docsProperty._id!);
+              if (resp.success && resp.data) {
+                setDocs(resp.data);
+              }
+            } catch {
+              Alert.alert('Error', 'Failed to delete document');
+            }
+          },
+        },
+      ],
+    );
   };
   const handleOpenRename = (doc: any) => {
     setRenameDocId(doc._id);
@@ -685,11 +872,19 @@ const RealEstateScreen: React.FC<Props> = ({navigation}) => {
     setRenameModalVisible(true);
   };
   const handleRenameDoc = async () => {
-    if (!docsProperty || !renameDocId || !renameDocValue) return;
+    if (!docsProperty || !renameDocId || !renameDocValue) {
+      return;
+    }
     try {
-      await apiService.renameDocument(docsProperty._id!, renameDocId, renameDocValue);
+      await apiService.renameDocument(
+        docsProperty._id!,
+        renameDocId,
+        renameDocValue,
+      );
       const resp = await apiService.listDocuments(docsProperty._id!);
-      if (resp.success && resp.data) setDocs(resp.data);
+      if (resp.success && resp.data) {
+        setDocs(resp.data);
+      }
       setRenameModalVisible(false);
       setRenameDocId(null);
       setRenameDocValue('');
@@ -700,23 +895,26 @@ const RealEstateScreen: React.FC<Props> = ({navigation}) => {
 
   const openExpensesModal = async (property: RealEstate) => {
     setExpensesProperty(property);
-    setExpenses([]);
-    setExpenseForm({ date: '', category: 'Property Tax', amount: '' });
+    const res = await apiService.listRealEstateExpenses(property._id!);
+    if (res.success) {
+      setExpenses(res.data);
+    }
     setExpensesModalVisible(true);
-    // Fetch expenses
-    try {
-      const resp = await apiService.listRealEstateExpenses(property._id!);
-      if (resp.success && resp.data) setExpenses(resp.data);
-    } catch {}
   };
+
   const closeExpensesModal = () => {
     setExpensesModalVisible(false);
     setExpensesProperty(null);
     setExpenses([]);
-    setExpenseForm({ date: '', category: 'Property Tax', amount: '' });
   };
+
   const handleAddExpense = async () => {
-    if (!expensesProperty || !expenseForm.date || !expenseForm.category || !expenseForm.amount) {
+    if (
+      !expensesProperty ||
+      !expenseForm.date ||
+      !expenseForm.category ||
+      !expenseForm.amount
+    ) {
       Alert.alert('Error', 'Please fill all fields.');
       return;
     }
@@ -729,9 +927,13 @@ const RealEstateScreen: React.FC<Props> = ({navigation}) => {
         description: '', // Optional description
       });
       // Refresh expenses
-      const resp = await apiService.listRealEstateExpenses(expensesProperty._id!);
-      if (resp.success && resp.data) setExpenses(resp.data);
-      setExpenseForm({ date: '', category: 'Property Tax', amount: '' });
+      const resp = await apiService.listRealEstateExpenses(
+        expensesProperty._id!,
+      );
+      if (resp.success && resp.data) {
+        setExpenses(resp.data);
+      }
+      setExpenseForm({date: '', category: 'Property Tax', amount: ''});
     } catch (e) {
       Alert.alert('Error', 'Failed to add expense');
     } finally {
@@ -740,69 +942,94 @@ const RealEstateScreen: React.FC<Props> = ({navigation}) => {
   };
 
   const handleDeleteExpenseClick = (expense: any) => {
+    console.log('--- handleDeleteExpenseClick called with:', expense);
     setExpenseToDelete(expense);
     setShowDeleteExpenseModal(true);
   };
 
   const handleDeleteExpense = async () => {
-    if (!expenseToDelete || !expensesProperty?._id) return;
-    setLoading(true);
-    try {
-      const resp = await apiService.deleteRealEstateExpense(expensesProperty._id, expenseToDelete._id);
-      if (resp.success) {
-        setShowDeleteExpenseModal(false);
-        setExpenseToDelete(null);
-        // Refresh expenses
-        if (expensesProperty?._id) {
-          const refreshResp = await apiService.listRealEstateExpenses(expensesProperty._id);
-          if (refreshResp.success && refreshResp.data) {
-            setExpenses(refreshResp.data);
+    console.log('--- handleDeleteExpense called ---');
+    console.log('Expense to delete:', expenseToDelete);
+    console.log('Property to delete from:', expensesProperty);
+    if (expenseToDelete && expensesProperty) {
+      try {
+        const res = await apiService.deleteRealEstateExpense(
+          expensesProperty._id!,
+          expenseToDelete._id,
+        );
+        if (res.success) {
+          showToast('Expense Deleted!');
+          // Refresh expenses
+          const listRes = await apiService.listRealEstateExpenses(
+            expensesProperty._id!,
+          );
+          if (listRes.success) {
+            setExpenses(listRes.data);
           }
+        } else {
+          Alert.alert('Error', 'Failed to delete expense');
         }
-      } else {
-        Alert.alert('Error', 'Failed to delete expense.');
+      } catch (e) {
+        Alert.alert('Error', 'Error deleting expense');
       }
-    } catch(e) {
-      Alert.alert('Error', 'An error occurred while deleting the expense.');
-    } finally {
-      setLoading(false);
     }
+    setShowDeleteExpenseModal(false);
+    setExpenseToDelete(null);
   };
 
   // Calculate cash flow and summary values
   const totalIncome = properties.reduce((sum, p) => {
     // Long-term rent
-    const longTerm = Object.values(p.rentCollected || {}).reduce((s, r) => s + (r.amount || 0), 0);
+    const longTerm = Object.values(p.rentCollected || {}).reduce(
+      (s, r) => s + (r.amount || 0),
+      0,
+    );
     // Short-term income
-    const shortTerm = (p.shortTermIncome || []).reduce((s, i) => s + (i.amount || 0), 0);
+    const shortTerm = (p.shortTermIncome || []).reduce(
+      (s, i) => s + (i.amount || 0),
+      0,
+    );
     return sum + longTerm + shortTerm;
   }, 0);
-  const totalExpenses = properties.reduce((sum, p) => sum + (p.expenses?.reduce((s, e) => s + (e.amount || 0), 0) || 0), 0);
+  const totalExpenses = properties.reduce(
+    (sum, p) =>
+      sum + (p.expenses?.reduce((s, e) => s + (e.amount || 0), 0) || 0),
+    0,
+  );
   const realEstateIncome = totalIncome - totalExpenses;
   // Rent unpaid: rent entries where collected === false
   const rentUnpaid = properties.reduce((sum, p) => {
-    return sum + Object.values(p.rentCollected || {}).reduce((s, r) => s + (!r.collected ? r.amount || 0 : 0), 0);
+    return (
+      sum +
+      Object.values(p.rentCollected || {}).reduce(
+        (s, r) => s + (!r.collected ? r.amount || 0 : 0),
+        0,
+      )
+    );
   }, 0);
   // Overdue rent: rent entries where collected === false and due date < today (if available)
   const today = new Date();
   const overdueRent = properties.reduce((sum, p) => {
-    return sum + Object.entries(p.rentCollected || {}).reduce((s, [month, r]) => {
-      // Assume month is YYYY-MM, treat as overdue if before this month
-      if (!r.collected && month < today.toISOString().slice(0, 7)) {
-        return s + (r.amount || 0);
-      }
-      return s;
-    }, 0);
+    return (
+      sum +
+      Object.entries(p.rentCollected || {}).reduce((s, [month, r]) => {
+        // Assume month is YYYY-MM, treat as overdue if before this month
+        if (!r.collected && month < today.toISOString().slice(0, 7)) {
+          return s + (r.amount || 0);
+        }
+        return s;
+      }, 0)
+    );
   }, 0);
 
   // Cash flow chart data (last 6 months)
-  const months = Array.from({ length: 6 }, (_, i) => {
+  const months = Array.from({length: 6}, (_, i) => {
     const d = new Date();
     d.setMonth(d.getMonth() - (5 - i));
     return d;
   });
   const chartData = {
-    labels: months.map(m => m.toLocaleString('default', { month: 'short' })), // ['Jan', 'Feb', ...]
+    labels: months.map(m => m.toLocaleString('default', {month: 'short'})), // ['Jan', 'Feb', ...]
     datasets: [
       {
         data: months.map(month => {
@@ -817,23 +1044,37 @@ const RealEstateScreen: React.FC<Props> = ({navigation}) => {
             }
             // Short-term income
             if (p.shortTermIncome) {
-              income += p.shortTermIncome.filter(i => {
-                const dateStr = typeof i.date === 'string' ? i.date : (i.date instanceof Date ? i.date.toISOString() : '');
-                return dateStr.slice(0, 7) === key;
-              }).reduce((s, i) => s + (i.amount || 0), 0);
+              income += p.shortTermIncome
+                .filter(i => {
+                  const dateStr =
+                    typeof i.date === 'string'
+                      ? i.date
+                      : i.date instanceof Date
+                      ? i.date.toISOString()
+                      : '';
+                  return dateStr.slice(0, 7) === key;
+                })
+                .reduce((s, i) => s + (i.amount || 0), 0);
             }
             // Expenses
             if (p.expenses) {
-              expenses += p.expenses.filter(e => {
-                const dateStr = typeof e.date === 'string' ? e.date : (e.date instanceof Date ? e.date.toISOString() : '');
-                return dateStr.slice(0, 7) === key;
-              }).reduce((s, e) => s + (e.amount || 0), 0);
+              expenses += p.expenses
+                .filter(e => {
+                  const dateStr =
+                    typeof e.date === 'string'
+                      ? e.date
+                      : e.date instanceof Date
+                      ? e.date.toISOString()
+                      : '';
+                  return dateStr.slice(0, 7) === key;
+                })
+                .reduce((s, e) => s + (e.amount || 0), 0);
             }
           });
           return income - expenses;
-        })
-      }
-    ]
+        }),
+      },
+    ],
   };
 
   const renderPropertyCard = ({item}: {item: RealEstate}) => {
@@ -847,13 +1088,26 @@ const RealEstateScreen: React.FC<Props> = ({navigation}) => {
         <View style={styles.cardHeader}>
           <View style={{flexDirection: 'row', alignItems: 'center', flex: 1}}>
             <FontAwesome5 name="link" size={20} color="#4D8AF0" />
-            <Text style={styles.propertyAddress} numberOfLines={1}>{item.propertyAddress}</Text>
+            <Text style={styles.propertyAddress} numberOfLines={1}>
+              {item.propertyAddress}
+            </Text>
           </View>
           <View style={{flexDirection: 'row', alignItems: 'center'}}>
-            <View style={[styles.propertyTypeContainer, {backgroundColor: 'rgba(2, 189, 108, 0.1)'}]}>
-              <Text style={[styles.propertyType, {color: '#02BD6C'}]}>{item.propertyType}</Text>
+            <View
+              style={[
+                styles.propertyTypeContainer,
+                {backgroundColor: 'rgba(2, 189, 108, 0.1)'},
+              ]}>
+              <Text style={[styles.propertyType, {color: '#02BD6C'}]}>
+                {item.propertyType}
+              </Text>
             </View>
-            <TouchableOpacity onPress={() => item._id && setMenuVisibleFor(menuVisibleFor === item._id ? null : item._id)} style={{marginLeft: 8}}>
+            <TouchableOpacity
+              onPress={() =>
+                item._id &&
+                setMenuVisibleFor(menuVisibleFor === item._id ? null : item._id)
+              }
+              style={{marginLeft: 8}}>
               <FontAwesome5 name="ellipsis-v" size={20} color="#fff" />
             </TouchableOpacity>
           </View>
@@ -861,10 +1115,22 @@ const RealEstateScreen: React.FC<Props> = ({navigation}) => {
 
         {menuVisibleFor === item._id && (
           <View style={styles.menu}>
-            <TouchableOpacity style={styles.menuItem} onPress={() => { setMenuVisibleFor(null); openModal(item); }}>
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => {
+                setMenuVisibleFor(null);
+                openModal(item);
+              }}>
               <Text style={styles.menuText}>Edit</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.menuItem} onPress={() => { setMenuVisibleFor(null); if (item._id) handleDelete(item._id); }}>
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => {
+                setMenuVisibleFor(null);
+                if (item._id) {
+                  handleDelete(item._id);
+                }
+              }}>
               <Text style={[styles.menuText, {color: '#F44336'}]}>Delete</Text>
             </TouchableOpacity>
           </View>
@@ -876,52 +1142,112 @@ const RealEstateScreen: React.FC<Props> = ({navigation}) => {
           </View>
           <View style={styles.financialInfo}>
             <View style={styles.financialItem}>
-              <FontAwesome5 name="hand-holding-usd" size={20} color="#888" style={{marginBottom: 8}}/>
+              <FontAwesome5
+                name="hand-holding-usd"
+                size={20}
+                color="#888"
+                style={{marginBottom: 8}}
+              />
               <Text style={styles.financialLabel}>Equity</Text>
-              <Text style={styles.financialValue}>{formatCurrency(equity)}</Text>
+              <Text style={styles.financialValue}>
+                {formatCurrency(equity)}
+              </Text>
             </View>
             <View style={styles.financialItem}>
-              <FontAwesome5 name="dollar-sign" size={20} color="#888" style={{marginBottom: 8}}/>
+              <FontAwesome5
+                name="dollar-sign"
+                size={20}
+                color="#888"
+                style={{marginBottom: 8}}
+              />
               <Text style={styles.financialLabel}>$ Zestimate</Text>
-              <Text style={styles.financialValue}>{formatCurrency(item.value)}</Text>
+              <Text style={styles.financialValue}>
+                {formatCurrency(item.value)}
+              </Text>
               {valueIncreasePercentage !== 0 && (
                 <View style={styles.percentageContainer}>
-                   <FontAwesome5 name={valueIncreasePercentage > 0 ? 'arrow-up' : 'arrow-down'} color={valueIncreasePercentage > 0 ? '#4CAF50' : '#F44336'} />
-                   <Text style={[styles.percentageChange, {color: valueIncreasePercentage > 0 ? '#4CAF50' : '#F44336'}]}>
-                     {formatPercentage(Math.abs(valueIncreasePercentage))}
-                   </Text>
+                  <FontAwesome5
+                    name={
+                      valueIncreasePercentage > 0 ? 'arrow-up' : 'arrow-down'
+                    }
+                    color={valueIncreasePercentage > 0 ? '#4CAF50' : '#F44336'}
+                  />
+                  <Text
+                    style={[
+                      styles.percentageChange,
+                      {
+                        color:
+                          valueIncreasePercentage > 0 ? '#4CAF50' : '#F44336',
+                      },
+                    ]}>
+                    {formatPercentage(Math.abs(valueIncreasePercentage))}
+                  </Text>
                 </View>
               )}
             </View>
             <View style={styles.financialItem}>
-              <FontAwesome5 name="landmark" size={20} color="#888" style={{marginBottom: 8}}/>
+              <FontAwesome5
+                name="landmark"
+                size={20}
+                color="#888"
+                style={{marginBottom: 8}}
+              />
               <Text style={styles.financialLabel}>Mortgage</Text>
-              <Text style={styles.financialValue}>{formatCurrency(item.mortgageBalance)}</Text>
+              <Text style={styles.financialValue}>
+                {formatCurrency(item.mortgageBalance)}
+              </Text>
             </View>
           </View>
         </View>
 
         <View style={styles.cardActions}>
-           <TouchableOpacity style={[styles.actionButton, {backgroundColor: '#4D8AF0'}]} onPress={() => handlePropertyPress(item)}>
-               <FontAwesome5 name="eye" size={14} color="#fff" />
-               <Text style={styles.actionButtonText}>View Details</Text>
-           </TouchableOpacity>
-           <TouchableOpacity style={[styles.actionButton, {backgroundColor: '#6c757d'}]} onPress={() => openDocsModal(item)}>
-               <FontAwesome5 name="file-alt" size={14} color="#fff" />
-               <Text style={styles.actionButtonText}>Property Docs</Text>
-           </TouchableOpacity>
-           <TouchableOpacity style={[styles.actionButton, {backgroundColor: '#ffc107'}]} onPress={() => openExpensesModal(item)}>
-               <FontAwesome5 name="dollar-sign" size={14} color="#fff" />
-               <Text style={styles.actionButtonText}>Manage Expenses</Text>
-           </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.actionButton, {backgroundColor: '#4D8AF0'}]}
+            onPress={() => handlePropertyPress(item)}>
+            <FontAwesome5 name="eye" size={14} color="#fff" />
+            <Text style={styles.actionButtonText}>View Details</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.actionButton, {backgroundColor: '#6c757d'}]}
+            onPress={() => openDocsModal(item)}>
+            <FontAwesome5 name="file-alt" size={14} color="#fff" />
+            <Text style={styles.actionButtonText}>Property Docs</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.actionButton, {backgroundColor: '#ffc107'}]}
+            onPress={() => openExpensesModal(item)}>
+            <FontAwesome5 name="dollar-sign" size={14} color="#fff" />
+            <Text style={styles.actionButtonText}>Manage Expenses</Text>
+          </TouchableOpacity>
         </View>
       </View>
     );
   };
 
   const handlePropertyPress = (property: RealEstate) => {
-    setSelectedProperty(property);
-    setDetailModalVisible(true);
+    const refreshExpenses = async () => {
+      if (property && property._id) {
+        const res = await apiService.listRealEstateExpenses(property._id);
+        if (res.success) {
+          setExpenses(res.data);
+        }
+      }
+    };
+
+    const handleEdit = (expense: any) => {
+      // Logic to open an edit/add modal for expenses
+      setEditingExpense(expense);
+      setExpensesModalVisible(true);
+      setExpensesProperty(property); // Set the property context
+    };
+
+    navigation.navigate('PropertyDetail', {
+      property,
+      expenses,
+      onRefreshExpenses: refreshExpenses,
+      onDeleteExpense: handleDeleteExpenseClick,
+      onEditExpense: handleEdit,
+    });
   };
 
   if (loading) {
@@ -936,51 +1262,90 @@ const RealEstateScreen: React.FC<Props> = ({navigation}) => {
   return (
     <SafeAreaView style={styles.container}>
       {/* Cash Flow Chart and Summary Boxes */}
-      <View style={{
-        backgroundColor: '#151e2e',
-        borderRadius: 16,
-        padding: 20,
-        marginBottom: 20,
-        borderWidth: 1,
-        borderColor: '#22304a',
-        shadowColor: '#000',
-        shadowOpacity: 0.10,
-        shadowRadius: 8,
-        elevation: 3,
-      }}>
-        <Text style={{
-          color: '#fff',
-          fontSize: 22,
-          fontWeight: 'bold',
-          textAlign: 'center',
-          marginBottom: 18,
+      <View
+        style={{
+          backgroundColor: '#151e2e',
+          borderRadius: 16,
+          padding: 20,
+          marginBottom: 20,
+          borderWidth: 1,
+          borderColor: '#22304a',
+          shadowColor: '#000',
+          shadowOpacity: 0.1,
+          shadowRadius: 8,
+          elevation: 3,
         }}>
+        <Text
+          style={{
+            color: '#fff',
+            fontSize: 22,
+            fontWeight: 'bold',
+            textAlign: 'center',
+            marginBottom: 18,
+          }}>
           Real Estate Income
         </Text>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 18 }}>
-          <View style={{ alignItems: 'center', flex: 1 }}>
-            <Text style={{ color: '#b0b8c1', fontSize: 13 }}>Total Equity</Text>
-            <Text style={{ color: '#1ea7fd', fontSize: 18, fontWeight: 'bold', marginTop: 2 }}>{formatCurrency(totalEquity)}</Text>
+        <View
+          style={{
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            marginBottom: 18,
+          }}>
+          <View style={{alignItems: 'center', flex: 1}}>
+            <Text style={{color: '#b0b8c1', fontSize: 13}}>Total Equity</Text>
+            <Text
+              style={{
+                color: '#1ea7fd',
+                fontSize: 18,
+                fontWeight: 'bold',
+                marginTop: 2,
+              }}>
+              {formatCurrency(totalEquity)}
+            </Text>
           </View>
-          <View style={{ alignItems: 'center', flex: 1 }}>
-            <Text style={{ color: '#b0b8c1', fontSize: 13 }}>Rent Unpaid</Text>
-            <Text style={{ color: '#1ea7fd', fontSize: 18, fontWeight: 'bold', marginTop: 2 }}>{formatCurrency(rentUnpaid)}</Text>
+          <View style={{alignItems: 'center', flex: 1}}>
+            <Text style={{color: '#b0b8c1', fontSize: 13}}>Rent Unpaid</Text>
+            <Text
+              style={{
+                color: '#1ea7fd',
+                fontSize: 18,
+                fontWeight: 'bold',
+                marginTop: 2,
+              }}>
+              {formatCurrency(rentUnpaid)}
+            </Text>
           </View>
-          <View style={{ alignItems: 'center', flex: 1 }}>
-            <Text style={{ color: '#b0b8c1', fontSize: 13 }}>Overdue Rent</Text>
-            <Text style={{ color: '#1ea7fd', fontSize: 18, fontWeight: 'bold', marginTop: 2 }}>{formatCurrency(overdueRent)}</Text>
+          <View style={{alignItems: 'center', flex: 1}}>
+            <Text style={{color: '#b0b8c1', fontSize: 13}}>Overdue Rent</Text>
+            <Text
+              style={{
+                color: '#1ea7fd',
+                fontSize: 18,
+                fontWeight: 'bold',
+                marginTop: 2,
+              }}>
+              {formatCurrency(overdueRent)}
+            </Text>
           </View>
         </View>
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <View style={{ width: 24, height: 220, justifyContent: 'center', alignItems: 'center', marginRight: 4 }}>
-            <Text style={{
-              color: '#b0b8c1',
-              fontSize: 13,
-              fontWeight: 'bold',
-              transform: [{ rotate: '-90deg' }],
-              width: 180,
-              textAlign: 'center',
+        <View style={{flexDirection: 'row', alignItems: 'center'}}>
+          <View
+            style={{
+              width: 24,
+              height: 220,
+              justifyContent: 'center',
+              alignItems: 'center',
+              marginRight: 4,
             }}>
+            <Text
+              style={{
+                color: '#b0b8c1',
+                fontSize: 13,
+                fontWeight: 'bold',
+                transform: [{rotate: '-90deg'}],
+                width: 180,
+                textAlign: 'center',
+              }}>
               Cash Flow ($)
             </Text>
           </View>
@@ -999,11 +1364,11 @@ const RealEstateScreen: React.FC<Props> = ({navigation}) => {
               decimalPlaces: 2,
               color: (opacity = 1) => `rgba(30, 167, 253, ${opacity})`,
               labelColor: (opacity = 1) => `rgba(176, 184, 193,${opacity})`,
-              propsForBackgroundLines: { stroke: '#22304a' },
-              style: { borderRadius: 12 },
+              propsForBackgroundLines: {stroke: '#22304a'},
+              style: {borderRadius: 12},
             }}
             bezier
-            style={{ borderRadius: 12, marginTop: 8 }}
+            style={{borderRadius: 12, marginTop: 8}}
             fromZero
             segments={5}
             formatYLabel={y => `$${Number(y).toLocaleString()}`}
@@ -1011,29 +1376,65 @@ const RealEstateScreen: React.FC<Props> = ({navigation}) => {
         </View>
       </View>
       {/* Portfolio Summary Card */}
-      <View style={{
-        backgroundColor: '#1a2233',
-        borderRadius: 16,
-        padding: 20,
-        marginBottom: 18,
-        shadowColor: '#000',
-        shadowOpacity: 0.10,
-        shadowRadius: 8,
-        elevation: 3,
-      }}>
-        <Text style={{ color: '#fff', fontSize: 18, fontWeight: 'bold', marginBottom: 16, textAlign: 'center' }}>Portfolio Summary</Text>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-          <View style={{ alignItems: 'center', flex: 1 }}>
-            <Text style={{ color: '#b0b8c1', fontSize: 13 }}>Total NOI</Text>
-            <Text style={{ color: '#1ea7fd', fontSize: 18, fontWeight: 'bold', marginTop: 2 }}>{formatCurrency(totalNOI)}</Text>
+      <View
+        style={{
+          backgroundColor: '#1a2233',
+          borderRadius: 16,
+          padding: 20,
+          marginBottom: 18,
+          shadowColor: '#000',
+          shadowOpacity: 0.1,
+          shadowRadius: 8,
+          elevation: 3,
+        }}>
+        <Text
+          style={{
+            color: '#fff',
+            fontSize: 18,
+            fontWeight: 'bold',
+            marginBottom: 16,
+            textAlign: 'center',
+          }}>
+          Portfolio Summary
+        </Text>
+        <View style={{flexDirection: 'row', justifyContent: 'space-between'}}>
+          <View style={{alignItems: 'center', flex: 1}}>
+            <Text style={{color: '#b0b8c1', fontSize: 13}}>Total NOI</Text>
+            <Text
+              style={{
+                color: '#1ea7fd',
+                fontSize: 18,
+                fontWeight: 'bold',
+                marginTop: 2,
+              }}>
+              {formatCurrency(totalNOI)}
+            </Text>
           </View>
-          <View style={{ alignItems: 'center', flex: 1 }}>
-            <Text style={{ color: '#b0b8c1', fontSize: 13 }}>Avg. Cap Rate</Text>
-            <Text style={{ color: '#1ea7fd', fontSize: 18, fontWeight: 'bold', marginTop: 2 }}>{formatPercentage(averageCapRate)}</Text>
+          <View style={{alignItems: 'center', flex: 1}}>
+            <Text style={{color: '#b0b8c1', fontSize: 13}}>Avg. Cap Rate</Text>
+            <Text
+              style={{
+                color: '#1ea7fd',
+                fontSize: 18,
+                fontWeight: 'bold',
+                marginTop: 2,
+              }}>
+              {formatPercentage(averageCapRate)}
+            </Text>
           </View>
-          <View style={{ alignItems: 'center', flex: 1 }}>
-            <Text style={{ color: '#b0b8c1', fontSize: 13 }}>Avg. CoC Return</Text>
-            <Text style={{ color: '#1ea7fd', fontSize: 18, fontWeight: 'bold', marginTop: 2 }}>{formatPercentage(averageCoCReturn)}</Text>
+          <View style={{alignItems: 'center', flex: 1}}>
+            <Text style={{color: '#b0b8c1', fontSize: 13}}>
+              Avg. CoC Return
+            </Text>
+            <Text
+              style={{
+                color: '#1ea7fd',
+                fontSize: 18,
+                fontWeight: 'bold',
+                marginTop: 2,
+              }}>
+              {formatPercentage(averageCoCReturn)}
+            </Text>
           </View>
         </View>
       </View>
@@ -1041,301 +1442,389 @@ const RealEstateScreen: React.FC<Props> = ({navigation}) => {
         data={properties}
         keyExtractor={item => item._id || item.propertyAddress}
         renderItem={renderPropertyCard}
-        contentContainerStyle={{ paddingBottom: 100 }}
-        ListEmptyComponent={<Text style={{ color: '#fff', textAlign: 'center', marginTop: 40 }}>No properties found.</Text>}
+        contentContainerStyle={{paddingBottom: 100}}
+        ListEmptyComponent={
+          <Text style={{color: '#fff', textAlign: 'center', marginTop: 40}}>
+            No properties found.
+          </Text>
+        }
       />
       <PropertyForm
         visible={modalVisible}
-        onClose={() => { setModalVisible(false); setEditing(null); }}
+        onClose={() => {
+          setModalVisible(false);
+          setEditing(null);
+        }}
         onSave={handleSave}
         initialData={editing}
       />
       {/* Property Details Modal */}
-      <Modal visible={detailModalVisible} animationType="slide" transparent onRequestClose={closeDetailModal}>
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center' }}>
-          <View style={{ backgroundColor: '#233047', borderRadius: 16, width: '92%', maxWidth: 500, padding: 0, overflow: 'hidden' }}>
+      <Modal
+        visible={docsModalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={closeDocsModal}>
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0,0,0,0.7)',
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}>
+          <View
+            style={{
+              backgroundColor: '#34425a',
+              borderRadius: 12,
+              width: '92%',
+              maxWidth: 500,
+              padding: 0,
+              overflow: 'hidden',
+            }}>
             {/* Header */}
-            <View style={{ backgroundColor: '#34425a', padding: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-              <Text style={{ color: '#fff', fontSize: 22, fontWeight: 'bold' }}>Property Details</Text>
-              <TouchableOpacity onPress={closeDetailModal}><Text style={{ color: '#b0b8c1', fontSize: 28 }}>×</Text></TouchableOpacity>
+            <View
+              style={{
+                backgroundColor: '#3a4660',
+                padding: 18,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}>
+              <Text style={{color: '#fff', fontSize: 22, fontWeight: 'bold'}}>
+                Property Documents
+              </Text>
+              <TouchableOpacity onPress={closeDocsModal}>
+                <Text style={{color: '#b0b8c1', fontSize: 28}}>×</Text>
+              </TouchableOpacity>
             </View>
-            {selectedProperty && (
-              <ScrollView style={{ maxHeight: 600 }} contentContainerStyle={{ padding: 24 }}>
-                <Text style={{ color: '#fff', fontSize: 24, fontWeight: 'bold', textAlign: 'center', marginBottom: 2 }}>{selectedProperty.propertyAddress}</Text>
-                {selectedProperty.url ? (
-                  <Text style={{ color: '#6fa1e6', fontSize: 15, textAlign: 'center', marginBottom: 18, textDecorationLine: 'underline' }}>View on Zillow</Text>
-                ) : null}
-                {/* Key Info */}
-                <View style={{ backgroundColor: '#1a2233', borderRadius: 10, marginBottom: 18 }}>
-                  <Text style={{ color: '#b0b8c1', fontSize: 16, fontWeight: 'bold', padding: 12 }}>Key Info</Text>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 12, paddingBottom: 12 }}>
-                    <Text style={{ color: '#b0b8c1', fontSize: 15 }}>Property Value</Text>
-                    <Text style={{ color: '#2ecc71', fontSize: 16, fontWeight: 'bold' }}>{formatCurrency(selectedProperty.value)}</Text>
-                  </View>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 12, paddingBottom: 12 }}>
-                    <Text style={{ color: '#b0b8c1', fontSize: 15 }}>Purchased</Text>
-                    <Text style={{ color: '#fff', fontSize: 15 }}>{selectedProperty.purchaseDate ? (typeof selectedProperty.purchaseDate === 'string' ? new Date(selectedProperty.purchaseDate).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) : selectedProperty.purchaseDate.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })) : ''}</Text>
-                  </View>
-                </View>
-                {/* Financial Performance */}
-                <View style={{ backgroundColor: '#1a2233', borderRadius: 10, marginBottom: 18 }}>
-                  <Text style={{ color: '#b0b8c1', fontSize: 16, fontWeight: 'bold', padding: 12 }}>Financial Performance</Text>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 12, paddingBottom: 10, alignItems: 'center' }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                      <FontAwesome5 name="wallet" size={15} color="#b0b8c1" style={{ marginRight: 6 }} />
-                      <Text style={{ color: '#b0b8c1', fontSize: 15 }}>NOI</Text>
-                    </View>
-                    <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>{formatCurrency(
-                      Object.values(selectedProperty.rentCollected || {}).reduce((sum, r) => sum + (r.amount || 0), 0) - (selectedProperty.expenses?.reduce((sum, e) => sum + (e.amount || 0), 0) || 0)
-                    )}</Text>
-                  </View>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 12, paddingBottom: 10, alignItems: 'center' }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                      <FontAwesome5 name="percentage" size={15} color="#b0b8c1" style={{ marginRight: 6 }} />
-                      <Text style={{ color: '#b0b8c1', fontSize: 15 }}>Cap Rate</Text>
-                    </View>
-                    <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>{selectedProperty.value > 0 ? (((Object.values(selectedProperty.rentCollected || {}).reduce((sum, r) => sum + (r.amount || 0), 0) - (selectedProperty.expenses?.reduce((sum, e) => sum + (e.amount || 0), 0) || 0)) / selectedProperty.value) * 100).toFixed(2) + '%' : '0.00%'}</Text>
-                  </View>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 12, paddingBottom: 10, alignItems: 'center' }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                      <FontAwesome5 name="money-bill-wave" size={15} color="#b0b8c1" style={{ marginRight: 6 }} />
-                      <Text style={{ color: '#b0b8c1', fontSize: 15 }}>CoC Return</Text>
-                    </View>
-                    <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>{selectedProperty.purchasePrice > 0 ? (((Object.values(selectedProperty.rentCollected || {}).reduce((sum, r) => sum + (r.amount || 0), 0) - (selectedProperty.expenses?.reduce((sum, e) => sum + (e.amount || 0), 0) || 0)) / selectedProperty.purchasePrice) * 100).toFixed(2) + '%' : '0.00%'}</Text>
-                  </View>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 12, paddingBottom: 10, alignItems: 'center' }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                      <FontAwesome5 name="file-invoice-dollar" size={15} color="#b0b8c1" style={{ marginRight: 6 }} />
-                      <Text style={{ color: '#b0b8c1', fontSize: 15 }}>Expenses</Text>
-                    </View>
-                    <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>{formatCurrency(selectedProperty.expenses?.reduce((sum, e) => sum + (e.amount || 0), 0) || 0)}</Text>
-                  </View>
-                </View>
-                {/* Rent Collection Status Table */}
-                <View style={{ backgroundColor: '#1a2233', borderRadius: 10, marginBottom: 18 }}>
-                  <Text style={{ color: '#b0b8c1', fontSize: 16, fontWeight: 'bold', padding: 12 }}>Rent Collection Status</Text>
-                  <View style={{ flexDirection: 'row', paddingHorizontal: 12, paddingBottom: 8 }}>
-                    <Text style={{ color: '#b0b8c1', fontWeight: 'bold', flex: 1 }}>Month</Text>
-                    <Text style={{ color: '#b0b8c1', fontWeight: 'bold', flex: 1 }}>Amount</Text>
-                    <Text style={{ color: '#b0b8c1', fontWeight: 'bold', flex: 1 }}>Status</Text>
-                    <Text style={{ color: '#b0b8c1', fontWeight: 'bold', flex: 1 }}>Actions</Text>
-                  </View>
-                  {selectedProperty.rentCollected && Object.entries(selectedProperty.rentCollected).length > 0 ? (
-                    Object.entries(selectedProperty.rentCollected).map(([month, r], idx) => (
-                      <View key={month} style={{ flexDirection: 'row', paddingHorizontal: 12, paddingVertical: 6, backgroundColor: idx % 2 === 0 ? '#233047' : 'transparent', borderRadius: 6 }}>
-                        <Text style={{ color: '#fff', flex: 1 }}>{month}</Text>
-                        <Text style={{ color: '#fff', flex: 1 }}>{formatCurrency(r.amount)}</Text>
-                        <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
-                          {r.collected ? (
-                            <View style={{ backgroundColor: '#2ecc71', borderRadius: 8, paddingHorizontal: 6, paddingVertical: 1 }}>
-                              <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 11 }}>Collected</Text>
-                            </View>
-                          ) : (
-                            <TouchableOpacity onPress={() => handleMarkCollected(selectedProperty, month)} style={{ backgroundColor: '#2196f3', borderRadius: 8, paddingHorizontal: 6, paddingVertical: 1, marginRight: 6 }}>
-                              <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 11 }}>Mark as Collected</Text>
-                            </TouchableOpacity>
-                          )}
-                        </View>
-                        <TouchableOpacity style={{ flex: 1 }} onPress={() => { /* TODO: Edit rent entry */ }}>
-                          <Text style={{ color: '#ffc107', fontWeight: 'bold', fontSize: 13 }}>Edit</Text>
-                        </TouchableOpacity>
-                      </View>
-                    ))
-                  ) : (
-                    <Text style={{ color: '#b0b8c1', textAlign: 'center', padding: 12 }}>No rent records found.</Text>
-                  )}
-                </View>
-                {selectedProperty && selectedProperty.propertyType === 'Long-Term Rental' && (
-                  <View style={{ backgroundColor: '#29354a', borderRadius: 10, padding: 18, marginBottom: 18 }}>
-                    <Text style={{ color: '#b0b8c1', fontSize: 16, fontWeight: 'bold', marginBottom: 10 }}>Add Rent Payment</Text>
-                    <Text style={{ color: '#b0b8c1', fontSize: 14, marginBottom: 4 }}>Start of Rental Term:</Text>
-                    <TouchableOpacity
-                      style={{ borderWidth: 1, borderColor: '#3a4660', borderRadius: 8, padding: 10, marginBottom: 10, backgroundColor: '#233047' }}
-                      onPress={() => setShowStartPicker(true)}
-                    >
-                      <Text style={{ color: rentForm.startDate ? '#fff' : '#b0b8c1' }}>{rentForm.startDate ? new Date(rentForm.startDate).toLocaleDateString() : '---------- ----'}</Text>
-                    </TouchableOpacity>
-                    {showStartPicker && (
-                      <DateTimePicker
-                        value={rentForm.startDate ? new Date(rentForm.startDate) : new Date()}
-                        mode="date"
-                        display="default"
-                        onChange={(_, date) => {
-                          setShowStartPicker(false);
-                          if (date) setRentForm(f => ({ ...f, startDate: date.toISOString() }));
-                        }}
-                      />
-                    )}
-                    <Text style={{ color: '#b0b8c1', fontSize: 14, marginBottom: 4 }}>End of Rental Term:</Text>
-                    <TouchableOpacity
-                      style={{ borderWidth: 1, borderColor: '#3a4660', borderRadius: 8, padding: 10, marginBottom: 10, backgroundColor: '#233047' }}
-                      onPress={() => setShowEndPicker(true)}
-                    >
-                      <Text style={{ color: rentForm.endDate ? '#fff' : '#b0b8c1' }}>{rentForm.endDate ? new Date(rentForm.endDate).toLocaleDateString() : '---------- ----'}</Text>
-                    </TouchableOpacity>
-                    {showEndPicker && (
-                      <DateTimePicker
-                        value={rentForm.endDate ? new Date(rentForm.endDate) : new Date()}
-                        mode="date"
-                        display="default"
-                        onChange={(_, date) => {
-                          setShowEndPicker(false);
-                          if (date) setRentForm(f => ({ ...f, endDate: date.toISOString() }));
-                        }}
-                      />
-                    )}
-                    <Text style={{ color: '#b0b8c1', fontSize: 14, marginBottom: 4 }}>Monthly Rent Value:</Text>
-                    <TextInput
-                      style={{ borderWidth: 1, borderColor: '#3a4660', borderRadius: 8, padding: 10, marginBottom: 16, backgroundColor: '#233047', color: '#fff' }}
-                      placeholder="$..."
-                      placeholderTextColor="#b0b8c1"
-                      keyboardType="numeric"
-                      value={rentForm.amount}
-                      onChangeText={v => setRentForm(f => ({ ...f, amount: v }))}
-                    />
-                    <TouchableOpacity
-                      style={{ backgroundColor: '#1976D2', borderRadius: 8, paddingVertical: 12, alignItems: 'center' }}
-                      onPress={handleAddRentPayment}
-                      disabled={addingRent}
-                    >
-                      <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>{addingRent ? 'Adding...' : 'Add Rent Payment'}</Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
-              </ScrollView>
-            )}
-          </View>
-        </View>
-      </Modal>
-      <Modal visible={docsModalVisible} animationType="slide" transparent onRequestClose={closeDocsModal}>
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center' }}>
-          <View style={{ backgroundColor: '#34425a', borderRadius: 12, width: '92%', maxWidth: 500, padding: 0, overflow: 'hidden' }}>
-            {/* Header */}
-            <View style={{ backgroundColor: '#3a4660', padding: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-              <Text style={{ color: '#fff', fontSize: 22, fontWeight: 'bold' }}>Property Documents</Text>
-              <TouchableOpacity onPress={closeDocsModal}><Text style={{ color: '#b0b8c1', fontSize: 28 }}>×</Text></TouchableOpacity>
-            </View>
-            <ScrollView style={{ maxHeight: 600 }} contentContainerStyle={{ padding: 24 }}>
-              <Text style={{ color: '#b0b8c1', fontSize: 16, fontWeight: 'bold', marginBottom: 10 }}>Existing Documents</Text>
+            <ScrollView
+              style={{maxHeight: 600}}
+              contentContainerStyle={{padding: 24}}>
+              <Text
+                style={{
+                  color: '#b0b8c1',
+                  fontSize: 16,
+                  fontWeight: 'bold',
+                  marginBottom: 10,
+                }}>
+                Existing Documents
+              </Text>
               {docs.length === 0 ? (
-                <View style={{ backgroundColor: '#1a2233', borderRadius: 8, padding: 16, marginBottom: 18 }}>
-                  <Text style={{ color: '#b0b8c1', fontSize: 15 }}>No documents found for this property.</Text>
+                <View
+                  style={{
+                    backgroundColor: '#1a2233',
+                    borderRadius: 8,
+                    padding: 16,
+                    marginBottom: 18,
+                  }}>
+                  <Text style={{color: '#b0b8c1', fontSize: 15}}>
+                    No documents found for this property.
+                  </Text>
                 </View>
               ) : (
                 docs.map(doc => (
-                  <View key={doc._id} style={{ backgroundColor: '#1a2233', borderRadius: 8, padding: 12, marginBottom: 10, flexDirection: 'row', alignItems: 'center' }}>
-                    <Text style={{ color: '#fff', fontSize: 15, flex: 1 }}>{doc.name || doc.type || 'Document'}</Text>
-                    <TouchableOpacity onPress={() => handleDownloadDoc(doc)} style={{ marginHorizontal: 4 }}>
+                  <View
+                    key={doc._id}
+                    style={{
+                      backgroundColor: '#1a2233',
+                      borderRadius: 8,
+                      padding: 12,
+                      marginBottom: 10,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                    }}>
+                    <Text style={{color: '#fff', fontSize: 15, flex: 1}}>
+                      {doc.name || doc.type || 'Document'}
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() => handleDownloadDoc(doc)}
+                      style={{marginHorizontal: 4}}>
                       <FontAwesome5 name="download" size={16} color="#2196f3" />
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={() => handleOpenRename(doc)} style={{ marginHorizontal: 4 }}>
+                    <TouchableOpacity
+                      onPress={() => handleOpenRename(doc)}
+                      style={{marginHorizontal: 4}}>
                       <FontAwesome5 name="edit" size={16} color="#ffc107" />
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={() => handleDeleteDoc(doc)} style={{ marginHorizontal: 4 }}>
+                    <TouchableOpacity
+                      onPress={() => handleDeleteDoc(doc)}
+                      style={{marginHorizontal: 4}}>
                       <FontAwesome5 name="trash" size={16} color="#F44336" />
                     </TouchableOpacity>
                   </View>
                 ))
               )}
-              <View style={{ height: 1, backgroundColor: '#3a4660', marginVertical: 18 }} />
-              <Text style={{ color: '#b0b8c1', fontSize: 16, fontWeight: 'bold', marginBottom: 10 }}>Upload New Document</Text>
-              <Text style={{ color: '#b0b8c1', fontSize: 14, marginBottom: 4 }}>Document Name</Text>
+              <View
+                style={{
+                  height: 1,
+                  backgroundColor: '#3a4660',
+                  marginVertical: 18,
+                }}
+              />
+              <Text
+                style={{
+                  color: '#b0b8c1',
+                  fontSize: 16,
+                  fontWeight: 'bold',
+                  marginBottom: 10,
+                }}>
+                Upload New Document
+              </Text>
+              <Text style={{color: '#b0b8c1', fontSize: 14, marginBottom: 4}}>
+                Document Name
+              </Text>
               <TextInput
-                style={{ borderWidth: 1, borderColor: '#3a4660', borderRadius: 8, padding: 10, marginBottom: 12, backgroundColor: '#233047', color: '#fff' }}
+                style={{
+                  borderWidth: 1,
+                  borderColor: '#3a4660',
+                  borderRadius: 8,
+                  padding: 10,
+                  marginBottom: 12,
+                  backgroundColor: '#233047',
+                  color: '#fff',
+                }}
                 placeholder="e.g., Lease Agreement 2024"
                 placeholderTextColor="#b0b8c1"
                 value={docName}
                 onChangeText={setDocName}
               />
-              <Text style={{ color: '#b0b8c1', fontSize: 14, marginBottom: 4 }}>File</Text>
+              <Text style={{color: '#b0b8c1', fontSize: 14, marginBottom: 4}}>
+                File
+              </Text>
               <TouchableOpacity
-                style={{ flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#3a4660', borderRadius: 8, padding: 10, marginBottom: 16, backgroundColor: '#233047' }}
-                onPress={handlePickDoc}
-              >
-                <Text style={{ color: '#fff', flex: 1 }}>{docFile ? docFile.name || docFile.fileName : 'No file chosen'}</Text>
-                <Text style={{ color: '#2196f3', fontWeight: 'bold', fontSize: 15 }}>Choose File</Text>
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  borderWidth: 1,
+                  borderColor: '#3a4660',
+                  borderRadius: 8,
+                  padding: 10,
+                  marginBottom: 16,
+                  backgroundColor: '#233047',
+                }}
+                onPress={handlePickDoc}>
+                <Text style={{color: '#fff', flex: 1}}>
+                  {docFile
+                    ? docFile.name || docFile.fileName
+                    : 'No file chosen'}
+                </Text>
+                <Text
+                  style={{color: '#2196f3', fontWeight: 'bold', fontSize: 15}}>
+                  Choose File
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={{ backgroundColor: '#1976D2', borderRadius: 8, paddingVertical: 12, alignItems: 'center', marginBottom: 18 }}
+                style={{
+                  backgroundColor: '#1976D2',
+                  borderRadius: 8,
+                  paddingVertical: 12,
+                  alignItems: 'center',
+                  marginBottom: 18,
+                }}
                 onPress={handleUploadDoc}
-                disabled={uploadingDoc}
-              >
-                <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>{uploadingDoc ? 'Uploading...' : 'Upload Document'}</Text>
+                disabled={uploadingDoc}>
+                <Text style={{color: '#fff', fontWeight: 'bold', fontSize: 16}}>
+                  {uploadingDoc ? 'Uploading...' : 'Upload Document'}
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={{ backgroundColor: '#b0b8c1', borderRadius: 8, paddingVertical: 12, alignItems: 'center' }}
-                onPress={closeDocsModal}
-              >
-                <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>Close</Text>
+                style={{
+                  backgroundColor: '#b0b8c1',
+                  borderRadius: 8,
+                  paddingVertical: 12,
+                  alignItems: 'center',
+                }}
+                onPress={closeDocsModal}>
+                <Text style={{color: '#fff', fontWeight: 'bold', fontSize: 16}}>
+                  Close
+                </Text>
               </TouchableOpacity>
             </ScrollView>
           </View>
         </View>
       </Modal>
-      <Modal visible={expensesModalVisible} animationType="slide" transparent onRequestClose={closeExpensesModal}>
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center' }}>
-          <View style={{ backgroundColor: '#34425a', borderRadius: 12, width: '92%', maxWidth: 500, padding: 0, overflow: 'hidden' }}>
+      <Modal
+        visible={expensesModalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={closeExpensesModal}>
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0,0,0,0.7)',
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}>
+          <View
+            style={{
+              backgroundColor: '#34425a',
+              borderRadius: 12,
+              width: '92%',
+              maxWidth: 500,
+              padding: 0,
+              overflow: 'hidden',
+            }}>
             {/* Header */}
-            <View style={{ backgroundColor: '#3a4660', padding: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-              <Text style={{ color: '#fff', fontSize: 22, fontWeight: 'bold' }}>Manage Expenses</Text>
-              <TouchableOpacity onPress={closeExpensesModal}><Text style={{ color: '#b0b8c1', fontSize: 28 }}>×</Text></TouchableOpacity>
+            <View
+              style={{
+                backgroundColor: '#3a4660',
+                padding: 18,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}>
+              <Text style={{color: '#fff', fontSize: 22, fontWeight: 'bold'}}>
+                {editingExpense?._id ? 'Edit' : 'Add'} Expense
+              </Text>
+              <TouchableOpacity onPress={closeExpensesModal}>
+                <Text style={{color: '#b0b8c1', fontSize: 28}}>×</Text>
+              </TouchableOpacity>
             </View>
-            <ScrollView style={{ maxHeight: 600 }} contentContainerStyle={{ padding: 24 }}>
-              <Text style={{ color: '#b0b8c1', fontSize: 14, marginBottom: 4 }}>Date</Text>
+            <ScrollView
+              style={{maxHeight: 600}}
+              contentContainerStyle={{padding: 24}}>
+              <Text style={{color: '#b0b8c1', fontSize: 14, marginBottom: 4}}>
+                Date
+              </Text>
               <TouchableOpacity
-                style={{ borderWidth: 1, borderColor: '#3a4660', borderRadius: 8, padding: 10, marginBottom: 12, backgroundColor: '#233047', flexDirection: 'row', alignItems: 'center' }}
-                onPress={() => setShowExpenseDatePicker(true)}
-              >
-                <Text style={{ color: expenseForm.date ? '#fff' : '#b0b8c1', flex: 1 }}>{expenseForm.date ? new Date(expenseForm.date).toLocaleDateString() : 'mm/dd/yyyy'}</Text>
+                style={{
+                  borderWidth: 1,
+                  borderColor: '#3a4660',
+                  borderRadius: 8,
+                  padding: 10,
+                  marginBottom: 12,
+                  backgroundColor: '#233047',
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                }}
+                onPress={() => setShowExpenseDatePicker(true)}>
+                <Text
+                  style={{
+                    color: expenseForm.date ? '#fff' : '#b0b8c1',
+                    flex: 1,
+                  }}>
+                  {expenseForm.date
+                    ? new Date(expenseForm.date).toLocaleDateString()
+                    : 'mm/dd/yyyy'}
+                </Text>
                 <FontAwesome5 name="calendar-alt" size={16} color="#b0b8c1" />
               </TouchableOpacity>
               {showExpenseDatePicker && (
                 <DateTimePicker
-                  value={expenseForm.date ? new Date(expenseForm.date) : new Date()}
+                  value={
+                    expenseForm.date ? new Date(expenseForm.date) : new Date()
+                  }
                   mode="date"
                   display="default"
                   onChange={(_, date) => {
                     setShowExpenseDatePicker(false);
-                    if (date) setExpenseForm(f => ({ ...f, date: date.toISOString() }));
+                    if (date) {
+                      setExpenseForm(f => ({...f, date: date.toISOString()}));
+                    }
                   }}
                 />
               )}
-              <Text style={{ color: '#b0b8c1', fontSize: 14, marginBottom: 4 }}>Category</Text>
-              <View style={{ borderWidth: 1, borderColor: '#3a4660', borderRadius: 8, marginBottom: 12, backgroundColor: '#233047' }}>
+              <Text style={{color: '#b0b8c1', fontSize: 14, marginBottom: 4}}>
+                Category
+              </Text>
+              <View
+                style={{
+                  borderWidth: 1,
+                  borderColor: '#3a4660',
+                  borderRadius: 8,
+                  marginBottom: 12,
+                  backgroundColor: '#233047',
+                }}>
                 <Picker
                   selectedValue={expenseForm.category}
-                  onValueChange={v => setExpenseForm(f => ({ ...f, category: v }))}
-                  style={{ color: '#fff' }}
-                  dropdownIconColor="#b0b8c1"
-                >
-                  {['Property Tax', 'Insurance', 'Maintenance', 'Utilities', 'HOA Fees', 'Repairs', 'Other'].map(cat => <Picker.Item key={cat} label={cat} value={cat} />)}
+                  onValueChange={v =>
+                    setExpenseForm(f => ({...f, category: v}))
+                  }
+                  style={{color: '#fff'}}
+                  dropdownIconColor="#b0b8c1">
+                  {[
+                    'Property Tax',
+                    'Insurance',
+                    'Maintenance',
+                    'Utilities',
+                    'HOA Fees',
+                    'Repairs',
+                    'Other',
+                  ].map(cat => (
+                    <Picker.Item key={cat} label={cat} value={cat} />
+                  ))}
                 </Picker>
               </View>
-              <Text style={{ color: '#b0b8c1', fontSize: 14, marginBottom: 4 }}>Amount</Text>
+              <Text style={{color: '#b0b8c1', fontSize: 14, marginBottom: 4}}>
+                Amount
+              </Text>
               <TextInput
-                style={{ borderWidth: 1, borderColor: '#3a4660', borderRadius: 8, padding: 10, marginBottom: 16, backgroundColor: '#233047', color: '#fff' }}
+                style={{
+                  borderWidth: 1,
+                  borderColor: '#3a4660',
+                  borderRadius: 8,
+                  padding: 10,
+                  marginBottom: 16,
+                  backgroundColor: '#233047',
+                  color: '#fff',
+                }}
                 placeholder="$..."
                 placeholderTextColor="#b0b8c1"
                 keyboardType="numeric"
                 value={expenseForm.amount}
-                onChangeText={v => setExpenseForm(f => ({ ...f, amount: v }))}
+                onChangeText={v => setExpenseForm(f => ({...f, amount: v}))}
               />
               <TouchableOpacity
-                style={{ backgroundColor: '#1976D2', borderRadius: 8, paddingVertical: 12, alignItems: 'center', marginBottom: 18 }}
+                style={{
+                  backgroundColor: '#1976D2',
+                  borderRadius: 8,
+                  paddingVertical: 12,
+                  alignItems: 'center',
+                  marginBottom: 18,
+                }}
                 onPress={handleAddExpense}
-                disabled={addingExpense}
-              >
-                <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>{addingExpense ? 'Adding...' : 'Add Expense'}</Text>
+                disabled={addingExpense}>
+                <Text style={{color: '#fff', fontWeight: 'bold', fontSize: 16}}>
+                  {addingExpense ? 'Adding...' : 'Add Expense'}
+                </Text>
               </TouchableOpacity>
-              <View style={{ height: 1, backgroundColor: '#3a4660', marginVertical: 18 }} />
-              <Text style={{ color: '#b0b8c1', fontSize: 16, fontWeight: 'bold', marginBottom: 10 }}>Existing Expenses</Text>
+              <View
+                style={{
+                  height: 1,
+                  backgroundColor: '#3a4660',
+                  marginVertical: 18,
+                }}
+              />
+              <Text
+                style={{
+                  color: '#b0b8c1',
+                  fontSize: 16,
+                  fontWeight: 'bold',
+                  marginBottom: 10,
+                }}>
+                Existing Expenses
+              </Text>
               {expenses.length === 0 ? (
-                <Text style={{ color: '#b0b8c1', fontSize: 15 }}>No expenses recorded for this property.</Text>
+                <Text style={{color: '#b0b8c1', fontSize: 15}}>
+                  No expenses recorded for this property.
+                </Text>
               ) : (
                 expenses.map(exp => (
-                  <View key={exp._id} style={{ backgroundColor: '#1a2233', borderRadius: 8, padding: 12, marginBottom: 10, flexDirection: 'row', alignItems: 'center' }}>
-                    <Text style={{ color: '#fff', fontSize: 15, flex: 1 }}>{new Date(exp.date).toLocaleDateString()} - {exp.category} - ${exp.amount}</Text>
-                    <TouchableOpacity onPress={() => handleDeleteExpenseClick(exp)}>
+                  <View
+                    key={exp._id}
+                    style={{
+                      backgroundColor: '#1a2233',
+                      borderRadius: 8,
+                      padding: 12,
+                      marginBottom: 10,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                    }}>
+                    <Text style={{color: '#fff', fontSize: 15, flex: 1}}>
+                      {new Date(exp.date).toLocaleDateString()} - {exp.category}{' '}
+                      - ${exp.amount}
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() => handleDeleteExpenseClick(exp)}>
                       <FontAwesome5 name="trash" size={16} color="#F44336" />
                     </TouchableOpacity>
                   </View>
@@ -1347,18 +1836,13 @@ const RealEstateScreen: React.FC<Props> = ({navigation}) => {
       </Modal>
 
       {/* Confirm Delete Expense Modal */}
-      <Modal visible={showDeleteExpenseModal} animationType="fade" transparent onRequestClose={() => setShowDeleteExpenseModal(false)}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Delete Expense</Text>
-            <Text style={{color: '#fff', textAlign: 'center', marginBottom: 20}}>Are you sure you want to delete this expense?</Text>
-            <View style={styles.modalActions}>
-              <TouchableOpacity onPress={() => setShowDeleteExpenseModal(false)}><Text style={styles.cancelBtn}>Cancel</Text></TouchableOpacity>
-              <TouchableOpacity onPress={handleDeleteExpense}><Text style={[styles.saveBtn, {color: '#F44336'}]}>Delete</Text></TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+      <DeleteModal
+        visible={showDeleteExpenseModal}
+        onClose={() => setShowDeleteExpenseModal(false)}
+        onConfirm={handleDeleteExpense}
+        title="Delete Expense"
+        message="Are you sure you want to delete this expense from this property?"
+      />
     </SafeAreaView>
   );
 };
@@ -1462,7 +1946,7 @@ const styles = StyleSheet.create({
     marginVertical: 8,
     marginHorizontal: 16,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 5 },
+    shadowOffset: {width: 0, height: 5},
     shadowOpacity: 0.3,
     shadowRadius: 5,
     elevation: 8,
@@ -1606,7 +2090,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 20,
     color: '#fff',
-    textAlign: 'center'
+    textAlign: 'center',
   },
   inputLabel: {
     fontSize: 16,
@@ -1730,7 +2214,15 @@ const styles = StyleSheet.create({
     color: '#4D8AF0',
     fontSize: 18,
   },
+  expenseRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#333',
+  },
 });
 
 export default RealEstateScreen;
-export { PropertyDetailScreen };
+export {PropertyDetailScreen};

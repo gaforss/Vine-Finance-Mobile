@@ -1,17 +1,25 @@
-import React, { useState } from 'react';
-import { Modal, View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import React, {useState} from 'react';
+import {
+  Modal,
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  ScrollView,
+} from 'react-native';
 import Slider from '@react-native-community/slider';
 
 const CATEGORY_FIELDS = [
-  { key: 'mortgage', label: 'Mortgages (Includes Taxes & Fees)' },
-  { key: 'cars', label: 'Cars (Includes Taxes & Fees)' },
-  { key: 'healthCare', label: 'Health Care' },
-  { key: 'foodAndDrinks', label: 'Food & Drinks' },
-  { key: 'travelAndEntertainment', label: 'Travel & Entertainment' },
-  { key: 'reinvestedFunds', label: 'Reinvested Funds' },
+  {key: 'mortgage', label: 'Mortgages (Includes Taxes & Fees)'},
+  {key: 'cars', label: 'Cars (Includes Taxes & Fees)'},
+  {key: 'healthCare', label: 'Health Care'},
+  {key: 'foodAndDrinks', label: 'Food & Drinks'},
+  {key: 'travelAndEntertainment', label: 'Travel & Entertainment'},
+  {key: 'reinvestedFunds', label: 'Reinvested Funds'},
 ] as const;
 
-type CategoryKey = typeof CATEGORY_FIELDS[number]['key'];
+type CategoryKey = (typeof CATEGORY_FIELDS)[number]['key'];
 
 export type RetirementGoalsForm = {
   currentAge: string;
@@ -60,32 +68,36 @@ export default function RetirementGoalsModal({
   // Calculate total percentage
   const totalPercent = CATEGORY_FIELDS.reduce(
     (sum, cat) => sum + Number(form[cat.key] || 0),
-    0
+    0,
   );
 
   const handleInput = (key: keyof RetirementGoalsForm, value: string) => {
-    setForm(f => ({ ...f, [key]: value }));
+    setForm(f => ({...f, [key]: value}));
   };
 
   const handleSlider = (key: CategoryKey, value: number) => {
-    setForm(f => ({ ...f, [key]: Math.round(value) }));
+    setForm(f => ({...f, [key]: Math.round(value)}));
   };
 
   const handleSave = () => {
-    if (totalPercent !== 100) return;
+    if (totalPercent !== 100) {
+      return;
+    }
     onSave(form);
   };
 
   const handleReset = () => {
     setForm(DEFAULTS);
-    if (onReset) onReset();
+    if (onReset) {
+      onReset();
+    }
   };
 
   return (
     <Modal visible={visible} animationType="slide" transparent>
       <View style={styles.overlay}>
         <View style={styles.modalCard}>
-          <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
+          <ScrollView contentContainerStyle={{paddingBottom: 24}}>
             <Text style={styles.title}>Retirement Goals & Planning</Text>
             <View style={styles.row}>
               <View style={styles.inputGroup}>
@@ -94,11 +106,15 @@ export default function RetirementGoalsModal({
                   style={styles.input}
                   keyboardType="numeric"
                   value={String(form.currentAge)}
-                  onChangeText={v => handleInput('currentAge', v.replace(/[^0-9]/g, ''))}
+                  onChangeText={v =>
+                    handleInput('currentAge', v.replace(/[^0-9]/g, ''))
+                  }
                   placeholder="e.g., 35"
                   placeholderTextColor="#b0b8c1"
                 />
-                <Text style={styles.helper}>Must be between 18 and 85 years old</Text>
+                <Text style={styles.helper}>
+                  Must be between 18 and 85 years old
+                </Text>
               </View>
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Annual Savings Contribution</Text>
@@ -106,11 +122,15 @@ export default function RetirementGoalsModal({
                   style={styles.input}
                   keyboardType="numeric"
                   value={String(form.annualSavings)}
-                  onChangeText={v => handleInput('annualSavings', v.replace(/[^0-9]/g, ''))}
+                  onChangeText={v =>
+                    handleInput('annualSavings', v.replace(/[^0-9]/g, ''))
+                  }
                   placeholder="e.g., 20000"
                   placeholderTextColor="#b0b8c1"
                 />
-                <Text style={styles.helper}>Your yearly contribution to savings</Text>
+                <Text style={styles.helper}>
+                  Your yearly contribution to savings
+                </Text>
               </View>
             </View>
             <View style={styles.row}>
@@ -120,32 +140,45 @@ export default function RetirementGoalsModal({
                   style={styles.input}
                   keyboardType="numeric"
                   value={String(form.retirementAge)}
-                  onChangeText={v => handleInput('retirementAge', v.replace(/[^0-9]/g, ''))}
+                  onChangeText={v =>
+                    handleInput('retirementAge', v.replace(/[^0-9]/g, ''))
+                  }
                   placeholder="e.g., 60"
                   placeholderTextColor="#b0b8c1"
                 />
-                <Text style={styles.helper}>Must be between 40 and 85 years old</Text>
+                <Text style={styles.helper}>
+                  Must be between 40 and 85 years old
+                </Text>
               </View>
             </View>
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Project Monthly Spend</Text>
               <View style={styles.currencyRow}>
-                <View style={styles.currencyBox}><Text style={styles.currency}>$</Text></View>
+                <View style={styles.currencyBox}>
+                  <Text style={styles.currency}>$</Text>
+                </View>
                 <TextInput
-                  style={[styles.input, { flex: 1 }]}
+                  style={[styles.input, {flex: 1}]}
                   keyboardType="numeric"
                   value={String(form.monthlySpend)}
-                  onChangeText={v => handleInput('monthlySpend', v.replace(/[^0-9]/g, ''))}
+                  onChangeText={v =>
+                    handleInput('monthlySpend', v.replace(/[^0-9]/g, ''))
+                  }
                   placeholder="e.g., 5500"
                   placeholderTextColor="#b0b8c1"
                 />
               </View>
-              <Text style={styles.helper}>Enter your expected monthly spending in retirement (minimum $1,000)</Text>
+              <Text style={styles.helper}>
+                Enter your expected monthly spending in retirement (minimum
+                $1,000)
+              </Text>
             </View>
             <Text style={styles.sectionTitle}>Monthly Spend Categories</Text>
             <View style={styles.progressBarContainer}>
               <View style={styles.progressBarBg}>
-                <View style={[styles.progressBarFill, { width: `${totalPercent}%` }]} />
+                <View
+                  style={[styles.progressBarFill, {width: `${totalPercent}%`}]}
+                />
               </View>
               <Text style={styles.progressBarText}>{totalPercent}%</Text>
             </View>
@@ -154,7 +187,7 @@ export default function RetirementGoalsModal({
               <View key={cat.key} style={styles.sliderGroup}>
                 <Text style={styles.sliderLabel}>{cat.label}:</Text>
                 <Slider
-                  style={{ width: '100%', height: 32 }}
+                  style={{width: '100%', height: 32}}
                   minimumValue={0}
                   maximumValue={100}
                   step={1}
@@ -165,20 +198,24 @@ export default function RetirementGoalsModal({
                   onValueChange={(v: number) => handleSlider(cat.key, v)}
                 />
                 <View style={styles.sliderValueBox}>
-                  <Text style={styles.sliderValue}>{Number(form[cat.key]) || 0}%</Text>
+                  <Text style={styles.sliderValue}>
+                    {Number(form[cat.key]) || 0}%
+                  </Text>
                   <Text style={styles.sliderDollar}>
                     {form.monthlySpend
-                      ? `$${Math.round(Number(form.monthlySpend) * (Number(form[cat.key]) / 100)).toLocaleString()}`
+                      ? `$${Math.round(
+                          Number(form.monthlySpend) *
+                            (Number(form[cat.key]) / 100),
+                        ).toLocaleString()}`
                       : '$0'}
                   </Text>
                 </View>
               </View>
             ))}
             <TouchableOpacity
-              style={[styles.saveBtn, totalPercent !== 100 && { opacity: 0.5 }]}
+              style={[styles.saveBtn, totalPercent !== 100 && {opacity: 0.5}]}
               onPress={handleSave}
-              disabled={totalPercent !== 100}
-            >
+              disabled={totalPercent !== 100}>
               <Text style={styles.saveBtnText}>Save Goals</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.resetBtn} onPress={handleReset}>
@@ -299,7 +336,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: '50%',
     top: -2,
-    transform: [{ translateX: -18 }],
+    transform: [{translateX: -18}],
     color: '#fff',
     fontWeight: 'bold',
     fontSize: 13,
@@ -371,4 +408,4 @@ const styles = StyleSheet.create({
     fontSize: 32,
     fontWeight: 'bold',
   },
-}); 
+});

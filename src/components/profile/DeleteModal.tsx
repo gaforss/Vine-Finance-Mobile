@@ -1,37 +1,56 @@
 import React from 'react';
-import { View, Text, StyleSheet, Modal, Pressable } from 'react-native';
+import {View, Text, StyleSheet, Modal, Pressable} from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 
 interface DeleteModalProps {
   visible: boolean;
   onClose: () => void;
   onConfirm: () => void;
+  title: string;
+  message: string;
+  confirmText?: string;
 }
 
-const DeleteModal: React.FC<DeleteModalProps> = ({ visible, onClose, onConfirm }) => {
+const DeleteModal: React.FC<DeleteModalProps> = ({
+  visible,
+  onClose,
+  onConfirm,
+  title,
+  message,
+  confirmText,
+}) => {
   return (
     <Modal
       transparent={true}
       visible={visible}
       animationType="fade"
-      onRequestClose={onClose}
-    >
+      onRequestClose={onClose}>
       <View style={styles.backdrop}>
         <View style={styles.modalContent}>
-          <Icon name="exclamation-triangle" size={40} style={styles.warningIcon} />
-          <Text style={styles.modalTitle}>Delete Profile Confirmation</Text>
-          <Text style={styles.modalText}>
-            This action will permanently delete ALL your data including bank accounts, budgeting information, retirement plans, and real estate portfolios.
-          </Text>
+          <Icon
+            name="exclamation-triangle"
+            size={40}
+            style={styles.warningIcon}
+          />
+          <Text style={styles.modalTitle}>{title}</Text>
+          <Text style={styles.modalText}>{message}</Text>
           <View style={styles.alertBox}>
-            <Icon name="exclamation-circle" size={16} style={styles.alertIcon} />
+            <Icon
+              name="exclamation-circle"
+              size={16}
+              style={styles.alertIcon}
+            />
             <Text style={styles.alertText}>This action is NOT reversible!</Text>
           </View>
           <View style={styles.buttonContainer}>
-            <Pressable style={[styles.button, styles.deleteButton]} onPress={onConfirm}>
-              <Text style={styles.buttonText}>Delete Profile</Text>
+            <Pressable
+              style={[styles.button, styles.deleteButton]}
+              onPress={onConfirm}>
+              <Text style={styles.buttonText}>{confirmText || 'Delete'}</Text>
             </Pressable>
-            <Pressable style={[styles.button, styles.cancelButton]} onPress={onClose}>
+            <Pressable
+              style={[styles.button, styles.cancelButton]}
+              onPress={onClose}>
               <Text style={styles.buttonText}>Cancel</Text>
             </Pressable>
           </View>

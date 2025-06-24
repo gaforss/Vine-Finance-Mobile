@@ -6,23 +6,26 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
+  ActivityIndicator,
+  Pressable,
+  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Image,
-  ActivityIndicator,
 } from 'react-native';
-import {useNavigation} from '@react-navigation/native';
+import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 import {StackNavigationProp} from '@react-navigation/stack';
 import {RootStackParamList} from '../../types';
-import { apiService } from '../../services/api';
-import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
-import { storageService } from '../../services/storage';
-import { jwtDecode } from 'jwt-decode';
+import {apiService} from '../../services/api';
+import {storageService} from '../../services/storage';
+import {jwtDecode} from 'jwt-decode';
 
 console.log('🔐 LoginScreen.tsx: Starting LoginScreen setup');
 
-type LoginScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Login'>;
+type LoginScreenNavigationProp = StackNavigationProp<
+  RootStackParamList,
+  'Login'
+>;
 
 interface Props {
   navigation: LoginScreenNavigationProp;
@@ -30,11 +33,11 @@ interface Props {
 
 const LoginScreen: React.FC<Props> = ({navigation}) => {
   console.log('🔐 LoginScreen.tsx: LoginScreen component rendering');
-  
-  const [email, setEmail] = useState('alexander_forss@hotmail.com');
+
+  const [email, setEmail] = useState('demo@example.com');
   const [password, setPassword] = useState('Golf123!');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [formError, setFormError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
   console.log('🔐 LoginScreen.tsx: State initialized');
@@ -45,94 +48,99 @@ const LoginScreen: React.FC<Props> = ({navigation}) => {
 
   const handleLogin = async () => {
     console.log('🔐 [handleLogin] Called');
-    setError('');
     if (!email || !password) {
       console.log('🔐 [handleLogin] Missing email or password');
-      setError('Please enter both email and password.');
+      setFormError('Please enter both email and password.');
       return;
     }
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
       console.log('🔐 [handleLogin] Invalid email format:', email);
-      setError('Please enter a valid email address.');
+      setFormError('Please enter a valid email address.');
       return;
     }
     setLoading(true);
-    console.log('🔐 [handleLogin] Loading set to true');
+    setFormError('');
     try {
       console.log('🔐 [handleLogin] About to call apiService.login');
       const response = await apiService.login(email, password);
       console.log('🔐 [handleLogin] apiService.login returned:', response);
       if (response.data) {
-        console.log('🔐 [handleLogin] Full login response.data:', JSON.stringify(response.data, null, 2));
+        console.log(
+          '🔐 [handleLogin] Full login response.data:',
+          JSON.stringify(response.data, null, 2),
+        );
       }
       if (response.success && response.data?.token) {
-        const token = response.data.token;
-        let userId;
-        try {
-          const decoded: any = jwtDecode(token);
-          console.log('🔐 [handleLogin] Decoded JWT:', decoded);
-          userId = decoded.id || decoded._id;
-          console.log('🔐 [handleLogin] Storing userId:', userId);
-          if (userId) {
-            await storageService.setItem('userId', userId);
-            console.log('🔐 [handleLogin] Decoded and stored userId:', userId);
-          } else {
-            console.warn('🔐 [handleLogin] No userId found in decoded token');
-          }
-        } catch (err) {
-          console.error('🔐 [handleLogin] Failed to decode JWT:', err);
-        }
+        const decoded: {userId: string} = jwtDecode(response.data.token);
+        await storageService.setItem('userId', decoded.userId);
         console.log('🔐 [handleLogin] Login successful, navigating to Main');
         navigation.replace('Main');
-        setLoading(false);
-        return;
       } else {
-        console.log('🔐 [handleLogin] Login failed:', response.message || response.error);
-        setError(response.message || response.error || 'Invalid credentials');
+        console.log(
+          '🔐 [handleLogin] Login failed:',
+          response.message || response.error,
+        );
+        setFormError(response.message || 'Invalid email or password.');
       }
-    } catch (error) {
-      console.error('🔐 [handleLogin] Error during login:', error);
-      setError('An error occurred during login');
+    } catch (e: any) {
+      console.error('🔐 [handleLogin] Error during login:', e);
+      setFormError('An unexpected error occurred.');
     } finally {
       setLoading(false);
       console.log('🔐 [handleLogin] Loading set to false');
     }
   };
 
-  const testBackendConnection = async () => {
-    console.log('🔐 LoginScreen.tsx: Testing backend connection');
-    setLoading(true);
-    
-    try {
-      const response = await apiService.testConnection();
-      console.log('🔐 LoginScreen.tsx: Backend test response:', response);
-      Alert.alert(
-        'Backend Connection',
-        response.success ? 'Connected successfully!' : 'Connection failed',
-      );
-    } catch (error) {
-      console.error('🔐 LoginScreen.tsx: Backend test error:', error);
-      Alert.alert('Error', 'Failed to test backend connection');
-    } finally {
-      setLoading(false);
-    }
-  };
+  useEffect(() => {
+    const checkToken = async () => {
+      try {
+        const token = await storageService.getItem('token');
+        if (token) {
+          const decoded: {userId: string} = jwtDecode(token);
+          await storageService.setItem('userId', decoded.userId);
+          navigation.replace('Main');
+        }
+      } catch (e) {
+        console.log('No valid token found');
+      }
+    };
+    checkToken();
+  }, [navigation]);
 
   console.log('🔐 LoginScreen.tsx: About to render JSX');
-  
+
   try {
     return (
-      <View style={styles.container}>
-        <View style={styles.logoContainer}>
-          <Image source={require('../../../images/logo.png')} style={styles.logoImg} resizeMode="contain" />
-        </View>
-        <Text style={styles.signupText}>
-          Don't have an account yet?{' '}
-          <Text style={styles.signupLink} onPress={() => navigation.navigate('Register')}>Sign Up Here!</Text>
-        </Text>
-        <View style={styles.formContainer}>
-          <View style={styles.inputWrapper}>
-            <FontAwesome5 name="envelope" size={18} color="#888" style={styles.inputIcon} />
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.container}>
+        <ScrollView contentContainerStyle={styles.scrollContainer}>
+          <View style={styles.logoContainer}>
+            <Image
+              source={require('../../../images/logo.png')}
+              style={styles.logoImg}
+              resizeMode="contain"
+            />
+            <Text style={styles.header}>Welcome Back</Text>
+            <Text style={styles.subHeader}>
+              Sign in to your Vine Financial account
+            </Text>
+            <TouchableOpacity
+              style={styles.signupLink}
+              onPress={() => navigation.navigate('Register')}>
+              <Text>Sign Up Here!</Text>
+            </TouchableOpacity>
+          </View>
+
+          {formError ? <Text style={styles.errorText}>{formError}</Text> : null}
+
+          <View style={styles.inputContainer}>
+            <FontAwesome5
+              name="envelope"
+              size={18}
+              color="#888"
+              style={styles.inputIcon}
+            />
             <TextInput
               style={styles.input}
               placeholder="Email"
@@ -144,8 +152,14 @@ const LoginScreen: React.FC<Props> = ({navigation}) => {
               placeholderTextColor="#888"
             />
           </View>
-          <View style={styles.inputWrapper}>
-            <FontAwesome5 name="lock" size={18} color="#888" style={styles.inputIcon} />
+
+          <View style={styles.inputContainer}>
+            <FontAwesome5
+              name="lock"
+              size={18}
+              color="#888"
+              style={styles.inputIcon}
+            />
             <TextInput
               style={styles.input}
               placeholder="Password"
@@ -158,29 +172,29 @@ const LoginScreen: React.FC<Props> = ({navigation}) => {
             />
             <TouchableOpacity
               style={styles.eyeIcon}
-              onPress={() => setShowPassword(!showPassword)}
-            >
-              <FontAwesome5 name={showPassword ? 'eye-slash' : 'eye'} size={18} color="#888" />
+              onPress={() => setShowPassword(!showPassword)}>
+              <FontAwesome5
+                name={showPassword ? 'eye-slash' : 'eye'}
+                size={18}
+                color="#888"
+              />
             </TouchableOpacity>
           </View>
+
           <TouchableOpacity style={styles.button} onPress={handleLogin}>
-            {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Sign in</Text>}
+            {loading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.buttonText}>Sign in</Text>
+            )}
           </TouchableOpacity>
-          <TouchableOpacity style={styles.forgotPassword} onPress={() => navigation.navigate('ForgotPassword')}>
-            <Text style={styles.forgotPasswordText}>Forgot password?</Text>
+          <TouchableOpacity
+            style={styles.forgotPassword}
+            onPress={() => navigation.navigate('ForgotPassword')}>
+            <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
           </TouchableOpacity>
-          <View style={styles.dividerContainer}>
-            <View style={styles.divider} />
-            <Text style={styles.orText}>or</Text>
-            <View style={styles.divider} />
-          </View>
-          <TouchableOpacity style={styles.googleButton}>
-            <FontAwesome5 name="google" size={20} color="#EA4335" style={{ marginRight: 10 }} />
-            <Text style={styles.googleButtonText}>Sign in with Google</Text>
-          </TouchableOpacity>
-        </View>
-        <Text style={styles.footer}>© May the Forss Be With You ;)</Text>
-      </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     );
   } catch (error) {
     console.error('❌ LoginScreen.tsx: Error rendering component:', error);
@@ -194,9 +208,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#181F2A',
+  },
+  scrollContainer: {
+    flexGrow: 1,
+    justifyContent: 'center',
     alignItems: 'center',
-    paddingTop: 30,
-    paddingHorizontal: 20,
+    padding: 20,
   },
   logoContainer: {
     alignItems: 'center',
@@ -206,30 +223,23 @@ const styles = StyleSheet.create({
     width: 320,
     height: 320,
   },
-  signupText: {
+  header: {
     color: '#fff',
     marginBottom: 6,
+    fontSize: 24,
+    fontWeight: 'bold',
+  },
+  subHeader: {
+    color: '#fff',
+    marginBottom: 20,
     fontSize: 16,
-    textAlign: 'center',
   },
   signupLink: {
     color: '#8EE4AF',
     textDecorationLine: 'underline',
     fontWeight: 'bold',
   },
-  formContainer: {
-    width: '100%',
-    maxWidth: 400,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderRadius: 16,
-    padding: 12,
-    marginBottom: 10,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 2 },
-  },
-  inputWrapper: {
+  inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#E3EAF2',
@@ -270,40 +280,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textDecorationLine: 'underline',
   },
-  dividerContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 15,
-  },
-  divider: {
-    flex: 1,
-    height: 1,
-    backgroundColor: '#444',
-  },
-  orText: {
-    color: '#888',
-    marginHorizontal: 10,
-    fontSize: 16,
-  },
-  googleButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    padding: 12,
-    justifyContent: 'center',
+  errorText: {
+    color: 'red',
     marginBottom: 10,
-  },
-  googleButtonText: {
-    color: '#222',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  footer: {
-    color: '#888',
-    marginTop: 16,
-    textAlign: 'center',
-    fontSize: 14,
   },
 });
 

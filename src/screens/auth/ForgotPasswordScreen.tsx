@@ -14,7 +14,7 @@ import {
 import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 import {StackNavigationProp} from '@react-navigation/stack';
 import {RootStackParamList} from '../../types';
-import { apiService } from '../../services/api';
+import {apiService} from '../../services/api';
 
 type ForgotPasswordScreenNavigationProp = StackNavigationProp<
   RootStackParamList,
@@ -59,15 +59,25 @@ const ForgotPasswordScreen: React.FC<Props> = ({navigation}) => {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <View style={styles.logoContainer}>
         <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-          <Image source={require('../../../images/logo.png')} style={styles.logoImg} resizeMode="contain" />
+          <Image
+            source={require('../../../images/logo.png')}
+            style={styles.logoImg}
+            resizeMode="contain"
+          />
         </TouchableOpacity>
       </View>
       <View style={styles.formContainer}>
         <Text style={styles.subtitle}>
-          Enter your email address and we'll send you a link to reset your password.
+          Enter your email address and we'll send you a link to reset your
+          password.
         </Text>
         <View style={styles.inputWrapper}>
-          <FontAwesome5 name="envelope" size={18} color="#888" style={styles.inputIcon} />
+          <FontAwesome5
+            name="envelope"
+            size={18}
+            color="#888"
+            style={styles.inputIcon}
+          />
           <TextInput
             style={styles.input}
             placeholder="Email Address"
@@ -83,7 +93,11 @@ const ForgotPasswordScreen: React.FC<Props> = ({navigation}) => {
           style={styles.button}
           onPress={handleResetPassword}
           disabled={loading}>
-          {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Send Reset Link</Text>}
+          {loading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.buttonText}>Send Reset Link</Text>
+          )}
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.linkButton}
@@ -121,7 +135,7 @@ const styles = StyleSheet.create({
     shadowColor: '#000',
     shadowOpacity: 0.1,
     shadowRadius: 10,
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: {width: 0, height: 2},
   },
   subtitle: {
     fontSize: 16,

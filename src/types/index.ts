@@ -4,13 +4,18 @@ export interface User {
   googleId?: string;
   username: string;
   email: string;
+  name: string;
   firstName: string;
   lastName: string;
-  profileImage?: string;
+  profilePicture?: string;
   isNewUser: boolean;
   onboardingSteps: OnboardingStep[];
+  onboardingCompletion: {
+    [key: string]: boolean;
+  };
   hasDeletedDummyData: boolean;
-  sessionActivity: Session[];
+  sessions: Session[];
+  createdAt: string | Date;
 }
 
 export interface Transaction {
@@ -60,6 +65,8 @@ export interface Account {
     | 'crypto'
     | 'misc';
   manuallyAdded: boolean;
+  institutionName?: string;
+  mask?: string;
 }
 
 export interface CustomField {
@@ -230,10 +237,16 @@ export type RootStackParamList = {
   AddEntry: undefined;
   EditEntry: {entryId: string};
   Settings: undefined;
-  Transactions: { accountId: string; accountName: string };
+  Transactions: {accountId: string; accountName: string};
   Expenses: undefined;
   SavingsGoals: undefined;
-  PropertyDetail: { property: RealEstate };
+  PropertyDetail: {
+    property: RealEstate;
+    expenses: any[];
+    onRefreshExpenses: () => void;
+    onDeleteExpense: (expense: any) => void;
+    onEditExpense: (expense: any) => void;
+  };
 };
 
 export type MainTabParamList = {

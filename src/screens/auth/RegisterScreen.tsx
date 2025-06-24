@@ -15,7 +15,7 @@ import {
 import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 import {StackNavigationProp} from '@react-navigation/stack';
 import {RootStackParamList} from '../../types';
-import { apiService } from '../../services/api';
+import {apiService} from '../../services/api';
 
 type RegisterScreenNavigationProp = StackNavigationProp<
   RootStackParamList,
@@ -94,12 +94,21 @@ const RegisterScreen: React.FC<Props> = ({navigation}) => {
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <View style={styles.logoContainer}>
           <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-            <Image source={require('../../../images/logo.png')} style={styles.logoImg} resizeMode="contain" />
+            <Image
+              source={require('../../../images/logo.png')}
+              style={styles.logoImg}
+              resizeMode="contain"
+            />
           </TouchableOpacity>
         </View>
         <View style={styles.formContainer}>
           <View style={styles.inputWrapper}>
-            <FontAwesome5 name="user" size={18} color="#888" style={styles.inputIcon} />
+            <FontAwesome5
+              name="user"
+              size={18}
+              color="#888"
+              style={styles.inputIcon}
+            />
             <TextInput
               style={styles.input}
               placeholder="Username *"
@@ -111,7 +120,12 @@ const RegisterScreen: React.FC<Props> = ({navigation}) => {
             />
           </View>
           <View style={styles.inputWrapper}>
-            <FontAwesome5 name="envelope" size={18} color="#888" style={styles.inputIcon} />
+            <FontAwesome5
+              name="envelope"
+              size={18}
+              color="#888"
+              style={styles.inputIcon}
+            />
             <TextInput
               style={styles.input}
               placeholder="Email *"
@@ -124,7 +138,12 @@ const RegisterScreen: React.FC<Props> = ({navigation}) => {
             />
           </View>
           <View style={styles.inputWrapper}>
-            <FontAwesome5 name="user" size={18} color="#888" style={styles.inputIcon} />
+            <FontAwesome5
+              name="user"
+              size={18}
+              color="#888"
+              style={styles.inputIcon}
+            />
             <TextInput
               style={styles.input}
               placeholder="First Name"
@@ -135,7 +154,12 @@ const RegisterScreen: React.FC<Props> = ({navigation}) => {
             />
           </View>
           <View style={styles.inputWrapper}>
-            <FontAwesome5 name="user" size={18} color="#888" style={styles.inputIcon} />
+            <FontAwesome5
+              name="user"
+              size={18}
+              color="#888"
+              style={styles.inputIcon}
+            />
             <TextInput
               style={styles.input}
               placeholder="Last Name"
@@ -146,7 +170,12 @@ const RegisterScreen: React.FC<Props> = ({navigation}) => {
             />
           </View>
           <View style={styles.inputWrapper}>
-            <FontAwesome5 name="lock" size={18} color="#888" style={styles.inputIcon} />
+            <FontAwesome5
+              name="lock"
+              size={18}
+              color="#888"
+              style={styles.inputIcon}
+            />
             <TextInput
               style={styles.input}
               placeholder="Password *"
@@ -159,7 +188,12 @@ const RegisterScreen: React.FC<Props> = ({navigation}) => {
             />
           </View>
           <View style={styles.inputWrapper}>
-            <FontAwesome5 name="lock" size={18} color="#888" style={styles.inputIcon} />
+            <FontAwesome5
+              name="lock"
+              size={18}
+              color="#888"
+              style={styles.inputIcon}
+            />
             <TextInput
               style={styles.input}
               placeholder="Confirm Password *"
@@ -175,7 +209,11 @@ const RegisterScreen: React.FC<Props> = ({navigation}) => {
             style={styles.button}
             onPress={handleRegister}
             disabled={loading}>
-            {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Create Account</Text>}
+            {loading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.buttonText}>Create Account</Text>
+            )}
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.linkButton}
@@ -190,7 +228,12 @@ const RegisterScreen: React.FC<Props> = ({navigation}) => {
             <View style={styles.divider} />
           </View>
           <TouchableOpacity style={styles.googleButton}>
-            <FontAwesome5 name="google" size={20} color="#EA4335" style={{ marginRight: 10 }} />
+            <FontAwesome5
+              name="google"
+              size={20}
+              color="#EA4335"
+              style={{marginRight: 10}}
+            />
             <Text style={styles.googleButtonText}>Sign up with Google</Text>
           </TouchableOpacity>
         </View>
@@ -231,7 +274,7 @@ const styles = StyleSheet.create({
     shadowColor: '#000',
     shadowOpacity: 0.1,
     shadowRadius: 10,
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: {width: 0, height: 2},
   },
   inputWrapper: {
     flexDirection: 'row',

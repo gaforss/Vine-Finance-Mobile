@@ -1,7 +1,7 @@
 import React from 'react';
 import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 import {MainTabParamList} from '../types';
-import { View } from 'react-native';
+import {View} from 'react-native';
 
 console.log('🎯 TabBarIcon.tsx: Starting TabBarIcon setup');
 
@@ -30,7 +30,14 @@ const TabBarIcon: React.FC<TabBarIconProps> = ({
   size,
 }) => {
   console.log('🎯 TabBarIcon.tsx: TabBarIcon rendering for route:', route);
-  console.log('🎯 TabBarIcon.tsx: TabBarIcon props - focused:', focused, 'color:', color, 'size:', size);
+  console.log(
+    '🎯 TabBarIcon.tsx: TabBarIcon props - focused:',
+    focused,
+    'color:',
+    color,
+    'size:',
+    size,
+  );
 
   try {
     const iconName = iconMap[route] || 'question-circle';
@@ -45,8 +52,7 @@ const TabBarIcon: React.FC<TabBarIconProps> = ({
           height: 44,
           borderRadius: 22,
           backgroundColor: focused ? 'rgba(35,170,255,0.12)' : 'transparent',
-        }}
-      >
+        }}>
         <FontAwesome5
           name={iconName}
           size={18}

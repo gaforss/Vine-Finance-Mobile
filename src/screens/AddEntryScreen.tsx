@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import {StackNavigationProp} from '@react-navigation/stack';
 import {RootStackParamList, NetWorth} from '../types';
-import { apiService } from '../services/api';
+import {apiService} from '../services/api';
 
 type AddEntryScreenNavigationProp = StackNavigationProp<
   RootStackParamList,
@@ -64,7 +64,10 @@ const AddEntryScreen: React.FC<Props> = ({navigation}) => {
   const parseNumber = (value: string): number => {
     const cleaned = value.replace(/[^0-9.-]/g, '');
     const parsed = parseFloat(cleaned);
-    console.log(`parseNumber input: '${value}', cleaned: '${cleaned}', parsed:`, parsed);
+    console.log(
+      `parseNumber input: '${value}', cleaned: '${cleaned}', parsed:`,
+      parsed,
+    );
     return isNaN(parsed) ? 0 : parsed;
   };
 
@@ -77,7 +80,14 @@ const AddEntryScreen: React.FC<Props> = ({navigation}) => {
     const personalProperty = parseNumber(formData.personalProperty);
     const otherAssets = parseNumber(formData.otherAssets);
     const liabilities = parseNumber(formData.liabilities);
-    const assets = cash + investments + realEstate + retirementAccounts + vehicles + personalProperty + otherAssets;
+    const assets =
+      cash +
+      investments +
+      realEstate +
+      retirementAccounts +
+      vehicles +
+      personalProperty +
+      otherAssets;
     const netWorth = assets - liabilities;
     console.log('Net Worth Calculation:', {
       cash,
@@ -101,7 +111,9 @@ const AddEntryScreen: React.FC<Props> = ({navigation}) => {
       console.log('Fetched entries data:', response.data);
       // Ensure every entry has a netWorth field, calculated if missing
       const entriesWithNetWorth = response.data.map(entry => {
-        if (typeof entry.netWorth === 'number') return entry;
+        if (typeof entry.netWorth === 'number') {
+          return entry;
+        }
         const assets =
           (entry.cash || 0) +
           (entry.investments || 0) +
@@ -110,15 +122,24 @@ const AddEntryScreen: React.FC<Props> = ({navigation}) => {
           (entry.vehicles || 0) +
           (entry.personalProperty || 0) +
           (entry.otherAssets || 0) +
-          (entry.customFields || []).filter(f => f.type === 'asset').reduce((a, b) => a + (b.amount || 0), 0);
-        const liabilities = (entry.liabilities || 0) +
-          (entry.customFields || []).filter(f => f.type === 'liability').reduce((a, b) => a + (b.amount || 0), 0);
+          (entry.customFields || [])
+            .filter(f => f.type === 'asset')
+            .reduce((a, b) => a + (b.amount || 0), 0);
+        const liabilities =
+          (entry.liabilities || 0) +
+          (entry.customFields || [])
+            .filter(f => f.type === 'liability')
+            .reduce((a, b) => a + (b.amount || 0), 0);
         return {
           ...entry,
           netWorth: assets - liabilities,
         };
       });
-      setEntries(entriesWithNetWorth.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+      setEntries(
+        entriesWithNetWorth.sort(
+          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+        ),
+      );
     }
   };
 
@@ -221,30 +242,28 @@ const AddEntryScreen: React.FC<Props> = ({navigation}) => {
   const netWorth = calculateNetWorth();
 
   const handleDeleteEntry = async (entryId: string) => {
-    Alert.alert(
-      'Delete Entry',
-      'Are you sure you want to delete this entry?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete', style: 'destructive', onPress: async () => {
-            try {
-              setLoading(true);
-              const response = await apiService.deleteNetWorthEntry(entryId);
-              if (response.success) {
-                fetchEntries();
-              } else {
-                Alert.alert('Error', response.error || 'Failed to delete entry');
-              }
-            } catch (error) {
-              Alert.alert('Error', 'Failed to delete entry');
-            } finally {
-              setLoading(false);
+    Alert.alert('Delete Entry', 'Are you sure you want to delete this entry?', [
+      {text: 'Cancel', style: 'cancel'},
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            setLoading(true);
+            const response = await apiService.deleteNetWorthEntry(entryId);
+            if (response.success) {
+              fetchEntries();
+            } else {
+              Alert.alert('Error', response.error || 'Failed to delete entry');
             }
+          } catch (error) {
+            Alert.alert('Error', 'Failed to delete entry');
+          } finally {
+            setLoading(false);
           }
-        }
-      ]
-    );
+        },
+      },
+    ]);
   };
 
   // --- Stepper and Tab UI ---
@@ -258,7 +277,13 @@ const AddEntryScreen: React.FC<Props> = ({navigation}) => {
             key={tab}
             style={[styles.tab, activeTab === idx && styles.activeTab]}
             onPress={() => setActiveTab(idx)}>
-            <Text style={[styles.tabText, activeTab === idx && styles.activeTabText]}>{tab}</Text>
+            <Text
+              style={[
+                styles.tabText,
+                activeTab === idx && styles.activeTabText,
+              ]}>
+              {tab}
+            </Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -267,15 +292,33 @@ const AddEntryScreen: React.FC<Props> = ({navigation}) => {
           <Text style={styles.importText}>Import from file coming soon...</Text>
         </View>
       ) : (
-        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          style={styles.scrollView}
+          showsVerticalScrollIndicator={false}>
           {/* Stepper */}
           <View style={styles.stepperContainer}>
             {STEPS.map((label, idx) => (
               <View key={label} style={styles.stepContainer}>
-                <View style={[styles.stepCircle, step === idx && styles.activeStepCircle]}>
-                  <Text style={[styles.stepNumber, step === idx && styles.activeStepNumber]}>{idx + 1}</Text>
+                <View
+                  style={[
+                    styles.stepCircle,
+                    step === idx && styles.activeStepCircle,
+                  ]}>
+                  <Text
+                    style={[
+                      styles.stepNumber,
+                      step === idx && styles.activeStepNumber,
+                    ]}>
+                    {idx + 1}
+                  </Text>
                 </View>
-                <Text style={[styles.stepLabel, step === idx && styles.activeStepLabel]}>{label}</Text>
+                <Text
+                  style={[
+                    styles.stepLabel,
+                    step === idx && styles.activeStepLabel,
+                  ]}>
+                  {label}
+                </Text>
                 {idx < STEPS.length - 1 && <View style={styles.stepLine} />}
               </View>
             ))}
@@ -285,59 +328,165 @@ const AddEntryScreen: React.FC<Props> = ({navigation}) => {
             {step === 0 && (
               <>
                 <Text style={styles.sectionTitle}>Assets</Text>
-                <InputField label="Date" value={formData.date} onChangeText={value => updateFormData('date', value)} placeholder="YYYY-MM-DD" keyboardType="default" />
-                <InputField label="Cash & Savings" value={formData.cash} onChangeText={value => updateFormData('cash', value)} placeholder="$0" />
-                <InputField label="Investments" value={formData.investments} onChangeText={value => updateFormData('investments', value)} placeholder="$0" />
-                <InputField label="Real Estate" value={formData.realEstate} onChangeText={value => updateFormData('realEstate', value)} placeholder="$0" />
-                <InputField label="Retirement Accounts" value={formData.retirementAccounts} onChangeText={value => updateFormData('retirementAccounts', value)} placeholder="$0" />
-                <InputField label="Vehicles" value={formData.vehicles} onChangeText={value => updateFormData('vehicles', value)} placeholder="$0" />
-                <InputField label="Personal Property" value={formData.personalProperty} onChangeText={value => updateFormData('personalProperty', value)} placeholder="$0" />
-                <InputField label="Other Assets" value={formData.otherAssets} onChangeText={value => updateFormData('otherAssets', value)} placeholder="$0" />
+                <InputField
+                  label="Date"
+                  value={formData.date}
+                  onChangeText={value => updateFormData('date', value)}
+                  placeholder="YYYY-MM-DD"
+                  keyboardType="default"
+                />
+                <InputField
+                  label="Cash & Savings"
+                  value={formData.cash}
+                  onChangeText={value => updateFormData('cash', value)}
+                  placeholder="$0"
+                />
+                <InputField
+                  label="Investments"
+                  value={formData.investments}
+                  onChangeText={value => updateFormData('investments', value)}
+                  placeholder="$0"
+                />
+                <InputField
+                  label="Real Estate"
+                  value={formData.realEstate}
+                  onChangeText={value => updateFormData('realEstate', value)}
+                  placeholder="$0"
+                />
+                <InputField
+                  label="Retirement Accounts"
+                  value={formData.retirementAccounts}
+                  onChangeText={value =>
+                    updateFormData('retirementAccounts', value)
+                  }
+                  placeholder="$0"
+                />
+                <InputField
+                  label="Vehicles"
+                  value={formData.vehicles}
+                  onChangeText={value => updateFormData('vehicles', value)}
+                  placeholder="$0"
+                />
+                <InputField
+                  label="Personal Property"
+                  value={formData.personalProperty}
+                  onChangeText={value =>
+                    updateFormData('personalProperty', value)
+                  }
+                  placeholder="$0"
+                />
+                <InputField
+                  label="Other Assets"
+                  value={formData.otherAssets}
+                  onChangeText={value => updateFormData('otherAssets', value)}
+                  placeholder="$0"
+                />
               </>
             )}
             {step === 1 && (
               <>
                 <Text style={styles.sectionTitle}>Liabilities</Text>
-                <InputField label="Total Liabilities" value={formData.liabilities} onChangeText={value => updateFormData('liabilities', value)} placeholder="$0" />
+                <InputField
+                  label="Total Liabilities"
+                  value={formData.liabilities}
+                  onChangeText={value => updateFormData('liabilities', value)}
+                  placeholder="$0"
+                />
                 <Text style={styles.sectionTitle}>Notes</Text>
-                <InputField label="Additional Notes" value={formData.notes} onChangeText={value => updateFormData('notes', value)} placeholder="Any additional notes about this entry..." keyboardType="default" multiline={true} numberOfLines={4} />
+                <InputField
+                  label="Additional Notes"
+                  value={formData.notes}
+                  onChangeText={value => updateFormData('notes', value)}
+                  placeholder="Any additional notes about this entry..."
+                  keyboardType="default"
+                  multiline={true}
+                  numberOfLines={4}
+                />
               </>
             )}
             {step === 2 && (
               <>
                 <Text style={styles.sectionTitle}>Review</Text>
-                <View style={styles.reviewRow}><Text style={styles.reviewLabel}>Date:</Text><Text style={styles.reviewValue}>{formData.date}</Text></View>
-                <View style={styles.reviewRow}><Text style={styles.reviewLabel}>Cash & Savings:</Text><Text style={styles.reviewValue}>{formData.cash}</Text></View>
-                <View style={styles.reviewRow}><Text style={styles.reviewLabel}>Investments:</Text><Text style={styles.reviewValue}>{formData.investments}</Text></View>
-                <View style={styles.reviewRow}><Text style={styles.reviewLabel}>Real Estate:</Text><Text style={styles.reviewValue}>{formData.realEstate}</Text></View>
-                <View style={styles.reviewRow}><Text style={styles.reviewLabel}>Retirement Accounts:</Text><Text style={styles.reviewValue}>{formData.retirementAccounts}</Text></View>
-                <View style={styles.reviewRow}><Text style={styles.reviewLabel}>Vehicles:</Text><Text style={styles.reviewValue}>{formData.vehicles}</Text></View>
-                <View style={styles.reviewRow}><Text style={styles.reviewLabel}>Personal Property:</Text><Text style={styles.reviewValue}>{formData.personalProperty}</Text></View>
-                <View style={styles.reviewRow}><Text style={styles.reviewLabel}>Other Assets:</Text><Text style={styles.reviewValue}>{formData.otherAssets}</Text></View>
-                <View style={styles.reviewRow}><Text style={styles.reviewLabel}>Liabilities:</Text><Text style={styles.reviewValue}>{formData.liabilities}</Text></View>
-                <View style={styles.reviewRow}><Text style={styles.reviewLabel}>Notes:</Text><Text style={styles.reviewValue}>{formData.notes}</Text></View>
-                <View style={styles.reviewRow}><Text style={styles.reviewLabel}>Estimated Net Worth:</Text><Text style={styles.reviewValue}>{formatCurrency(calculateNetWorth())}</Text></View>
+                <View style={styles.reviewRow}>
+                  <Text style={styles.reviewLabel}>Date:</Text>
+                  <Text style={styles.reviewValue}>{formData.date}</Text>
+                </View>
+                <View style={styles.reviewRow}>
+                  <Text style={styles.reviewLabel}>Cash & Savings:</Text>
+                  <Text style={styles.reviewValue}>{formData.cash}</Text>
+                </View>
+                <View style={styles.reviewRow}>
+                  <Text style={styles.reviewLabel}>Investments:</Text>
+                  <Text style={styles.reviewValue}>{formData.investments}</Text>
+                </View>
+                <View style={styles.reviewRow}>
+                  <Text style={styles.reviewLabel}>Real Estate:</Text>
+                  <Text style={styles.reviewValue}>{formData.realEstate}</Text>
+                </View>
+                <View style={styles.reviewRow}>
+                  <Text style={styles.reviewLabel}>Retirement Accounts:</Text>
+                  <Text style={styles.reviewValue}>
+                    {formData.retirementAccounts}
+                  </Text>
+                </View>
+                <View style={styles.reviewRow}>
+                  <Text style={styles.reviewLabel}>Vehicles:</Text>
+                  <Text style={styles.reviewValue}>{formData.vehicles}</Text>
+                </View>
+                <View style={styles.reviewRow}>
+                  <Text style={styles.reviewLabel}>Personal Property:</Text>
+                  <Text style={styles.reviewValue}>
+                    {formData.personalProperty}
+                  </Text>
+                </View>
+                <View style={styles.reviewRow}>
+                  <Text style={styles.reviewLabel}>Other Assets:</Text>
+                  <Text style={styles.reviewValue}>{formData.otherAssets}</Text>
+                </View>
+                <View style={styles.reviewRow}>
+                  <Text style={styles.reviewLabel}>Liabilities:</Text>
+                  <Text style={styles.reviewValue}>{formData.liabilities}</Text>
+                </View>
+                <View style={styles.reviewRow}>
+                  <Text style={styles.reviewLabel}>Notes:</Text>
+                  <Text style={styles.reviewValue}>{formData.notes}</Text>
+                </View>
+                <View style={styles.reviewRow}>
+                  <Text style={styles.reviewLabel}>Estimated Net Worth:</Text>
+                  <Text style={styles.reviewValue}>
+                    {formatCurrency(calculateNetWorth())}
+                  </Text>
+                </View>
               </>
             )}
           </View>
           {/* Step Navigation */}
           <View style={styles.stepNavRow}>
             {step > 0 && (
-              <TouchableOpacity style={styles.stepNavButton} onPress={() => setStep(step - 1)}>
+              <TouchableOpacity
+                style={styles.stepNavButton}
+                onPress={() => setStep(step - 1)}>
                 <Text style={styles.stepNavButtonText}>Back</Text>
               </TouchableOpacity>
             )}
             {step < 2 && (
-              <TouchableOpacity style={styles.stepNavButton} onPress={() => setStep(step + 1)}>
+              <TouchableOpacity
+                style={styles.stepNavButton}
+                onPress={() => setStep(step + 1)}>
                 <Text style={styles.stepNavButtonText}>Next</Text>
               </TouchableOpacity>
             )}
             {step === 2 && (
               <TouchableOpacity
-                style={[styles.submitButton, loading && styles.submitButtonDisabled]}
+                style={[
+                  styles.submitButton,
+                  loading && styles.submitButtonDisabled,
+                ]}
                 onPress={handleSubmit}
                 disabled={loading}>
-                <Text style={styles.submitButtonText}>{loading ? 'Adding Entry...' : 'Submit Entry'}</Text>
+                <Text style={styles.submitButtonText}>
+                  {loading ? 'Adding Entry...' : 'Submit Entry'}
+                </Text>
               </TouchableOpacity>
             )}
           </View>
@@ -363,23 +512,61 @@ const AddEntryScreen: React.FC<Props> = ({navigation}) => {
                   <Text style={styles.noEntriesText}>No entries found.</Text>
                 ) : (
                   entries.map(entry => (
-                    <View key={entry._id ? String(entry._id) : String(entry.date)} style={styles.entryRow}>
-                      <Text style={styles.entryCell}>{new Date(entry.date).toLocaleDateString()}</Text>
-                      <Text style={styles.entryCell}>{formatCurrency(entry.cash)}</Text>
-                      <Text style={styles.entryCell}>{formatCurrency(entry.investments)}</Text>
-                      <Text style={styles.entryCell}>{formatCurrency(entry.realEstate)}</Text>
-                      <Text style={styles.entryCell}>{formatCurrency(entry.retirementAccounts)}</Text>
-                      <Text style={styles.entryCell}>{formatCurrency(entry.vehicles)}</Text>
-                      <Text style={styles.entryCell}>{formatCurrency(entry.personalProperty)}</Text>
-                      <Text style={styles.entryCell}>{formatCurrency(entry.otherAssets)}</Text>
-                      <Text style={styles.entryCell}>{formatCurrency(entry.liabilities)}</Text>
-                      <Text style={styles.entryCell}>{formatCurrency(entry.netWorth)}</Text>
-                      <View style={[styles.entryCell, {flexDirection: 'row', gap: 4, paddingHorizontal: 0}]}> 
-                        <TouchableOpacity style={{paddingHorizontal: 2}} onPress={() => navigation.navigate('EditEntry', { entryId: entry._id || '' })}>
-                          <Text style={{color: '#23aaff', fontSize: 12}}>Edit</Text>
+                    <View
+                      key={entry._id ? String(entry._id) : String(entry.date)}
+                      style={styles.entryRow}>
+                      <Text style={styles.entryCell}>
+                        {new Date(entry.date).toLocaleDateString()}
+                      </Text>
+                      <Text style={styles.entryCell}>
+                        {formatCurrency(entry.cash)}
+                      </Text>
+                      <Text style={styles.entryCell}>
+                        {formatCurrency(entry.investments)}
+                      </Text>
+                      <Text style={styles.entryCell}>
+                        {formatCurrency(entry.realEstate)}
+                      </Text>
+                      <Text style={styles.entryCell}>
+                        {formatCurrency(entry.retirementAccounts)}
+                      </Text>
+                      <Text style={styles.entryCell}>
+                        {formatCurrency(entry.vehicles)}
+                      </Text>
+                      <Text style={styles.entryCell}>
+                        {formatCurrency(entry.personalProperty)}
+                      </Text>
+                      <Text style={styles.entryCell}>
+                        {formatCurrency(entry.otherAssets)}
+                      </Text>
+                      <Text style={styles.entryCell}>
+                        {formatCurrency(entry.liabilities)}
+                      </Text>
+                      <Text style={styles.entryCell}>
+                        {formatCurrency(entry.netWorth)}
+                      </Text>
+                      <View
+                        style={[
+                          styles.entryCell,
+                          {flexDirection: 'row', gap: 4, paddingHorizontal: 0},
+                        ]}>
+                        <TouchableOpacity
+                          style={{paddingHorizontal: 2}}
+                          onPress={() =>
+                            navigation.navigate('EditEntry', {
+                              entryId: entry._id || '',
+                            })
+                          }>
+                          <Text style={{color: '#23aaff', fontSize: 12}}>
+                            Edit
+                          </Text>
                         </TouchableOpacity>
-                        <TouchableOpacity style={{paddingHorizontal: 2}} onPress={() => handleDeleteEntry(entry._id || '')}>
-                          <Text style={{color: '#ff5555', fontSize: 12}}>Delete</Text>
+                        <TouchableOpacity
+                          style={{paddingHorizontal: 2}}
+                          onPress={() => handleDeleteEntry(entry._id || '')}>
+                          <Text style={{color: '#ff5555', fontSize: 12}}>
+                            Delete
+                          </Text>
                         </TouchableOpacity>
                       </View>
                     </View>
@@ -494,7 +681,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginBottom: 18,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
@@ -584,7 +771,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginBottom: 24,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,

@@ -1,9 +1,17 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, StyleSheet, ActivityIndicator, SafeAreaView, TouchableOpacity } from 'react-native';
-import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
-import { StackNavigationProp } from '@react-navigation/stack';
-import { RootStackParamList } from '../types';
-import { apiService } from '../services/api';
+import React, {useEffect, useState} from 'react';
+import {
+  View,
+  Text,
+  FlatList,
+  StyleSheet,
+  ActivityIndicator,
+  SafeAreaView,
+  TouchableOpacity,
+} from 'react-native';
+import {useNavigation, useRoute, RouteProp} from '@react-navigation/native';
+import {StackNavigationProp} from '@react-navigation/stack';
+import {RootStackParamList} from '../types';
+import {apiService} from '../services/api';
 
 // Transaction type (customize as needed)
 interface Transaction {
@@ -15,14 +23,20 @@ interface Transaction {
   date?: string;
 }
 
-type TransactionsScreenRouteProp = RouteProp<RootStackParamList, 'Transactions'>;
+type TransactionsScreenRouteProp = RouteProp<
+  RootStackParamList,
+  'Transactions'
+>;
 
-type TransactionsScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Transactions'>;
+type TransactionsScreenNavigationProp = StackNavigationProp<
+  RootStackParamList,
+  'Transactions'
+>;
 
 const TransactionsScreen: React.FC = () => {
   const navigation = useNavigation<TransactionsScreenNavigationProp>();
   const route = useRoute<TransactionsScreenRouteProp>();
-  const { accountId, accountName } = route.params;
+  const {accountId, accountName} = route.params;
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -42,29 +56,43 @@ const TransactionsScreen: React.FC = () => {
       }
       setLoading(false);
     };
-    if (accountId) fetchTransactions();
+    if (accountId) {
+      fetchTransactions();
+    }
   }, [accountId]);
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.header}>
         <Text style={styles.title}>{accountName || 'Transactions'}</Text>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.closeButton}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.closeButton}>
           <Text style={styles.closeText}>Close</Text>
         </TouchableOpacity>
       </View>
       {loading ? (
-        <ActivityIndicator color="#23aaff" style={{ marginTop: 40 }} />
+        <ActivityIndicator color="#23aaff" style={{marginTop: 40}} />
       ) : (
         <FlatList
           data={transactions}
           keyExtractor={(item, idx) => item.id || item._id || `txn-${idx}`}
-          ListEmptyComponent={<Text style={styles.emptyText}>No transactions found.</Text>}
-          renderItem={({ item }) => (
+          ListEmptyComponent={
+            <Text style={styles.emptyText}>No transactions found.</Text>
+          }
+          renderItem={({item}) => (
             <View style={styles.card}>
-              <Text style={styles.txnName}>{item.name || item.description || 'Transaction'}</Text>
-              <Text style={styles.txnAmount}>{typeof item.amount === 'number' ? `$${item.amount.toLocaleString()}` : ''}</Text>
-              <Text style={styles.txnDate}>{item.date ? new Date(item.date).toLocaleDateString() : ''}</Text>
+              <Text style={styles.txnName}>
+                {item.name || item.description || 'Transaction'}
+              </Text>
+              <Text style={styles.txnAmount}>
+                {typeof item.amount === 'number'
+                  ? `$${item.amount.toLocaleString()}`
+                  : ''}
+              </Text>
+              <Text style={styles.txnDate}>
+                {item.date ? new Date(item.date).toLocaleDateString() : ''}
+              </Text>
             </View>
           )}
         />
@@ -108,7 +136,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginVertical: 8,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.12,
     shadowRadius: 6,
     elevation: 2,
@@ -137,4 +165,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default TransactionsScreen; 
+export default TransactionsScreen;
