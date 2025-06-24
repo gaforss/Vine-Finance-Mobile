@@ -110,7 +110,7 @@ const BudgetingScreen: React.FC = () => {
 
   useEffect(() => {
     setCashFlowSeriesLoading(true);
-    apiService.getCashFlowSeries().then(res => {
+    apiService.getTransactions().then(res => {
       if (res.success && Array.isArray(res.data)) {
         // Adapt: process flat array of transactions into time series
         const timeSeries = buildCashFlowTimeSeries(res.data, 30); // 30 days

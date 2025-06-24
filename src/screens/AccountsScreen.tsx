@@ -69,6 +69,8 @@ const MANUAL_CATEGORY_TO_BACKEND_KEY: Record<string, string> = {
   'misc': 'miscellaneous',
 };
 
+const MANUAL_ACCOUNT_CATEGORIES = ['bank', 'credit card', 'loan', 'investment', 'retirement', 'insurance', 'crypto', 'misc'];
+
 // Temporary error boundary for debugging
 class DebugErrorBoundary extends React.Component<any, { hasError: boolean; error: any }> {
   constructor(props: any) {
@@ -138,7 +140,7 @@ const AccountsScreen: React.FC = () => {
             const mapped: Account = {
               _id: acct.account_id || acct._id || acct.id || '',
               name: acct.name || acct.official_name || 'Unnamed',
-              category: acct.type || mappedKey || '',
+              category: acct.category || mappedKey || '',
               amount: (acct.balances && typeof acct.balances.current === 'number') ? acct.balances.current : (typeof acct.amount === 'number' ? acct.amount : 0),
               institutionName: acct.institutionName || '',
               mask: acct.mask || '',
@@ -179,7 +181,7 @@ const AccountsScreen: React.FC = () => {
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Delete', style: 'destructive', onPress: async () => {
-            const response = await apiService.deleteAccount(accountId);
+            const response = await apiService.deleteManualAccount(accountId);
             if (response.success) {
               fetchAccounts();
             } else {
@@ -394,9 +396,24 @@ const AccountsScreen: React.FC = () => {
           <View style={styles.bottomSheetOverlay}>
             <View style={styles.bottomSheet}>
               <Text style={styles.modalTitle}>{editAccountId ? 'Edit Account' : 'Add Account Manually'}</Text>
-              <TextInput style={styles.modalInput} placeholder="Account Name" value={manualName} onChangeText={setManualName} />
-              <TextInput style={styles.modalInput} placeholder="Account Type" value={manualType} onChangeText={setManualType} />
-              <TextInput style={styles.modalInput} placeholder="Balance" value={manualBalance} onChangeText={setManualBalance} keyboardType="numeric" />
+              <TextInput style={styles.modalInput} placeholder="Account Name (e.g., Savings)" placeholderTextColor="#888" value={manualName} onChangeText={setManualName} />
+              
+              <Text style={styles.modalLabel}>Category</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginVertical: 10 }}>
+                {MANUAL_ACCOUNT_CATEGORIES.map(cat => (
+                  <TouchableOpacity
+                    key={cat}
+                    style={[styles.categoryPill, manualType === cat && styles.categoryPillSelected]}
+                    onPress={() => setManualType(cat)}
+                  >
+                    <Text style={[styles.categoryPillText, manualType === cat && styles.categoryPillTextSelected]}>
+                      {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+
+              <TextInput style={styles.modalInput} placeholder="Current Balance" placeholderTextColor="#888" value={manualBalance} onChangeText={setManualBalance} keyboardType="numeric" />
               <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 16 }}>
                 <TouchableOpacity style={styles.modalCancelButton} onPress={() => setShowManualModal(false)}>
                   <Text style={styles.modalCancelText}>Cancel</Text>
@@ -601,9 +618,34 @@ const styles = StyleSheet.create({
     padding: 12,
     marginBottom: 12,
     color: '#fff',
+    fontSize: 16,
+  },
+  modalLabel: {
+    color: '#b0b8c1',
+    fontSize: 15,
+    fontWeight: '500',
+    marginBottom: 8,
+  },
+  categoryPill: {
+    backgroundColor: '#333f55',
+    borderRadius: 20,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    marginRight: 10,
+  },
+  categoryPillSelected: {
+    backgroundColor: '#0070ba',
+  },
+  categoryPillText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  categoryPillTextSelected: {
+    color: '#fff',
   },
   modalCancelButton: {
-    backgroundColor: '#ff5555',
+    backgroundColor: 'transparent',
     borderRadius: 8,
     padding: 12,
     marginRight: 8,

@@ -316,14 +316,12 @@ class ApiService {
     }
   }
   
-  async getCashFlowSeries(): Promise<ApiResponse<Transaction[]>> {
+  async getTransactions(): Promise<ApiResponse<Transaction[]>> {
     try {
-      const userId = await storageService.getItem('userId');
-      if (!userId) throw new Error('User ID not found');
-      const response = await this.api.get<Transaction[]>('/budget/cashflow-series', { params: { userId } });
+      const response = await this.api.get<Transaction[]>('/plaid/transactions/cashflow');
       return { success: true, data: response.data };
     } catch (error) {
-      return this.handleError(error, 'Failed to fetch cash flow series');
+      return this.handleError(error, 'Failed to fetch transactions');
     }
   }
 
@@ -420,6 +418,15 @@ class ApiService {
     }
   }
 
+  async deleteExpense(id: string): Promise<ApiResponse<any>> {
+    try {
+      const response = await this.api.delete(`/budget/expenses/${id}`);
+      return { success: true, data: response.data };
+    } catch (error) {
+      return this.handleError(error, 'Failed to delete expense');
+    }
+  }
+
   async getRetirementGoals(): Promise<ApiResponse<RetirementGoals>> {
     try {
       console.log('DEBUG: getRetirementGoals called');
@@ -470,6 +477,61 @@ class ApiService {
       return { success: true, data: response.data };
     } catch (error) {
       return this.handleError(error, 'Failed to update retirement goals');
+    }
+  }
+
+  // Plaid/Accounts Methods
+  async createPlaidLinkToken(): Promise<ApiResponse<{ link_token: string }>> {
+    try {
+      const response = await this.api.post('/plaid/create_link_token');
+      return { success: true, data: response.data };
+    } catch (error) {
+      return this.handleError(error, 'Failed to create Plaid link token');
+    }
+  }
+
+  async getAccounts(): Promise<ApiResponse<{[key: string]: Account[]}>> {
+    try {
+      const response = await this.api.get('/plaid/accounts');
+      return { success: true, data: response.data };
+    } catch (error) {
+      return this.handleError(error, 'Failed to fetch accounts');
+    }
+  }
+
+  async getManualAccounts(): Promise<ApiResponse<Account[]>> {
+    try {
+      const response = await this.api.get('/plaid/manual_accounts');
+      return { success: true, data: response.data };
+    } catch (error) {
+      return this.handleError(error, 'Failed to fetch manual accounts');
+    }
+  }
+
+  async addManualAccount(accountData: { name: string, amount: number, category: string }): Promise<ApiResponse<Account>> {
+    try {
+      const response = await this.api.post('/plaid/manual_account', accountData);
+      return { success: true, data: response.data };
+    } catch (error) {
+      return this.handleError(error, 'Failed to add manual account');
+    }
+  }
+
+  async updateAccount(accountId: string, accountData: { name: string, amount: number, category: string }): Promise<ApiResponse<Account>> {
+    try {
+      const response = await this.api.put(`/plaid/manual_account/${accountId}`, accountData);
+      return { success: true, data: response.data };
+    } catch (error) {
+      return this.handleError(error, 'Failed to update manual account');
+    }
+  }
+
+  async deleteManualAccount(accountId: string): Promise<ApiResponse<any>> {
+    try {
+      const response = await this.api.delete(`/plaid/manual_account/${accountId}`);
+      return { success: true, data: response.data };
+    } catch (error) {
+      return this.handleError(error, 'Failed to delete manual account');
     }
   }
 }
