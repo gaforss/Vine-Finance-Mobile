@@ -232,6 +232,15 @@ class ApiService {
     }
   }
   
+  async updateRealEstateExpense(propertyId: string, expenseId: string, expense: any): Promise<ApiResponse<any>> {
+    try {
+      const response: AxiosResponse<any> = await this.api.put(`/realestate/expense/update/${propertyId}/${expenseId}`, expense);
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return this.handleError(error, 'Failed to update real estate expense');
+    }
+  }
+
   // This is for REAL ESTATE expenses
   async deleteRealEstateExpense(propertyId: string, expenseId: string): Promise<ApiResponse<any>> {
     try {
@@ -446,7 +455,7 @@ class ApiService {
     try {
       const userId = await storageService.getItem('userId');
       if (!userId) throw new Error('User ID not found');
-      const response = await this.api.get<NetWorthComparisonResult>('/retirement/comparison', { params: { userId } });
+      const response = await this.api.get<NetWorthComparisonResult>('/retirement/networth/comparison', { params: { userId } });
       return { success: true, data: response.data };
     } catch (error) {
       return this.handleError(error, 'Failed to fetch net worth comparison');

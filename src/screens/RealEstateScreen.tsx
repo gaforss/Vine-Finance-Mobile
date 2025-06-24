@@ -12,6 +12,8 @@ import {
   TextInput,
   Alert,
   Linking,
+  ActivityIndicator,
+  Button,
 } from 'react-native';
 import {LineChart, BarChart} from 'react-native-chart-kit';
 import {StackNavigationProp} from '@react-navigation/stack';
@@ -23,6 +25,7 @@ import Toast from 'react-native-root-toast';
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
 import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 import DocumentPicker from 'react-native-document-picker';
+import DeleteModal from '../components/profile/DeleteModal';
 
 type RealEstateScreenNavigationProp = StackNavigationProp<
   RootStackParamList,
@@ -263,9 +266,124 @@ const UnitsTab = ({ propertyId }: { propertyId: string }) => {
 };
 
 const RentTab = () => <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}><Text>Rent (Coming soon)</Text></View>;
-const ExpensesTab = () => <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}><Text>Expenses (Coming soon)</Text></View>;
+
+const ExpensesTab = ({ propertyId }: { propertyId: string }) => {
+  const [expenses, setExpenses] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [editingExpense, setEditingExpense] = useState<any>(null);
+  const [form, setForm] = useState({ date: new Date().toISOString().slice(0, 10), description: '', category: '', amount: '' });
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [expenseToDelete, setExpenseToDelete] = useState<any>(null);
+
+  const fetchExpenses = async () => {
+    setLoading(true);
+    try {
+      const resp = await apiService.listRealEstateExpenses(propertyId);
+      if (resp.success) setExpenses(resp.data);
+    } catch (e) {
+      Alert.alert('Error', 'Could not load expenses');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchExpenses();
+  }, []);
+
+  const openForm = (expense: any = null) => {
+    if (expense) {
+      setEditingExpense(expense);
+      setForm({
+        date: new Date(expense.date).toISOString().slice(0, 10),
+        description: expense.description,
+        category: expense.category,
+        amount: expense.amount.toString(),
+      });
+    } else {
+      setEditingExpense(null);
+      setForm({ date: new Date().toISOString().slice(0, 10), description: '', category: '', amount: '' });
+    }
+    setModalVisible(true);
+  };
+
+  const handleSave = async () => {
+    const payload = { ...form, amount: parseFloat(form.amount) };
+    try {
+      if (editingExpense) {
+        await apiService.updateRealEstateExpense(propertyId, editingExpense._id, payload);
+      } else {
+        await apiService.addRealEstateExpense(propertyId, payload);
+      }
+      setModalVisible(false);
+      fetchExpenses();
+    } catch (e) {
+      Alert.alert('Error', 'Failed to save expense');
+    }
+  };
+
+  const openDeleteConfirm = (expense: any) => {
+    setExpenseToDelete(expense);
+    setDeleteModalVisible(true);
+  };
+
+  const handleDelete = async () => {
+    if (!expenseToDelete) return;
+    try {
+      await apiService.deleteRealEstateExpense(propertyId, expenseToDelete._id);
+      setDeleteModalVisible(false);
+      setExpenseToDelete(null);
+      fetchExpenses();
+    } catch (e) {
+      Alert.alert('Error', 'Failed to delete expense');
+    }
+  };
+
+  return (
+    <View style={{flex: 1}}>
+      <FlatList
+        data={expenses}
+        keyExtractor={item => item._id}
+        refreshing={loading}
+        onRefresh={fetchExpenses}
+        renderItem={({item}) => (
+          <View style={{flexDirection: 'row', padding: 10, alignItems: 'center'}}>
+            <View style={{flex: 1}}>
+              <Text style={{fontWeight: 'bold'}}>{item.category}: ${item.amount.toFixed(2)}</Text>
+              <Text>{item.description}</Text>
+              <Text>{new Date(item.date).toLocaleDateString()}</Text>
+            </View>
+            <TouchableOpacity onPress={() => openForm(item)} style={{padding: 5}}><FontAwesome5 name="edit" /></TouchableOpacity>
+            <TouchableOpacity onPress={() => openDeleteConfirm(item)} style={{padding: 5}}><FontAwesome5 name="trash" color="red" /></TouchableOpacity>
+          </View>
+        )}
+      />
+      <Button title="Add Expense" onPress={() => openForm()} />
+      <Modal visible={modalVisible} transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>{editingExpense ? 'Edit' : 'Add'} Expense</Text>
+            <TouchableOpacity onPress={() => setShowDatePicker(true)}><TextInput style={styles.input} value={form.date} editable={false} /></TouchableOpacity>
+            {showDatePicker && <DateTimePicker value={new Date(form.date)} mode="date" display="default" onChange={(_, d) => { setShowDatePicker(false); if(d) setForm(f => ({...f, date: d.toISOString().slice(0,10)}))}} />}
+            <TextInput style={styles.input} placeholder="Description" value={form.description} onChangeText={v => setForm(f => ({...f, description: v}))} />
+            <TextInput style={styles.input} placeholder="Category" value={form.category} onChangeText={v => setForm(f => ({...f, category: v}))} />
+            <TextInput style={styles.input} placeholder="Amount" keyboardType="numeric" value={form.amount} onChangeText={v => setForm(f => ({...f, amount: v}))} />
+            <View style={{flexDirection: 'row', justifyContent: 'space-around'}}>
+              <Button title="Cancel" onPress={() => setModalVisible(false)} />
+              <Button title="Save" onPress={handleSave} />
+            </View>
+          </View>
+        </View>
+      </Modal>
+      <DeleteModal visible={deleteModalVisible} onClose={() => setDeleteModalVisible(false)} onConfirm={handleDelete} />
+    </View>
+  );
+};
+
 const DocumentsTab = () => <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}><Text>Documents (Coming soon)</Text></View>;
-const VacanciesTab = () => <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}><Text>Vacancies (Coming soon)</Text></View>;
+const VacanciesTab = () => <View style={{ flex:1, alignItems: 'center', justifyContent: 'center' }}><Text>Vacancies (Coming soon)</Text></View>;
 const AnalyticsTab = () => <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}><Text>Analytics (Coming soon)</Text></View>;
 
 const PropertyDetailScreen = ({ route, navigation }: any) => {
@@ -280,7 +398,9 @@ const PropertyDetailScreen = ({ route, navigation }: any) => {
           {() => <UnitsTab propertyId={property._id} />}
         </Tab.Screen>
         <Tab.Screen name="Rent" component={RentTab} />
-        <Tab.Screen name="Expenses" component={ExpensesTab} />
+        <Tab.Screen name="Expenses">
+          {() => <ExpensesTab propertyId={property._id} />}
+        </Tab.Screen>
         <Tab.Screen name="Documents" component={DocumentsTab} />
         <Tab.Screen name="Vacancies" component={VacanciesTab} />
         <Tab.Screen name="Analytics" component={AnalyticsTab} />
@@ -717,7 +837,7 @@ const RealEstateScreen: React.FC<Props> = ({navigation}) => {
   };
 
   const renderPropertyCard = ({item}: {item: RealEstate}) => {
-    const equity = item.value - item.mortgageBalance;
+    const equity = item.value - (item.mortgageBalance || 0);
     const valueIncrease = item.value - item.purchasePrice;
     const valueIncreasePercentage =
       item.purchasePrice > 0 ? (valueIncrease / item.purchasePrice) * 100 : 0;
@@ -725,16 +845,18 @@ const RealEstateScreen: React.FC<Props> = ({navigation}) => {
     return (
       <View style={styles.propertyCard}>
         <View style={styles.cardHeader}>
-          <FontAwesome5 name="link" size={20} color="#4D8AF0" />
-          <View style={{flex: 1, marginLeft: 12}}>
-            <Text style={styles.propertyAddress}>{item.propertyAddress}</Text>
-            <View style={[styles.propertyTypeContainer, {backgroundColor: propertyTypeColors[item.propertyType] || '#2E7D32'}]}>
-              <Text style={styles.propertyType}>{item.propertyType}</Text>
-            </View>
+          <View style={{flexDirection: 'row', alignItems: 'center', flex: 1}}>
+            <FontAwesome5 name="link" size={20} color="#4D8AF0" />
+            <Text style={styles.propertyAddress} numberOfLines={1}>{item.propertyAddress}</Text>
           </View>
-          <TouchableOpacity onPress={() => item._id && setMenuVisibleFor(menuVisibleFor === item._id ? null : item._id)}>
-            <FontAwesome5 name="ellipsis-v" size={20} color="#fff" />
-          </TouchableOpacity>
+          <View style={{flexDirection: 'row', alignItems: 'center'}}>
+            <View style={[styles.propertyTypeContainer, {backgroundColor: 'rgba(2, 189, 108, 0.1)'}]}>
+              <Text style={[styles.propertyType, {color: '#02BD6C'}]}>{item.propertyType}</Text>
+            </View>
+            <TouchableOpacity onPress={() => item._id && setMenuVisibleFor(menuVisibleFor === item._id ? null : item._id)} style={{marginLeft: 8}}>
+              <FontAwesome5 name="ellipsis-v" size={20} color="#fff" />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {menuVisibleFor === item._id && (
@@ -750,15 +872,17 @@ const RealEstateScreen: React.FC<Props> = ({navigation}) => {
 
         <View style={styles.cardBody}>
           <View style={styles.houseIconContainer}>
-            <FontAwesome5 name="home" size={60} color="#fff" />
+            <FontAwesome5 name="home" size={40} color="#4D8AF0" />
           </View>
           <View style={styles.financialInfo}>
             <View style={styles.financialItem}>
+              <FontAwesome5 name="hand-holding-usd" size={20} color="#888" style={{marginBottom: 8}}/>
               <Text style={styles.financialLabel}>Equity</Text>
               <Text style={styles.financialValue}>{formatCurrency(equity)}</Text>
             </View>
             <View style={styles.financialItem}>
-              <Text style={styles.financialLabel}>Zestimate</Text>
+              <FontAwesome5 name="dollar-sign" size={20} color="#888" style={{marginBottom: 8}}/>
+              <Text style={styles.financialLabel}>$ Zestimate</Text>
               <Text style={styles.financialValue}>{formatCurrency(item.value)}</Text>
               {valueIncreasePercentage !== 0 && (
                 <View style={styles.percentageContainer}>
@@ -770,6 +894,7 @@ const RealEstateScreen: React.FC<Props> = ({navigation}) => {
               )}
             </View>
             <View style={styles.financialItem}>
+              <FontAwesome5 name="landmark" size={20} color="#888" style={{marginBottom: 8}}/>
               <Text style={styles.financialLabel}>Mortgage</Text>
               <Text style={styles.financialValue}>{formatCurrency(item.mortgageBalance)}</Text>
             </View>
@@ -834,16 +959,16 @@ const RealEstateScreen: React.FC<Props> = ({navigation}) => {
         </Text>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 18 }}>
           <View style={{ alignItems: 'center', flex: 1 }}>
-            <Text style={{ color: '#b0b8c1', fontSize: 15 }}>Total Equity</Text>
-            <Text style={{ color: '#1ea7fd', fontSize: 22, fontWeight: 'bold', marginTop: 2 }}>{formatCurrency(totalEquity)}</Text>
+            <Text style={{ color: '#b0b8c1', fontSize: 13 }}>Total Equity</Text>
+            <Text style={{ color: '#1ea7fd', fontSize: 18, fontWeight: 'bold', marginTop: 2 }}>{formatCurrency(totalEquity)}</Text>
           </View>
           <View style={{ alignItems: 'center', flex: 1 }}>
-            <Text style={{ color: '#b0b8c1', fontSize: 15 }}>Rent Unpaid</Text>
-            <Text style={{ color: '#1ea7fd', fontSize: 22, fontWeight: 'bold', marginTop: 2 }}>{formatCurrency(rentUnpaid)}</Text>
+            <Text style={{ color: '#b0b8c1', fontSize: 13 }}>Rent Unpaid</Text>
+            <Text style={{ color: '#1ea7fd', fontSize: 18, fontWeight: 'bold', marginTop: 2 }}>{formatCurrency(rentUnpaid)}</Text>
           </View>
           <View style={{ alignItems: 'center', flex: 1 }}>
-            <Text style={{ color: '#b0b8c1', fontSize: 15 }}>Overdue Rent</Text>
-            <Text style={{ color: '#1ea7fd', fontSize: 22, fontWeight: 'bold', marginTop: 2 }}>{formatCurrency(overdueRent)}</Text>
+            <Text style={{ color: '#b0b8c1', fontSize: 13 }}>Overdue Rent</Text>
+            <Text style={{ color: '#1ea7fd', fontSize: 18, fontWeight: 'bold', marginTop: 2 }}>{formatCurrency(overdueRent)}</Text>
           </View>
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -896,19 +1021,19 @@ const RealEstateScreen: React.FC<Props> = ({navigation}) => {
         shadowRadius: 8,
         elevation: 3,
       }}>
-        <Text style={{ color: '#fff', fontSize: 20, fontWeight: 'bold', marginBottom: 16, textAlign: 'center' }}>Portfolio Summary</Text>
+        <Text style={{ color: '#fff', fontSize: 18, fontWeight: 'bold', marginBottom: 16, textAlign: 'center' }}>Portfolio Summary</Text>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
           <View style={{ alignItems: 'center', flex: 1 }}>
-            <Text style={{ color: '#b0b8c1', fontSize: 15 }}>Total NOI</Text>
-            <Text style={{ color: '#1ea7fd', fontSize: 22, fontWeight: 'bold', marginTop: 2 }}>{formatCurrency(totalNOI)}</Text>
+            <Text style={{ color: '#b0b8c1', fontSize: 13 }}>Total NOI</Text>
+            <Text style={{ color: '#1ea7fd', fontSize: 18, fontWeight: 'bold', marginTop: 2 }}>{formatCurrency(totalNOI)}</Text>
           </View>
           <View style={{ alignItems: 'center', flex: 1 }}>
-            <Text style={{ color: '#b0b8c1', fontSize: 15 }}>Avg. Cap Rate</Text>
-            <Text style={{ color: '#1ea7fd', fontSize: 22, fontWeight: 'bold', marginTop: 2 }}>{formatPercentage(averageCapRate)}</Text>
+            <Text style={{ color: '#b0b8c1', fontSize: 13 }}>Avg. Cap Rate</Text>
+            <Text style={{ color: '#1ea7fd', fontSize: 18, fontWeight: 'bold', marginTop: 2 }}>{formatPercentage(averageCapRate)}</Text>
           </View>
           <View style={{ alignItems: 'center', flex: 1 }}>
-            <Text style={{ color: '#b0b8c1', fontSize: 15 }}>Avg. CoC Return</Text>
-            <Text style={{ color: '#1ea7fd', fontSize: 22, fontWeight: 'bold', marginTop: 2 }}>{formatPercentage(averageCoCReturn)}</Text>
+            <Text style={{ color: '#b0b8c1', fontSize: 13 }}>Avg. CoC Return</Text>
+            <Text style={{ color: '#1ea7fd', fontSize: 18, fontWeight: 'bold', marginTop: 2 }}>{formatPercentage(averageCoCReturn)}</Text>
           </View>
         </View>
       </View>
@@ -1346,7 +1471,8 @@ const styles = StyleSheet.create({
   },
   cardHeader: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: 16,
     zIndex: 1,
   },
@@ -1361,17 +1487,16 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#fff',
     flexShrink: 1,
+    marginLeft: 12,
   },
   propertyTypeContainer: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
     alignSelf: 'flex-start',
-    marginTop: 4,
   },
   propertyType: {
     fontSize: 12,
-    color: '#fff',
     fontWeight: 'bold',
   },
   menu: {
@@ -1400,13 +1525,13 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   houseIconContainer: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#fff',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 20,
   },
   financialInfo: {
     flexDirection: 'row',
@@ -1415,13 +1540,15 @@ const styles = StyleSheet.create({
   },
   financialItem: {
     alignItems: 'center',
+    paddingHorizontal: 5,
+    flex: 1,
   },
   financialLabel: {
     fontSize: 14,
     color: '#aaa',
   },
   financialValue: {
-    fontSize: 18,
+    fontSize: 14,
     fontWeight: 'bold',
     color: '#fff',
     marginTop: 4,
@@ -1430,9 +1557,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 4,
+    marginHorizontal: 4,
   },
   percentageChange: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: 'bold',
     marginLeft: 4,
   },
@@ -1458,7 +1586,7 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
     marginLeft: 8,
-    fontSize: 12,
+    fontSize: 11,
   },
   modalOverlay: {
     flex: 1,

@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, TextInput, Pressable, ScrollView, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, TextInput, Pressable, ActivityIndicator, Alert, FlatList } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { User, OnboardingStep, Session } from '../types';
 import { apiService } from '../services/api';
 import { storageService } from '../services/storage';
 import OnboardingChecklist from '../components/profile/OnboardingChecklist';
-import SessionActivity from '../components/profile/SessionActivity';
 import DeleteModal from '../components/profile/DeleteModal';
+import Icon from 'react-native-vector-icons/FontAwesome';
+import moment from 'moment';
 
 const ProfileScreen = ({ navigation }: any) => {
   const [user, setUser] = useState<User | null>(null);
@@ -134,78 +135,107 @@ const ProfileScreen = ({ navigation }: any) => {
     }
   };
 
+  const renderSessionItem = ({ item }: { item: Session }) => (
+    <View style={styles.sessionItem}>
+      <Icon name="globe" size={20} style={styles.sessionIcon} />
+      <View style={styles.sessionDetails}>
+        <Text style={styles.sessionLocation}>
+          {item.location.city || 'Unknown City'}, {item.location.country || 'Unknown Country'}
+        </Text>
+        <Text style={styles.sessionInfo}>IP: {item.ipAddress}</Text>
+        <Text style={styles.sessionInfo}>{moment(item.timestamp).format('MMMM Do YYYY, h:mm:ss a')}</Text>
+        <Text style={styles.sessionInfo} numberOfLines={1} ellipsizeMode="tail">
+          {item.userAgent}
+        </Text>
+      </View>
+    </View>
+  );
+
   if (loading) {
     return <View style={styles.container}><ActivityIndicator size="large" color="#556ee6" /></View>;
   }
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Profile Details</Text>
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>First Name</Text>
-          <TextInput
-            style={styles.input}
-            value={formState.firstName}
-            onChangeText={(value) => handleInputChange('firstName', value)}
-            placeholder="First Name"
-            placeholderTextColor="#a6b0cf"
-          />
-        </View>
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Last Name</Text>
-          <TextInput
-            style={styles.input}
-            value={formState.lastName}
-            onChangeText={(value) => handleInputChange('lastName', value)}
-            placeholder="Last Name"
-            placeholderTextColor="#a6b0cf"
-          />
-        </View>
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Username</Text>
-          <TextInput
-            style={styles.input}
-            value={formState.username}
-            onChangeText={(value) => handleInputChange('username', value)}
-            placeholder="Username"
-            placeholderTextColor="#a6b0cf"
-          />
-        </View>
-         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Email</Text>
-          <TextInput
-            style={[styles.input, styles.readOnlyInput]}
-            value={user?.email || ''}
-            editable={false}
-          />
-        </View>
-        <Pressable
-          style={[styles.button, saveStatus === 'saved' ? styles.savedButton : saveStatus === 'error' ? styles.errorButton : styles.saveButton]}
-          onPress={handleSaveProfile}
-          disabled={saveStatus === 'saving'}
-        >
-          <Text style={styles.buttonText}>{getSaveButtonText()}</Text>
-        </Pressable>
-      </View>
+    <FlatList
+      style={styles.container}
+      data={sessions}
+      renderItem={renderSessionItem}
+      keyExtractor={(item) => item._id}
+      ListHeaderComponent={
+        <>
+          <OnboardingChecklist steps={onboardingSteps} onToggleStep={handleToggleStep} />
 
-      <OnboardingChecklist steps={onboardingSteps} onToggleStep={handleToggleStep} />
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Profile Details</Text>
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>First Name</Text>
+              <TextInput
+                style={styles.input}
+                value={formState.firstName}
+                onChangeText={(value) => handleInputChange('firstName', value)}
+                placeholder="First Name"
+                placeholderTextColor="#a6b0cf"
+              />
+            </View>
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Last Name</Text>
+              <TextInput
+                style={styles.input}
+                value={formState.lastName}
+                onChangeText={(value) => handleInputChange('lastName', value)}
+                placeholder="Last Name"
+                placeholderTextColor="#a6b0cf"
+              />
+            </View>
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Username</Text>
+              <TextInput
+                style={styles.input}
+                value={formState.username}
+                onChangeText={(value) => handleInputChange('username', value)}
+                placeholder="Username"
+                placeholderTextColor="#a6b0cf"
+              />
+            </View>
+             <View style={styles.inputGroup}>
+              <Text style={styles.label}>Email</Text>
+              <TextInput
+                style={[styles.input, styles.readOnlyInput]}
+                value={user?.email || ''}
+                editable={false}
+              />
+            </View>
+            <Pressable
+              style={[styles.button, saveStatus === 'saved' ? styles.savedButton : saveStatus === 'error' ? styles.errorButton : styles.saveButton]}
+              onPress={handleSaveProfile}
+              disabled={saveStatus === 'saving'}
+            >
+              <Text style={styles.buttonText}>{getSaveButtonText()}</Text>
+            </Pressable>
+          </View>
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Session Activity</Text>
+          </View>
+        </>
+      }
+      ListFooterComponent={
+        <>
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Delete Your Profile</Text>
+            <Pressable style={[styles.button, styles.deleteButton]} onPress={() => setModalVisible(true)}>
+              <Text style={styles.buttonText}>Delete Profile</Text>
+            </Pressable>
+          </View>
 
-      <SessionActivity sessions={sessions} />
-      
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Delete Your Profile</Text>
-        <Pressable style={[styles.button, styles.deleteButton]} onPress={() => setModalVisible(true)}>
-          <Text style={styles.buttonText}>Delete Profile</Text>
-        </Pressable>
-      </View>
-
-      <DeleteModal
-        visible={modalVisible}
-        onClose={() => setModalVisible(false)}
-        onConfirm={handleDeleteAccount}
-      />
-    </ScrollView>
+          <DeleteModal
+            visible={modalVisible}
+            onClose={() => setModalVisible(false)}
+            onConfirm={handleDeleteAccount}
+          />
+        </>
+      }
+      showsVerticalScrollIndicator={false}
+    />
   );
 };
 
@@ -213,7 +243,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#1c2130',
-    padding: 10,
+    paddingHorizontal: 10,
+    paddingBottom: 10,
+    paddingTop: 60,
   },
   card: {
     backgroundColor: '#2a3042',
@@ -251,7 +283,7 @@ const styles = StyleSheet.create({
   },
   button: {
     borderRadius: 8,
-    paddingVertical: 15,
+    paddingVertical: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -262,7 +294,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#34c38f',
   },
   errorButton: {
-    backgroundColor: '#dc3545',
+    backgroundColor: '#f46a6a',
   },
   deleteButton: {
     backgroundColor: '#dc3545',
@@ -270,7 +302,34 @@ const styles = StyleSheet.create({
   buttonText: {
     color: '#ffffff',
     fontWeight: 'bold',
-    fontSize: 16,
+  },
+  sessionItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: '#2a3042',
+    paddingHorizontal: 20,
+  },
+  sessionIcon: {
+    color: '#a6b0cf',
+    marginRight: 15,
+    marginTop: 2,
+  },
+  sessionDetails: {
+    flex: 1,
+  },
+  sessionLocation: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: '#e0e0e0',
+    marginBottom: 5,
+  },
+  sessionInfo: {
+    fontSize: 13,
+    color: '#a6b0cf',
+    marginBottom: 3,
   },
 });
 

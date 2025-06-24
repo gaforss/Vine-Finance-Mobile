@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, FlatList } from 'react-native';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { Session } from '../../types';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import moment from 'moment';
@@ -9,31 +9,26 @@ interface SessionActivityProps {
 }
 
 const SessionActivity: React.FC<SessionActivityProps> = ({ sessions }) => {
-  const renderItem = ({ item }: { item: Session }) => (
-    <View style={styles.sessionItem}>
-      <Icon name="globe" size={20} style={styles.sessionIcon} />
-      <View style={styles.sessionDetails}>
-        <Text style={styles.sessionLocation}>
-          {item.location.city || 'Unknown City'}, {item.location.country || 'Unknown Country'}
-        </Text>
-        <Text style={styles.sessionInfo}>IP: {item.ipAddress}</Text>
-        <Text style={styles.sessionInfo}>{moment(item.timestamp).format('MMMM Do YYYY, h:mm:ss a')}</Text>
-        <Text style={styles.sessionInfo} numberOfLines={1} ellipsizeMode="tail">
-          {item.userAgent}
-        </Text>
-      </View>
-    </View>
-  );
-
   return (
     <View style={styles.card}>
       <Text style={styles.cardTitle}>Session Activity</Text>
-      <FlatList
-        data={sessions}
-        renderItem={renderItem}
-        keyExtractor={item => item._id}
-        showsVerticalScrollIndicator={false}
-      />
+      <ScrollView nestedScrollEnabled={true}>
+        {sessions.map(item => (
+          <View key={item._id} style={styles.sessionItem}>
+            <Icon name="globe" size={20} style={styles.sessionIcon} />
+            <View style={styles.sessionDetails}>
+              <Text style={styles.sessionLocation}>
+                {item.location.city || 'Unknown City'}, {item.location.country || 'Unknown Country'}
+              </Text>
+              <Text style={styles.sessionInfo}>IP: {item.ipAddress}</Text>
+              <Text style={styles.sessionInfo}>{moment(item.timestamp).format('MMMM Do YYYY, h:mm:ss a')}</Text>
+              <Text style={styles.sessionInfo} numberOfLines={1} ellipsizeMode="tail">
+                {item.userAgent}
+              </Text>
+            </View>
+          </View>
+        ))}
+      </ScrollView>
     </View>
   );
 };
@@ -44,7 +39,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 20,
     marginBottom: 20,
-    maxHeight: 300,
+    height: 300,
   },
   cardTitle: {
     fontSize: 18,
