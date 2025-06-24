@@ -32,7 +32,6 @@ const ProfileScreen: React.FC = () => {
   const [formState, setFormState] = useState({
     firstName: '',
     lastName: '',
-    username: '',
   });
   const [onboardingSteps, setOnboardingSteps] = useState<OnboardingStep[]>([]);
   const [loading, setLoading] = useState(true);
@@ -55,7 +54,6 @@ const ProfileScreen: React.FC = () => {
         setFormState({
           firstName: userResponse.data.firstName || '',
           lastName: userResponse.data.lastName || '',
-          username: userResponse.data.username || '',
         });
       } else {
         throw new Error(userResponse.message || 'Failed to fetch user data');
@@ -127,7 +125,7 @@ const ProfileScreen: React.FC = () => {
   };
 
   const handleLogout = async () => {
-    await storageService.removeItem('userToken');
+    await storageService.removeItem('token');
     await storageService.removeItem('userId');
     navigation.reset({
       index: 0,
@@ -194,12 +192,6 @@ const ProfileScreen: React.FC = () => {
           value={formState.lastName}
           onChangeText={text => handleInputChange('lastName', text)}
         />
-        <TextInput
-          style={styles.input}
-          placeholder="Username"
-          value={formState.username}
-          onChangeText={text => handleInputChange('username', text)}
-        />
         <TouchableOpacity
           style={styles.button}
           onPress={handleUpdateProfile}
@@ -248,10 +240,10 @@ const ProfileScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f4f6f8',
+    backgroundColor: '#181f2a',
   },
   header: {
-    backgroundColor: '#fff',
+    backgroundColor: '#222b3a',
     padding: 20,
     alignItems: 'center',
     borderBottomWidth: 1,
@@ -266,13 +258,14 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 22,
     fontWeight: 'bold',
+    color: '#e6eaf0',
   },
   username: {
     fontSize: 16,
-    color: '#666',
+    color: '#b0b8c1',
   },
   card: {
-    backgroundColor: '#fff',
+    backgroundColor: '#222b3a',
     padding: 20,
     margin: 15,
     borderRadius: 10,
@@ -286,13 +279,16 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 15,
+    color: '#e6eaf0',
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: '#4a5568',
+    backgroundColor: '#32394e',
     padding: 10,
     borderRadius: 5,
     marginBottom: 10,
+    color: '#e6eaf0',
   },
   button: {
     backgroundColor: '#007bff',

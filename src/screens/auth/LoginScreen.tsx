@@ -34,8 +34,8 @@ interface Props {
 const LoginScreen: React.FC<Props> = ({navigation}) => {
   console.log('🔐 LoginScreen.tsx: LoginScreen component rendering');
 
-  const [email, setEmail] = useState('demo@example.com');
-  const [password, setPassword] = useState('Golf123!');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [formError, setFormError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -71,10 +71,16 @@ const LoginScreen: React.FC<Props> = ({navigation}) => {
         );
       }
       if (response.success && response.data?.token) {
-        const decoded: {userId: string} = jwtDecode(response.data.token);
-        await storageService.setItem('userId', decoded.userId);
-        console.log('🔐 [handleLogin] Login successful, navigating to Main');
-        navigation.replace('Main');
+        const decoded: {id: string} = jwtDecode(response.data.token);
+        if (decoded.id) {
+          await storageService.setItem('userId', decoded.id);
+          console.log('🔐 [handleLogin] Login successful, navigating to Main');
+          navigation.replace('Main');
+        } else {
+          console.error('🔐 [handleLogin] Error: userId not found in token');
+          setFormError('An error occurred during login. Please try again.');
+          Alert.alert('Login Error', 'User ID was not found in your session token.');
+        }
       } else {
         console.log(
           '🔐 [handleLogin] Login failed:',
@@ -96,9 +102,11 @@ const LoginScreen: React.FC<Props> = ({navigation}) => {
       try {
         const token = await storageService.getItem('token');
         if (token) {
-          const decoded: {userId: string} = jwtDecode(token);
-          await storageService.setItem('userId', decoded.userId);
-          navigation.replace('Main');
+          const decoded: {id: string} = jwtDecode(token);
+          if (decoded.id) {
+            await storageService.setItem('userId', decoded.id);
+            navigation.replace('Main');
+          }
         }
       } catch (e) {
         console.log('No valid token found');
@@ -121,78 +129,96 @@ const LoginScreen: React.FC<Props> = ({navigation}) => {
               style={styles.logoImg}
               resizeMode="contain"
             />
+          </View>
+          <View style={styles.formContainer}>
             <Text style={styles.header}>Welcome Back</Text>
-            <Text style={styles.subHeader}>
-              Sign in to your Vine Financial account
-            </Text>
             <TouchableOpacity
-              style={styles.signupLink}
+              style={styles.linkButton}
               onPress={() => navigation.navigate('Register')}>
-              <Text>Sign Up Here!</Text>
+              <Text style={styles.linkText}>
+                Don't have an account? Sign Up
+              </Text>
             </TouchableOpacity>
-          </View>
 
-          {formError ? <Text style={styles.errorText}>{formError}</Text> : null}
+            {formError ? (
+              <Text style={styles.errorText}>{formError}</Text>
+            ) : null}
 
-          <View style={styles.inputContainer}>
-            <FontAwesome5
-              name="envelope"
-              size={18}
-              color="#888"
-              style={styles.inputIcon}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Email"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-              placeholderTextColor="#888"
-            />
-          </View>
-
-          <View style={styles.inputContainer}>
-            <FontAwesome5
-              name="lock"
-              size={18}
-              color="#888"
-              style={styles.inputIcon}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Password"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry={!showPassword}
-              autoCapitalize="none"
-              autoCorrect={false}
-              placeholderTextColor="#888"
-            />
-            <TouchableOpacity
-              style={styles.eyeIcon}
-              onPress={() => setShowPassword(!showPassword)}>
+            <View style={styles.inputWrapper}>
               <FontAwesome5
-                name={showPassword ? 'eye-slash' : 'eye'}
+                name="envelope"
                 size={18}
                 color="#888"
+                style={styles.inputIcon}
               />
+              <TextInput
+                style={styles.input}
+                placeholder="Email"
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                placeholderTextColor="#888"
+              />
+            </View>
+
+            <View style={styles.inputWrapper}>
+              <FontAwesome5
+                name="lock"
+                size={18}
+                color="#888"
+                style={styles.inputIcon}
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="Password"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPassword}
+                autoCapitalize="none"
+                autoCorrect={false}
+                placeholderTextColor="#888"
+              />
+              <TouchableOpacity
+                style={styles.eyeIcon}
+                onPress={() => setShowPassword(!showPassword)}>
+                <FontAwesome5
+                  name={showPassword ? 'eye-slash' : 'eye'}
+                  size={18}
+                  color="#888"
+                />
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity
+              style={styles.forgotPasswordButton}
+              onPress={() => navigation.navigate('ForgotPassword')}>
+              <Text style={styles.linkText}>Forgot Password?</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.button} onPress={handleLogin}>
+              {loading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.buttonText}>Sign in</Text>
+              )}
+            </TouchableOpacity>
+            <View style={styles.dividerContainer}>
+              <View style={styles.divider} />
+              <Text style={styles.orText}>or</Text>
+              <View style={styles.divider} />
+            </View>
+            <TouchableOpacity style={styles.googleButton}>
+              <FontAwesome5
+                name="google"
+                size={20}
+                color="#EA4335"
+                style={{marginRight: 10}}
+              />
+              <Text style={styles.googleButtonText}>Sign in with Google</Text>
             </TouchableOpacity>
           </View>
-
-          <TouchableOpacity style={styles.button} onPress={handleLogin}>
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.buttonText}>Sign in</Text>
-            )}
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.forgotPassword}
-            onPress={() => navigation.navigate('ForgotPassword')}>
-            <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
-          </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
     );
@@ -213,76 +239,103 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 40,
   },
   logoContainer: {
     alignItems: 'center',
-    marginBottom: -60,
+    marginBottom: 20,
   },
   logoImg: {
-    width: 320,
-    height: 320,
+    width: 250,
+    height: 150,
+  },
+  formContainer: {
+    width: '100%',
+    maxWidth: 400,
   },
   header: {
     color: '#fff',
-    marginBottom: 6,
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 10,
   },
-  subHeader: {
-    color: '#fff',
+  linkButton: {
     marginBottom: 20,
-    fontSize: 16,
+    alignItems: 'center',
   },
-  signupLink: {
+  linkText: {
     color: '#8EE4AF',
     textDecorationLine: 'underline',
-    fontWeight: 'bold',
   },
-  inputContainer: {
+  inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#E3EAF2',
     borderRadius: 10,
     marginBottom: 15,
-    paddingHorizontal: 10,
+    paddingHorizontal: 15,
   },
   inputIcon: {
-    marginRight: 8,
+    marginRight: 10,
   },
   input: {
     flex: 1,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: '#222',
+    height: 50,
+    color: '#181F2A',
   },
   eyeIcon: {
-    padding: 6,
+    padding: 5,
+  },
+  forgotPasswordButton: {
+    alignSelf: 'flex-end',
+    marginBottom: 15,
   },
   button: {
     backgroundColor: '#8EE4AF',
-    borderRadius: 10,
     padding: 15,
+    borderRadius: 10,
     alignItems: 'center',
-    marginBottom: 10,
+    justifyContent: 'center',
   },
   buttonText: {
     color: '#181F2A',
-    fontWeight: 'bold',
     fontSize: 18,
+    fontWeight: 'bold',
   },
-  forgotPassword: {
-    alignSelf: 'flex-end',
-    marginBottom: 10,
+  dividerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 20,
   },
-  forgotPasswordText: {
-    color: '#8EE4AF',
-    fontSize: 14,
-    textDecorationLine: 'underline',
+  divider: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#444',
+  },
+  orText: {
+    color: '#888',
+    marginHorizontal: 10,
+  },
+  googleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fff',
+    padding: 15,
+    borderRadius: 10,
+  },
+  googleButtonText: {
+    color: '#000',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   errorText: {
-    color: 'red',
+    color: '#ff4d4d',
+    textAlign: 'center',
     marginBottom: 10,
+    fontWeight: 'bold',
   },
 });
 
